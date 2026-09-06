@@ -367,13 +367,21 @@ async function continuarFluxo(
       const { data: config } = await buscarConfig(admin, conta.id);
       const limiteMaximo = config?.reserva_limite_maximo;
 
-      if (typeof limiteMaximo === "number" && quantidade > limiteMaximo) {
-        const mensagem =
-          config?.reserva_mensagem_limite_maximo?.trim() ||
-          "Nossas reservas do dia já estão encerradas porque todas as mesas já foram preenchidas. Nosso atendimento será apenas por ordem de chegada.";
-        await enviarMensagemDirect(conta.access_token, idDoCliente, mensagem);
-        await encerrarConversa(admin, conversa.id);
-        return;
+      if (typeof limiteMaximo === "number") {
+        // Capacidade é por dia+período (almoço e jantar contam separado, cada um com o mesmo
+        // limite) — soma quem já está confirmado em chatbot_reservations pra essa data+período
+        // MAIS a quantidade que essa pessoa está pedindo agora. Recusa mesmo que ninguém tenha
+        // reservado ainda, se só o pedido dela já estourar o limite sozinho.
+        const jaReservado = await somaPessoasReservadas(admin, conta.id, dados.data_reserva, dados.periodo);
+
+        if (jaReservado + quantidade > limiteMaximo) {
+          const mensagem =
+            config?.reserva_mensagem_limite_maximo?.trim() ||
+            "Nossas reservas do dia já estão encerradas porque todas as mesas já foram preenchidas. Nosso atendimento será apenas por ordem de chegada.";
+          await enviarMensagemDirect(conta.access_token, idDoCliente, mensagem);
+          await encerrarConversa(admin, conversa.id);
+          return;
+        }
       }
 
       dados.quantidade_pessoas = quantidade;
@@ -466,6 +474,27 @@ async function continuarFluxo(
 async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string, dados: any) {
   const { data: config } = await buscarConfig(admin, conta.id);
 
+  // Confere a capacidade de novo aqui, bem antes de gravar — o cliente pode ter levado minutos
+  // entre a pergunta da quantidade e essa confirmação final, e outra pessoa pode ter confirmado
+  // uma reserva pro mesmo dia+período nesse meio tempo. Sem essa segunda checagem, dava pra
+  // estourar o limite combinando duas reservas que passaram cada uma na checagem da etapa
+  // "pessoas" só porque, na hora de cada uma, a outra ainda não tinha sido confirmada.
+  if (
+    typeof config?.reserva_limite_maximo === "number" &&
+    dados.data_reserva &&
+    dados.periodo
+  ) {
+    const jaReservado = await somaPessoasReservadas(admin, conta.id, dados.data_reserva, dados.periodo);
+
+    if (jaReservado + (dados.quantidade_pessoas ?? 0) > config.reserva_limite_maximo) {
+      const mensagem =
+        config?.reserva_mensagem_limite_maximo?.trim() ||
+        "Nossas reservas do dia já estão encerradas porque todas as mesas já foram preenchidas. Nosso atendimento será apenas por ordem de chegada.";
+      await enviarMensagemDirect(conta.access_token, idDoCliente, mensagem);
+      return;
+    }
+  }
+
   const { data: reservaSalva, error: erroAoSalvar } = await admin
     .from("chatbot_reservations")
     .insert({
@@ -522,6 +551,30 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
         .eq("id", reservaSalva.id);
     }
   }
+}
+
+/**
+ * Soma quantas pessoas já estão em reservas CONFIRMADAS (as únicas que existem em
+ * chatbot_reservations — a tabela só recebe uma linha depois que o cliente confirma no fim do
+ * fluxo) pra uma data+período específicos. Usada pra checar capacidade: o limite máximo
+ * configurado é por dia+período (almoço e jantar contam à parte, cada um com o mesmo teto).
+ */
+async function somaPessoasReservadas(
+  admin: Admin,
+  accountId: string,
+  dataReserva: string,
+  periodo: string
+): Promise<number> {
+  const { data, error } = await admin
+    .from("chatbot_reservations")
+    .select("quantidade_pessoas")
+    .eq("account_id", accountId)
+    .eq("data_reserva", dataReserva)
+    .eq("periodo", periodo);
+
+  if (error) throw error;
+
+  return (data ?? []).reduce((soma, linha) => soma + (linha.quantidade_pessoas ?? 0), 0);
 }
 
 async function buscarConfig(admin: Admin, accountId: string) {

@@ -205,8 +205,13 @@ export default async function ReservaConfigPage({
 
           <div>
             <label className="text-xs text-neutral-400">
-              Limite máximo de pessoas (acima disso, recusa)
+              Capacidade máxima de pessoas por período (almoço e jantar contam separado)
             </label>
+            <p className="mt-1 text-xs text-neutral-500">
+              É a SOMA de todas as reservas já confirmadas pra aquele dia+período. Assim que bater
+              nesse número, ninguém mais consegue reservar pra esse período — nem uma reserva
+              pequena que ainda caberia, se pedir mais do que o que sobrou.
+            </p>
             <input
               type="number"
               min={0}
