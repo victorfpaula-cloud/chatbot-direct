@@ -29,6 +29,13 @@ const RESERVA_PERIODO_JANTAR = "RESERVA_PERIODO_JANTAR";
 const RESERVA_CONFIRMAR_SIM = "RESERVA_CONFIRMAR_SIM";
 const RESERVA_CONFIRMAR_NAO = "RESERVA_CONFIRMAR_NAO";
 
+// Se o cliente sumir no meio do fluxo (não responde mais) e voltar dias depois falando de outra
+// coisa, sem isso ele ficaria PRA SEMPRE preso no fluxo de reserva — toda mensagem nova dele seria
+// interpretada como resposta da pergunta parada (data/período/etc.), o bot nunca mais cairia em
+// palavra-chave normal nem no Gemini pra essa pessoa. Passado esse tempo sem nenhuma resposta,
+// trata como abandonada: apaga o estado e deixa a mensagem nova seguir pro caminho normal.
+const TIMEOUT_CONVERSA_ABANDONADA_MS = 60 * 60 * 1000;
+
 /**
  * Ponto de entrada, chamado pelo webhook ANTES da checagem de palavra-chave comum. Devolve
  * `true` quando tratou a mensagem (o webhook para por ali), `false` quando não tem nada a ver
@@ -67,15 +74,26 @@ export async function processarMensagemDeReserva(
     !!textoDaMensagem &&
     variacoesDaPalavraChaveDeReserva.some((variacao: string) => normalizar(textoDaMensagem).includes(variacao));
 
-  const { data: conversa, error: erroAoBuscarConversa } = await admin
+  const { data: conversaEncontrada, error: erroAoBuscarConversa } = await admin
     .from("chatbot_conversations")
-    .select("id, etapa_atual, dados_coletados")
+    .select("id, etapa_atual, dados_coletados, atualizado_em")
     .eq("account_id", conta.id)
     .eq("instagram_scoped_id", idDoCliente)
     .eq("fluxo_atual", "reserva")
     .maybeSingle();
 
   if (erroAoBuscarConversa) throw erroAoBuscarConversa;
+
+  let conversa = conversaEncontrada;
+
+  if (
+    conversa &&
+    !bateuPalavraChave &&
+    Date.now() - new Date(conversa.atualizado_em).getTime() > TIMEOUT_CONVERSA_ABANDONADA_MS
+  ) {
+    await admin.from("chatbot_conversations").delete().eq("id", conversa.id);
+    conversa = null;
+  }
 
   if (bateuPalavraChave) {
     // Bateu a palavra-chave — começa (ou recomeça do zero, se já tinha uma reserva pela metade;
@@ -507,13 +525,22 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
 }
 
 async function buscarConfig(admin: Admin, accountId: string) {
-  return admin
+  const resultado = await admin
     .from("chatbot_account_settings")
     .select(
       "reserva_regras_texto, reserva_mensagem_limite_maximo, reserva_limite_maximo, reserva_cutoff_horario, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas"
     )
     .eq("account_id", accountId)
     .maybeSingle();
+
+  // Chamado em quase toda etapa do fluxo de reserva pra buscar cutoff/mensagens/regras — se essa
+  // busca falhar (rede, RLS, etc.), quem chama nunca fica sabendo (só recebe `config: undefined` e
+  // segue com os textos padrão). Antes isso passava em silêncio total; agora ao menos fica no log.
+  if (resultado.error) {
+    console.error("Falha ao buscar configuração de reserva da conta:", resultado.error);
+  }
+
+  return resultado;
 }
 
 async function atualizarEtapa(admin: Admin, conversaId: string, etapa: string, dados: any) {

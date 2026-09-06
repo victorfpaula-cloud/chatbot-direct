@@ -142,3 +142,56 @@ create table if not exists chatbot_pending_connections (
 );
 
 alter table chatbot_pending_connections enable row level security;
+
+-- ============================================================================
+-- Etapas 3-6 — colunas que o código passou a usar depois deste schema inicial (personalização
+-- das mensagens do fluxo de reserva, bloqueio de datas específicas, mensagem de limite máximo).
+-- Ficaram faltando aqui mesmo já estando em uso em produção — o `add column if not exists` deixa
+-- seguro rodar este arquivo inteiro de novo em qualquer ambiente, sem duplicar nem dar erro em
+-- coluna que já existe.
+-- ============================================================================
+alter table chatbot_account_settings
+  add column if not exists reserva_mensagem_limite_maximo text,
+  add column if not exists reserva_msg_inicial text,
+  add column if not exists reserva_msg_pergunta_data text,
+  add column if not exists reserva_msg_pergunta_periodo text,
+  add column if not exists reserva_msg_pergunta_pessoas text,
+  add column if not exists reserva_msg_pergunta_whatsapp text,
+  add column if not exists reserva_msg_confirmada text,
+  add column if not exists reserva_msg_recusada text,
+  add column if not exists reserva_datas_bloqueadas text;
+
+-- ============================================================================
+-- Reservas confirmadas — colunas que faltavam aqui (nome/@usuário do cliente, período, id do
+-- cliente no Direct e se já foi sincronizada com a planilha do Google), todas já gravadas por
+-- `finalizarReserva` em src/lib/reservas.ts.
+-- ============================================================================
+alter table chatbot_reservations
+  add column if not exists instagram_scoped_id text,
+  add column if not exists cliente_nome text,
+  add column if not exists cliente_instagram_username text,
+  add column if not exists periodo text,
+  add column if not exists sheet_sincronizado boolean not null default false;
+
+-- ============================================================================
+-- Histórico de atendimentos (tela "Atendimentos" de cada conta) — usado desde a Etapa 3 em
+-- src/lib/atendimentos.ts, mas nunca tinha entrado neste arquivo de schema.
+-- ============================================================================
+create table if not exists chatbot_atendimentos (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references chatbot_accounts(id) on delete cascade,
+  instagram_scoped_id text not null,
+  cliente_nome text,
+  cliente_username text,
+  mensagem_recebida text,
+  tipo_resposta text not null,
+  resposta_enviada text,
+  status text not null,
+  erro_detalhe text,
+  criado_em timestamptz not null default now()
+);
+
+create index if not exists chatbot_atendimentos_account_idx
+  on chatbot_atendimentos(account_id, criado_em desc);
+
+alter table chatbot_atendimentos enable row level security;

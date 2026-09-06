@@ -9,21 +9,28 @@ cadastro na Meta), mas reaproveitando o **mesmo projeto Supabase** (tabelas com 
 Stack: Next.js 14 (App Router, TypeScript) + Tailwind + Supabase (Postgres) + Meta Graph API
 (Instagram messaging) + Gemini (atendimento por IA).
 
-## Estado atual: Etapa 2 — webhook + conexão de conta (quase completa)
+## Estado atual: funcionando numa conta de teste, com melhorias pendentes
+
+Todas as etapas abaixo já estão implementadas em código e em uso numa conta de teste — falta
+ainda o App Review da Meta pra abrir pra contas de verdade fora do modo de desenvolvimento.
 
 - **Webhook** (`src/app/api/webhook/instagram/route.ts`): confere o handshake de verificação da
   Meta, valida a assinatura de cada chamada (`X-Hub-Signature-256`), evita processar a mesma
-  mensagem duas vezes (`chatbot_processed_messages`) e responde com um texto fixo de teste.
-  Configurado e verificado no painel do Meta (Callback URL + campo `messages` assinado).
+  mensagem duas vezes (`chatbot_processed_messages`) e roteia pro fluxo de reserva, palavra-chave
+  ou Gemini, registrando tudo em `chatbot_atendimentos`.
 - **Conexão de conta** (`/contas`, `/contas/conectar`, `src/lib/facebookOAuth.ts`): login via
-  Facebook Login (mesmo padrão do agendador), lista as Páginas com Instagram vinculado, e deixa
-  escolher qual conectar. Ainda falta **adicionar a URL de redirecionamento do OAuth
-  (`/api/auth/facebook/callback`) nas configurações de "Login do Facebook para Empresas" do app
-  do chatbot no painel do Meta** — sem isso o Facebook recusa o redirecionamento na volta do
-  login.
+  Facebook Login, lista as Páginas com Instagram vinculado, deixa escolher qual conectar e já
+  inscreve a Página no webhook automaticamente. Falta ainda **adicionar a URL de redirecionamento
+  do OAuth (`/api/auth/facebook/callback`) nas configurações de "Login do Facebook para Empresas"
+  do app do chatbot no painel do Meta** — sem isso o Facebook recusa o redirecionamento na volta
+  do login, e é o item que bloqueia o App Review.
+- **Atendimento por IA (Gemini)**, **palavras-chave especiais** e **fluxo de reserva completo**
+  (capacidade, cutoff de horário, pausa manual, bloqueio de datas específicas, mensagens
+  personalizáveis por conta, planilha do Google) já implementados — ver `src/lib/gemini.ts`,
+  `src/lib/reservas.ts` e as abas em `/contas/[id]`.
 
-Depois disso: testar de ponta a ponta (conectar uma conta de teste, mandar um Direct, ver a
-resposta fixa chegando) antes de seguir pra Etapa 3.
+Pendências conhecidas (não bloqueiam o uso, mas valem atenção): não existe nenhuma autenticação
+nas telas `/contas` nem nas rotas de configuração — hoje protegido só pela URL não ser divulgada.
 
 ## Como rodar (visão geral, não precisa fazer isso localmente)
 
