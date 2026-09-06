@@ -195,3 +195,41 @@ create index if not exists chatbot_atendimentos_account_idx
   on chatbot_atendimentos(account_id, criado_em desc);
 
 alter table chatbot_atendimentos enable row level security;
+
+-- ============================================================================
+-- Login dos funcionários do restaurante — tela "Funcionários" de cada conta (/contas/[id]/
+-- funcionarios). Totalmente separado do login do Victor (Supabase Auth, ver src/middleware.ts):
+-- aqui é usuário/senha simples, criado pelo próprio Victor pra cada pessoa que precisa acessar só
+-- a tela de reservas do dia (/reservas), sem enxergar mais nada do painel administrativo.
+--
+-- `usuario` é único no sistema TODO (não só dentro da conta) — mantém a tela de login do
+-- funcionário simples (só usuário + senha, sem precisar escolher "qual restaurante" antes).
+-- ============================================================================
+create table if not exists chatbot_funcionarios (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references chatbot_accounts(id) on delete cascade,
+  usuario text not null unique,
+  senha_hash text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists chatbot_funcionarios_account_idx on chatbot_funcionarios(account_id);
+
+alter table chatbot_funcionarios enable row level security;
+
+-- Sessão do funcionário depois do login (token opaco guardado num cookie httpOnly) — mesmo
+-- espírito de chatbot_oauth_states/chatbot_pending_connections (token guardado em texto puro,
+-- protegido por só existir rota server-side com service role acessando essa tabela, nunca a
+-- chave anônima). Excluir o funcionário (on delete cascade) já derruba a sessão dele na hora,
+-- sem precisar de um campo "ativo" separado.
+create table if not exists chatbot_funcionario_sessoes (
+  id uuid primary key default gen_random_uuid(),
+  funcionario_id uuid not null references chatbot_funcionarios(id) on delete cascade,
+  token text not null unique,
+  criado_em timestamptz not null default now(),
+  expira_em timestamptz not null
+);
+
+create index if not exists chatbot_funcionario_sessoes_token_idx on chatbot_funcionario_sessoes(token);
+
+alter table chatbot_funcionario_sessoes enable row level security;

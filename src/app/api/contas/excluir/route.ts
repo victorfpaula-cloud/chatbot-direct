@@ -3,8 +3,9 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 
 // Exclui uma conta permanentemente. As tabelas relacionadas (chatbot_account_settings,
 // chatbot_keywords, chatbot_conversations, chatbot_reservations, chatbot_atendimentos,
-// chatbot_processed_messages) têm `on delete cascade` pro account_id, então apagar a linha em
-// chatbot_accounts já limpa tudo sozinho — não precisa apagar tabela por tabela aqui.
+// chatbot_processed_messages, chatbot_funcionarios — e as sessões deles, em cascata a partir
+// daí) têm `on delete cascade` pro account_id, então apagar a linha em chatbot_accounts já limpa
+// tudo sozinho — não precisa apagar tabela por tabela aqui.
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const accountId = formData.get("account_id")?.toString();

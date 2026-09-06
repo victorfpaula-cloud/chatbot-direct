@@ -34,6 +34,14 @@ ainda o App Review da Meta pra abrir pra contas de verdade fora do modo de desen
   agendador-stories e no ShoppingHub — inclusive o mesmo usuário cadastrado lá já funciona aqui,
   sem precisar criar nada novo, porque os três projetos usam o mesmo projeto Supabase. Fica de
   fora só `/api/webhook/instagram` (quem chama é a Meta, validado por assinatura HMAC própria).
+- **Painel de reservas** (`/reservas`, `src/app/contas/[id]/funcionarios`): tela pro dia a dia do
+  restaurante — reservas confirmadas agrupadas por dia e período, com o total de pessoas contra a
+  capacidade configurada. Pensada pra substituir a planilha do Google + Looker Studio que o
+  Victor usa hoje só pra isso. Tem duas portas de entrada: a sessão normal (Victor, dono da
+  conta, vê todas as contas com um seletor) e um login próprio e separado pra funcionário do
+  restaurante (`chatbot_funcionarios`/`chatbot_funcionario_sessoes`, ver
+  `src/lib/funcionarios.ts`), criado pelo Victor na aba "Funcionários" de cada conta — quem entra
+  por ali só enxerga essa tela, nada mais do painel.
 
 ## Como rodar (visão geral, não precisa fazer isso localmente)
 

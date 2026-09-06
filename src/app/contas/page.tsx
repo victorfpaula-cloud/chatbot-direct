@@ -151,7 +151,15 @@ export default async function ContasPage({
             Atendimento automático de Instagram Direct — suas contas conectadas.
           </p>
         </div>
-        <BotaoSair />
+        <div className="flex items-center gap-2">
+          <a
+            href="/reservas"
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:border-neutral-500"
+          >
+            Ver reservas
+          </a>
+          <BotaoSair />
+        </div>
       </div>
 
       {searchParams.conectada && (
