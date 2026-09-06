@@ -2,6 +2,7 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { buscarFotoDePerfilDaConta } from "@/lib/metaMessaging";
 import { BotaoPausar } from "./BotaoPausar";
 import { AvatarConta } from "./AvatarConta";
+import { BotaoSair } from "./BotaoSair";
 
 export const dynamic = "force-dynamic";
 
@@ -143,10 +144,15 @@ export default async function ContasPage({
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
-      <h1 className="text-2xl font-semibold">Contas conectadas</h1>
-      <p className="mt-1 text-sm text-neutral-400">
-        Atendimento automático de Instagram Direct — suas contas conectadas.
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Contas conectadas</h1>
+          <p className="mt-1 text-sm text-neutral-400">
+            Atendimento automático de Instagram Direct — suas contas conectadas.
+          </p>
+        </div>
+        <BotaoSair />
+      </div>
 
       {searchParams.conectada && (
         <div className="mt-4 rounded-lg border border-green-900 bg-green-950 px-4 py-2 text-sm text-green-300">

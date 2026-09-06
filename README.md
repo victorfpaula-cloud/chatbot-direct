@@ -29,8 +29,11 @@ ainda o App Review da Meta pra abrir pra contas de verdade fora do modo de desen
   personalizáveis por conta, planilha do Google) já implementados — ver `src/lib/gemini.ts`,
   `src/lib/reservas.ts` e as abas em `/contas/[id]`.
 
-Pendências conhecidas (não bloqueiam o uso, mas valem atenção): não existe nenhuma autenticação
-nas telas `/contas` nem nas rotas de configuração — hoje protegido só pela URL não ser divulgada.
+- **Login** (`/login`, `src/middleware.ts`): protege `/contas` e toda rota de API que muda ou lê
+  dado de conta/cliente. Mesmo padrão de sessão via Supabase Auth (cookie) já usado no
+  agendador-stories e no ShoppingHub — inclusive o mesmo usuário cadastrado lá já funciona aqui,
+  sem precisar criar nada novo, porque os três projetos usam o mesmo projeto Supabase. Fica de
+  fora só `/api/webhook/instagram` (quem chama é a Meta, validado por assinatura HMAC própria).
 
 ## Como rodar (visão geral, não precisa fazer isso localmente)
 
