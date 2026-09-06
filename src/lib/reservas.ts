@@ -36,6 +36,11 @@ const RESERVA_CONFIRMAR_NAO = "RESERVA_CONFIRMAR_NAO";
 // trata como abandonada: apaga o estado e deixa a mensagem nova seguir pro caminho normal.
 const TIMEOUT_CONVERSA_ABANDONADA_MS = 60 * 60 * 1000;
 
+// Anexada em toda mensagem de "não entendi" do fluxo — deixa claro que dá pra sair a qualquer
+// momento (ver `ehPedidoDeCancelamento`), em vez de só repetir a pergunta sem dar opção nenhuma
+// pra quem mudou de ideia ou perguntou outra coisa sem querer mais continuar a reserva.
+const SUGESTAO_DE_CANCELAR = ' Se preferir, digite "cancelar" pra encerrar essa reserva.';
+
 /**
  * Ponto de entrada, chamado pelo webhook ANTES da checagem de palavra-chave comum. Devolve
  * `true` quando tratou a mensagem (o webhook para por ali), `false` quando não tem nada a ver
@@ -249,6 +254,25 @@ async function continuarFluxo(
     .update({ dados_coletados: dados, atualizado_em: new Date().toISOString() })
     .eq("id", conversa.id);
 
+  // Deixa a pessoa desistir a qualquer momento do fluxo (menos na etapa de confirmação final, que
+  // já trata "cancelar"/"não" com sua própria mensagem configurável de recusa, via
+  // `interpretarSimNao` mais abaixo) — sem isso, quem decidisse não querer mais reservar no meio
+  // do caminho ficaria preso respondendo pergunta que não quer mais responder, sem nenhum jeito de
+  // sair a não ser esperar o fluxo expirar sozinho (1h) ou terminar à força.
+  if (
+    conversa.etapa_atual !== "confirmacao" &&
+    !payloadDoBotao &&
+    ehPedidoDeCancelamento(textoDaMensagem)
+  ) {
+    const { data: config } = await buscarConfig(admin, conta.id);
+    const mensagemCancelada =
+      config?.reserva_msg_recusada?.trim() ||
+      "Sem problema, cancelei a reserva por aqui. Se quiser começar de novo, é só chamar.";
+    await enviarMensagemDirect(conta.access_token, idDoCliente, mensagemCancelada);
+    await encerrarConversa(admin, conversa.id);
+    return;
+  }
+
   switch (conversa.etapa_atual) {
     case "data": {
       const { data: config } = await buscarConfig(admin, conta.id);
@@ -261,9 +285,9 @@ async function continuarFluxo(
         await enviarMensagemDirect(
           conta.access_token,
           idDoCliente,
-          hojeFechado
+          (hojeFechado
             ? "Não entendi — pode ser Amanhã ou Outro dia?"
-            : "Não entendi — pode ser Hoje, Amanhã ou Outro dia?"
+            : "Não entendi — pode ser Hoje, Amanhã ou Outro dia?") + SUGESTAO_DE_CANCELAR
         );
         return;
       }
@@ -315,7 +339,8 @@ async function continuarFluxo(
         await enviarMensagemDirect(
           conta.access_token,
           idDoCliente,
-          "Não consegui entender essa data — pode escrever no formato dia/mês, tipo 15/09?"
+          "Não consegui entender essa data — pode escrever no formato dia/mês, tipo 15/09?" +
+            SUGESTAO_DE_CANCELAR
         );
         return;
       }
@@ -341,7 +366,11 @@ async function continuarFluxo(
     case "periodo": {
       const periodo = interpretarPeriodo(payloadDoBotao, textoDaMensagem);
       if (!periodo) {
-        await enviarMensagemDirect(conta.access_token, idDoCliente, "Não entendi — é pro Almoço ou Jantar?");
+        await enviarMensagemDirect(
+          conta.access_token,
+          idDoCliente,
+          "Não entendi — é pro Almoço ou Jantar?" + SUGESTAO_DE_CANCELAR
+        );
         return;
       }
       dados.periodo = periodo;
@@ -359,7 +388,7 @@ async function continuarFluxo(
         await enviarMensagemDirect(
           conta.access_token,
           idDoCliente,
-          "Não consegui entender — pode me dizer só o número de pessoas?"
+          "Não consegui entender — pode me dizer só o número de pessoas?" + SUGESTAO_DE_CANCELAR
         );
         return;
       }
@@ -400,7 +429,7 @@ async function continuarFluxo(
         await enviarMensagemDirect(
           conta.access_token,
           idDoCliente,
-          "Não consegui entender — pode mandar o número de WhatsApp, com DDD?"
+          "Não consegui entender — pode mandar o número de WhatsApp, com DDD?" + SUGESTAO_DE_CANCELAR
         );
         return;
       }
@@ -642,6 +671,13 @@ function interpretarQuantidade(texto: string | undefined): number | null {
   if (!match) return null;
   const numero = parseInt(match[0], 10);
   return Number.isFinite(numero) && numero > 0 ? numero : null;
+}
+
+/** Reconhece um pedido de desistência do fluxo de reserva, digitado livremente em qualquer etapa. */
+function ehPedidoDeCancelamento(texto: string | undefined): boolean {
+  const t = texto ? normalizar(texto.trim()) : "";
+  if (!t) return false;
+  return /^(cancelar|cancela|desistir|desisto|parar|encerrar|sair)\b/.test(t);
 }
 
 function interpretarSimNao(payload: string | undefined, texto: string | undefined): boolean | null {
