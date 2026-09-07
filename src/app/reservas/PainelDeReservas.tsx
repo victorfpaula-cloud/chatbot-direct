@@ -666,6 +666,9 @@ export async function PainelDeReservas({
                     typeof limiteMaximo === "number" && limiteMaximo > 0
                       ? Math.min(100, Math.round((totalDePessoasDoGrupo / limiteMaximo) * 100))
                       : null;
+                  // Azul (mesmo tom dos botões/destaques da tela) pra ocupação tranquila; amber e
+                  // vermelho continuam de aviso mesmo, pra não perder o sinal de "atenção" quando
+                  // a capacidade aperta de verdade.
                   const status =
                     percentual === null
                       ? { barra: "bg-neutral-600", borda: "border-neutral-800" }
@@ -673,7 +676,7 @@ export async function PainelDeReservas({
                         ? { barra: "bg-red-500", borda: "border-red-900/60" }
                         : percentual >= 70
                           ? { barra: "bg-amber-500", borda: "border-amber-900/60" }
-                          : { barra: "bg-green-500", borda: "border-green-900/50" };
+                          : { barra: "bg-sky-500", borda: "border-sky-800/60" };
                   const estiloPeriodo = estiloDoPeriodo(periodo);
 
                   return (

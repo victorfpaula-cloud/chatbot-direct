@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+
 export function FormularioDeEdicaoDeReserva({
   action,
   redirectTo,
@@ -11,8 +13,10 @@ export function FormularioDeEdicaoDeReserva({
   nomeCliente: string;
   quantidadeAtual: number;
 }) {
+  const detalhesRef = useRef<HTMLDetailsElement>(null);
+
   return (
-    <details className="relative">
+    <details ref={detalhesRef} className="relative">
       <summary className="cursor-pointer list-none rounded-md border border-neutral-800 px-2 py-1 text-[11px] font-medium text-neutral-500 [&::-webkit-details-marker]:hidden hover:border-neutral-600 hover:text-neutral-300">
         Editar
       </summary>
@@ -38,12 +42,25 @@ export function FormularioDeEdicaoDeReserva({
           required
           className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm"
         />
-        <button
-          type="submit"
-          className="rounded-lg border border-neutral-700 bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-950"
-        >
-          Salvar alteração
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className="flex-1 rounded-lg border border-neutral-700 bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-950"
+          >
+            Salvar alteração
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              // Só fecha a caixinha, sem enviar nada — pra quem abriu "Editar" sem querer poder
+              // sair sem mexer em nada.
+              if (detalhesRef.current) detalhesRef.current.open = false;
+            }}
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+          >
+            Cancelar
+          </button>
+        </div>
       </form>
     </details>
   );
