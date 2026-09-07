@@ -90,75 +90,84 @@ export function linkDoWhatsapp(numero: string): string {
 
 export function CartaoDeReserva({ reserva, hrefAtualizar }: { reserva: Reserva; hrefAtualizar: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2.5">
-      <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${corDoAvatar(
-          reserva.id
-        )}`}
-      >
-        {(reserva.cliente_nome ?? "C").charAt(0).toUpperCase()}
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-1.5">
-          <span className="truncate text-sm font-medium text-neutral-100">{reserva.cliente_nome ?? "Cliente"}</span>
-          {reserva.cliente_instagram_username && (
-            <a
-              href={`https://instagram.com/${reserva.cliente_instagram_username}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-neutral-500 hover:text-neutral-300"
-            >
-              @{reserva.cliente_instagram_username}
-            </a>
-          )}
+    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
+      {/* Identidade do cliente + badge de pessoas, com mais espaço e o nome maior — antes tudo
+          (nome, @usuário, telefone, horário e as ações) ficava espremido numa linha só. */}
+      <div className="flex items-start gap-3">
+        <div
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold ${corDoAvatar(
+            reserva.id
+          )}`}
+        >
+          {(reserva.cliente_nome ?? "C").charAt(0).toUpperCase()}
         </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-neutral-500">
-          {reserva.whatsapp && (
-            <a
-              href={linkDoWhatsapp(reserva.whatsapp)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 hover:text-neutral-300"
-            >
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="shrink-0"
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold text-neutral-100">
+                {reserva.cliente_nome ?? "Cliente"}
+              </p>
+              {reserva.cliente_instagram_username && (
+                <a
+                  href={`https://instagram.com/${reserva.cliente_instagram_username}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-neutral-500 hover:text-neutral-300"
+                >
+                  @{reserva.cliente_instagram_username}
+                </a>
+              )}
+            </div>
+            <span className="shrink-0 rounded-full border border-violet-800/60 bg-neutral-900 px-3 py-1 text-xs font-medium text-neutral-200">
+              {reserva.quantidade_pessoas ?? "—"} pessoa
+              {reserva.quantidade_pessoas === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-400">
+            {reserva.whatsapp && (
+              <a
+                href={linkDoWhatsapp(reserva.whatsapp)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 hover:text-neutral-200"
               >
-                <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 3.15L3 21" />
-              </svg>
-              {reserva.whatsapp}
-            </a>
-          )}
-          <span>confirmada às {formatarHora(reserva.confirmado_em)}</span>
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="shrink-0"
+                >
+                  <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 3.15L3 21" />
+                </svg>
+                {reserva.whatsapp}
+              </a>
+            )}
+            <span>confirmada às {formatarHora(reserva.confirmado_em)}</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <span className="rounded-full border border-violet-800/60 bg-neutral-900 px-2.5 py-1 text-xs font-medium text-neutral-200">
-          {reserva.quantidade_pessoas ?? "—"} pessoa
-          {reserva.quantidade_pessoas === 1 ? "" : "s"}
-        </span>
-        <div className="flex items-center gap-1.5">
-          <FormularioDeEdicaoDeReserva
-            action={`/api/reservas/${reserva.id}/editar`}
-            redirectTo={hrefAtualizar}
-            nomeCliente={reserva.cliente_nome ?? "esse cliente"}
-            quantidadeAtual={reserva.quantidade_pessoas ?? 1}
-          />
-          <BotaoExcluirReserva
-            action={`/api/reservas/${reserva.id}/excluir`}
-            redirectTo={hrefAtualizar}
-            nomeCliente={reserva.cliente_nome ?? "esse cliente"}
-          />
-        </div>
+      {/* Ações num rodapé separado por uma linha, em vez de espremidas do lado do badge — ficam
+          maiores e mais fáceis de tocar. */}
+      <div className="mt-3 flex items-center justify-end gap-2 border-t border-neutral-900 pt-3">
+        <FormularioDeEdicaoDeReserva
+          action={`/api/reservas/${reserva.id}/editar`}
+          redirectTo={hrefAtualizar}
+          nomeCliente={reserva.cliente_nome ?? "esse cliente"}
+          quantidadeAtual={reserva.quantidade_pessoas ?? 1}
+        />
+        <BotaoExcluirReserva
+          action={`/api/reservas/${reserva.id}/excluir`}
+          redirectTo={hrefAtualizar}
+          nomeCliente={reserva.cliente_nome ?? "esse cliente"}
+        />
       </div>
     </div>
   );
@@ -193,7 +202,7 @@ export function CartaoDePeriodo({
   const estiloPeriodo = estiloDoPeriodo(periodo);
 
   return (
-    <div className={`rounded-2xl border-2 bg-neutral-900 p-4 shadow-md shadow-black/20 ${status.borda}`}>
+    <div className={`rounded-2xl border-2 bg-neutral-900 p-5 shadow-md shadow-black/20 ${status.borda}`}>
       <div className="flex items-center justify-between gap-3">
         <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${estiloPeriodo.cor}`}>
           <Icone path={estiloPeriodo.caminho} className="h-3.5 w-3.5" />
@@ -207,12 +216,12 @@ export function CartaoDePeriodo({
       </div>
 
       {percentual !== null && (
-        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
           <div className={`h-full rounded-full ${status.barra}`} style={{ width: `${percentual}%` }} />
         </div>
       )}
 
-      <div className="mt-4 flex flex-col gap-2">
+      <div className="mt-4 flex flex-col gap-3">
         {reservas.map((reserva) => (
           <CartaoDeReserva key={reserva.id} reserva={reserva} hrefAtualizar={hrefAtualizar} />
         ))}

@@ -24,7 +24,7 @@ export function BotaoExcluirReserva({
       <input type="hidden" name="redirect_to" value={redirectTo} />
       <button
         type="submit"
-        className="rounded-md border border-neutral-800 px-2 py-1 text-[11px] font-medium text-neutral-500 hover:border-red-900 hover:text-red-400"
+        className="rounded-lg border border-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-400 hover:border-red-900 hover:text-red-400"
       >
         Excluir
       </button>

@@ -17,7 +17,7 @@ export function FormularioDeEdicaoDeReserva({
 
   return (
     <details ref={detalhesRef} className="relative">
-      <summary className="cursor-pointer list-none rounded-md border border-neutral-800 px-2 py-1 text-[11px] font-medium text-neutral-500 [&::-webkit-details-marker]:hidden hover:border-neutral-600 hover:text-neutral-300">
+      <summary className="cursor-pointer list-none rounded-lg border border-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-400 [&::-webkit-details-marker]:hidden hover:border-neutral-600 hover:text-neutral-200">
         Editar
       </summary>
 
