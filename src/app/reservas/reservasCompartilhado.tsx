@@ -43,20 +43,6 @@ const CAMINHO_SOL =
   "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42";
 const CAMINHO_LUA = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
 
-const CORES_DE_AVATAR = [
-  "bg-emerald-950 text-emerald-300",
-  "bg-sky-950 text-sky-300",
-  "bg-amber-950 text-amber-300",
-  "bg-fuchsia-950 text-fuchsia-300",
-  "bg-rose-950 text-rose-300",
-];
-
-export function corDoAvatar(id: string): string {
-  let soma = 0;
-  for (const caractere of id) soma += caractere.charCodeAt(0);
-  return CORES_DE_AVATAR[soma % CORES_DE_AVATAR.length];
-}
-
 const ESTILO_DO_PERIODO: Record<string, { rotulo: string; caminho: string; cor: string }> = {
   almoco: { rotulo: "Almoço", caminho: CAMINHO_SOL, cor: "bg-amber-950 text-amber-300 border-amber-900/60" },
   jantar: { rotulo: "Jantar", caminho: CAMINHO_LUA, cor: "bg-indigo-950 text-indigo-300 border-indigo-900/60" },
@@ -94,12 +80,20 @@ export function CartaoDeReserva({ reserva, hrefAtualizar }: { reserva: Reserva; 
       {/* Identidade do cliente + badge de pessoas, com mais espaço e o nome maior — antes tudo
           (nome, @usuário, telefone, horário e as ações) ficava espremido numa linha só. */}
       <div className="flex items-start gap-3">
-        <div
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold ${corDoAvatar(
-            reserva.id
-          )}`}
-        >
-          {(reserva.cliente_nome ?? "C").charAt(0).toUpperCase()}
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-violet-950 text-violet-300">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-6 w-6"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" />
+          </svg>
         </div>
 
         <div className="min-w-0 flex-1">
@@ -119,7 +113,7 @@ export function CartaoDeReserva({ reserva, hrefAtualizar }: { reserva: Reserva; 
                 </a>
               )}
             </div>
-            <span className="shrink-0 rounded-full border border-violet-800/60 bg-neutral-900 px-3 py-1 text-xs font-medium text-neutral-200">
+            <span className="shrink-0 rounded-full bg-violet-700 px-3 py-1 text-xs font-semibold text-white shadow-sm shadow-violet-950/60">
               {reserva.quantidade_pessoas ?? "—"} pessoa
               {reserva.quantidade_pessoas === 1 ? "" : "s"}
             </span>
