@@ -18,7 +18,15 @@ export async function resolverAutorDaAcao(
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const chaveAnonima = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (url && chaveAnonima) {
+  if (!url || !chaveAnonima) {
+    // Sem essas duas variáveis não dá pra confirmar sessão do Victor (só sobra a checagem de
+    // funcionário abaixo) — loga pra não ficar invisível quando alguém autenticado como admin
+    // toma 401 numa rota que devia reconhecer ele. Mesmo aviso que o middleware já dá quando
+    // falta essa configuração.
+    console.error(
+      "resolverAutorDaAcao: NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY ausentes — sessão de admin não pôde ser verificada."
+    );
+  } else {
     const supabase = createServerClient(url, chaveAnonima, {
       cookies: {
         getAll: () => request.cookies.getAll(),

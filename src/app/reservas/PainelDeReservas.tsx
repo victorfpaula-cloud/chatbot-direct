@@ -352,7 +352,10 @@ export async function PainelDeReservas({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
-      {modo !== "hoje" && (
+      {/* Antigas/Futuras voltam pra "Hoje"; na própria "Hoje", o Victor (não o funcionário, que
+          não tem acesso a mais nada além de /reservas) volta pro painel de contas — sem isso não
+          tinha como sair da tela de reservas de volta pra tela inicial. */}
+      {modo !== "hoje" ? (
         <a
           href={hrefDaTela("hoje")}
           className="mb-4 flex w-fit items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-200"
@@ -360,6 +363,16 @@ export async function PainelDeReservas({
           <Icone path={CAMINHO_SETA_ESQUERDA} className="h-4 w-4" />
           Voltar
         </a>
+      ) : (
+        !ehFuncionario && (
+          <a
+            href="/contas"
+            className="mb-4 flex w-fit items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-200"
+          >
+            <Icone path={CAMINHO_SETA_ESQUERDA} className="h-4 w-4" />
+            Voltar
+          </a>
+        )
       )}
 
       <div className="flex items-start justify-between gap-4">

@@ -173,9 +173,9 @@ export default async function ContasPage({
         <div className="flex items-center gap-2">
           <a
             href="/reservas"
-            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:border-neutral-500"
+            className="rounded-lg border border-violet-700 bg-violet-950/60 px-3 py-1.5 text-xs font-medium text-violet-200 hover:border-violet-500 hover:bg-violet-950"
           >
-            Ver reservas
+            Reservas
           </a>
           <BotaoSair />
         </div>
