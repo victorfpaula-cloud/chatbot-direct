@@ -53,6 +53,9 @@ const CAMINHO_TICKET =
   "M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4V9z";
 const CAMINHO_FUNIL = "M22 3H2l8 9.46V19l4 2v-8.54L22 3z";
 const CAMINHO_RELOGIO_HISTORICO = "M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8";
+const CAMINHO_SETA_DIREITA = "M5 12h14M12 5l7 7-7 7";
+const CAMINHO_ATUALIZAR = "M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15";
+const CAMINHO_SETA_BAIXO = "M6 9l6 6 6-6";
 const CAMINHO_SOL =
   "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42";
 const CAMINHO_LUA = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
@@ -93,6 +96,13 @@ function somarDiasISO(dataISO: string, dias: number): string {
   const data = new Date(Date.UTC(ano, mes - 1, dia));
   data.setUTCDate(data.getUTCDate() + dias);
   return new Intl.DateTimeFormat("en-CA", { timeZone: "UTC" }).format(data);
+}
+
+function diferencaEmDias(dataISO: string, referenciaISO: string): number {
+  const [a1, a2, a3] = dataISO.split("-").map(Number);
+  const [b1, b2, b3] = referenciaISO.split("-").map(Number);
+  const diferencaMs = Date.UTC(a1, a2 - 1, a3) - Date.UTC(b1, b2 - 1, b3);
+  return Math.round(diferencaMs / 86_400_000);
 }
 
 function primeiraLetraMaiuscula(texto: string): string {
@@ -285,8 +295,25 @@ export default async function ReservasPage({
     { rotulo: "Próximos 30 dias", de: hoje, ate: somarDiasISO(hoje, 30) },
   ];
 
-  const hrefReservasAntigas = href({ de: somarDiasISO(hoje, -365), ate: somarDiasISO(hoje, -1) });
+  const hrefHoje = href({ de: hoje, ate: hoje });
+  const hrefReservasAntigas = href({ de: somarDiasISO(hoje, -30), ate: somarDiasISO(hoje, -1) });
+  const hrefReservasFuturas = href({ de: somarDiasISO(hoje, 1), ate: somarDiasISO(hoje, 30) });
+  const hrefAtualizar = href({});
   const filtroPersonalizadoAtivo = !ehSomenteHoje || busca.length > 0;
+
+  const ehVisaoDeAntigas = ate < hoje;
+  const ehVisaoDeFuturas = de > hoje;
+
+  // Lista longa de dias (reservas antigas/futuras) vira acordeão, uma dropdown por data, pra não
+  // precisar rolar por tudo aberto de uma vez — só o dia mais perto de hoje já vem expandido.
+  const usarAcordeaoDeDatas = datasOrdenadas.length > 1;
+  const dataParaAbrirPorPadrao = datasOrdenadas.reduce(
+    (maisProxima: string | null, atual) =>
+      maisProxima === null || Math.abs(diferencaEmDias(atual, hoje)) < Math.abs(diferencaEmDias(maisProxima, hoje))
+        ? atual
+        : maisProxima,
+    null
+  );
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
@@ -352,8 +379,8 @@ export default async function ReservasPage({
 
       {contaSelecionada && (
         <>
-          {/* Filtros — presets de data e busca por nome ficam discretos dentro do dropdown;
-              período e "reservas antigas" continuam visíveis por serem os mais usados. */}
+          {/* Filtros — busca por nome, intervalo customizado e período ficam discretos dentro do
+              dropdown; Hoje/Antigas/Futuras/Atualizar continuam visíveis por serem os mais usados. */}
           <div className="relative mt-6 flex flex-wrap items-center gap-2">
             <details className="group relative">
               <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 [&::-webkit-details-marker]:hidden hover:border-neutral-500">
@@ -376,6 +403,29 @@ export default async function ReservasPage({
                       }`}
                     >
                       {preset.rotulo}
+                    </a>
+                  ))}
+                </div>
+
+                <p className="mt-4 text-xs font-medium uppercase tracking-wide text-neutral-500">Período</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(
+                    [
+                      { valor: "todos", rotulo: "Almoço e jantar" },
+                      { valor: "almoco", rotulo: "Só almoço" },
+                      { valor: "jantar", rotulo: "Só jantar" },
+                    ] as { valor: FiltroDePeriodo; rotulo: string }[]
+                  ).map((filtro) => (
+                    <a
+                      key={filtro.valor}
+                      href={href({ periodo: filtro.valor })}
+                      className={`rounded-lg border px-2.5 py-1 text-xs ${
+                        filtro.valor === filtroDePeriodo
+                          ? "border-sky-700 bg-sky-950 text-sky-200"
+                          : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
+                      }`}
+                    >
+                      {filtro.rotulo}
                     </a>
                   ))}
                 </div>
@@ -427,34 +477,48 @@ export default async function ReservasPage({
             </details>
 
             <a
-              href={hrefReservasAntigas}
-              className="flex items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500"
+              href={hrefHoje}
+              className={`rounded-lg border px-3 py-1.5 text-sm ${
+                ehSomenteHoje
+                  ? "border-sky-700 bg-sky-950 text-sky-200"
+                  : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
+              }`}
             >
-              <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
-              Reservas antigas
+              Hoje
             </a>
 
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  { valor: "todos", rotulo: "Almoço e jantar" },
-                  { valor: "almoco", rotulo: "Só almoço" },
-                  { valor: "jantar", rotulo: "Só jantar" },
-                ] as { valor: FiltroDePeriodo; rotulo: string }[]
-              ).map((filtro) => (
-                <a
-                  key={filtro.valor}
-                  href={href({ periodo: filtro.valor })}
-                  className={`rounded-lg border px-3 py-1.5 text-sm ${
-                    filtro.valor === filtroDePeriodo
-                      ? "border-neutral-500 bg-neutral-900 text-neutral-100"
-                      : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
-                  }`}
-                >
-                  {filtro.rotulo}
-                </a>
-              ))}
-            </div>
+            <a
+              href={hrefReservasAntigas}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm ${
+                ehVisaoDeAntigas
+                  ? "border-sky-700 bg-sky-950 text-sky-200"
+                  : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
+              }`}
+            >
+              <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
+              Antigas
+            </a>
+
+            <a
+              href={hrefReservasFuturas}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm ${
+                ehVisaoDeFuturas
+                  ? "border-sky-700 bg-sky-950 text-sky-200"
+                  : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
+              }`}
+            >
+              Futuras
+              <Icone path={CAMINHO_SETA_DIREITA} className="h-3.5 w-3.5" />
+            </a>
+
+            <a
+              href={hrefAtualizar}
+              title="Recarregar com os dados mais recentes"
+              className="flex items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500"
+            >
+              <Icone path={CAMINHO_ATUALIZAR} className="h-3.5 w-3.5" />
+              Atualizar
+            </a>
           </div>
 
           {/* Stat cards — logo acima da lista, com destaque colorido, igual pedido */}
@@ -496,33 +560,48 @@ export default async function ReservasPage({
           const grupoDeData = porData.get(data)!;
           const periodosOrdenados = Array.from(grupoDeData.keys()).sort();
           const ehHoje = data === hoje;
+          const totalDoDia = periodosOrdenados.reduce((soma, p) => soma + grupoDeData.get(p)!.length, 0);
+          const abrirPorPadrao = data === dataParaAbrirPorPadrao;
 
-          return (
-            <div key={data}>
-              {/* Cabeçalho do dia com bem mais destaque — é a informação mais importante da tela */}
-              <div
-                className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${
-                  ehHoje
-                    ? "border-sky-800/60 bg-sky-950/40"
-                    : "border-neutral-800 bg-neutral-900/60"
-                }`}
-              >
-                <Icone
-                  path={CAMINHO_CALENDARIO}
-                  className={`h-4 w-4 shrink-0 ${ehHoje ? "text-sky-400" : "text-neutral-500"}`}
-                />
-                <h2 className={`text-base font-semibold ${ehHoje ? "text-sky-100" : "text-neutral-200"}`}>
-                  {formatarDataExtensa(data)}
-                </h2>
-                {ehHoje && (
-                  <span className="rounded-full border border-sky-700 bg-sky-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-200">
-                    Hoje
+          // Cabeçalho do dia com bem mais destaque — é a informação mais importante da tela. Numa
+          // lista longa (Antigas/Futuras) vira o "summary" de um dropdown por data, com a
+          // contagem de reservas visível mesmo fechado; numa lista curta (Hoje/Amanhã) fica
+          // sempre aberto, sem esconder nada atrás de um clique à toa.
+          const cabecalhoDoDia = (
+            <div
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${
+                usarAcordeaoDeDatas ? "cursor-pointer" : ""
+              } ${ehHoje ? "border-sky-800/60 bg-sky-950/40" : "border-neutral-800 bg-neutral-900/60"}`}
+            >
+              <Icone
+                path={CAMINHO_CALENDARIO}
+                className={`h-4 w-4 shrink-0 ${ehHoje ? "text-sky-400" : "text-neutral-500"}`}
+              />
+              <span className={`text-base font-semibold ${ehHoje ? "text-sky-100" : "text-neutral-200"}`}>
+                {formatarDataExtensa(data)}
+              </span>
+              {ehHoje && (
+                <span className="rounded-full border border-sky-700 bg-sky-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-200">
+                  Hoje
+                </span>
+              )}
+              {usarAcordeaoDeDatas && (
+                <>
+                  <span className="ml-auto text-xs text-neutral-400">
+                    {totalDoDia} reserva{totalDoDia === 1 ? "" : "s"}
                   </span>
-                )}
-              </div>
+                  <Icone
+                    path={CAMINHO_SETA_BAIXO}
+                    className="h-4 w-4 shrink-0 text-neutral-500 transition-transform group-open:rotate-180"
+                  />
+                </>
+              )}
+            </div>
+          );
 
-              <div className="mt-3 flex flex-col gap-4">
-                {periodosOrdenados.map((periodo) => {
+          const corpoDoDia = (
+            <div className="mt-3 flex flex-col gap-4">
+              {periodosOrdenados.map((periodo) => {
                   const reservasDoPeriodo = grupoDeData.get(periodo)!;
                   const totalDePessoasDoGrupo = reservasDoPeriodo.reduce(
                     (soma, r) => soma + (r.quantidade_pessoas ?? 0),
@@ -638,7 +717,18 @@ export default async function ReservasPage({
                     </div>
                   );
                 })}
-              </div>
+            </div>
+          );
+
+          return usarAcordeaoDeDatas ? (
+            <details key={data} className="group" open={abrirPorPadrao}>
+              <summary className="list-none [&::-webkit-details-marker]:hidden">{cabecalhoDoDia}</summary>
+              {corpoDoDia}
+            </details>
+          ) : (
+            <div key={data}>
+              {cabecalhoDoDia}
+              {corpoDoDia}
             </div>
           );
         })}
