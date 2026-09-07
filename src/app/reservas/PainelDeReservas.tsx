@@ -608,11 +608,15 @@ export async function PainelDeReservas({
           // lista longa (Antigas/Futuras) vira o "summary" de um dropdown por data, com a
           // contagem de reservas visível mesmo fechado; numa lista curta (Hoje/Amanhã) fica
           // sempre aberto, sem esconder nada atrás de um clique à toa.
+          //
+          // Sem cantos/borda própria aqui de propósito — é só a faixa de topo de UM cartão só
+          // (cabeçalho + períodos + reservas), não uma caixa separada flutuando em cima de outras
+          // caixas (era exatamente essa sensação de "vários cartões soltos" que incomodava).
           const cabecalhoDoDia = (
             <div
-              className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 ${
+              className={`flex items-center gap-2.5 border-b px-4 py-3 ${
                 usarAcordeaoDeDatas ? "cursor-pointer" : ""
-              } ${ehHoje ? "border-sky-800/60 bg-sky-950/40" : "border-neutral-800 bg-neutral-900/60"}`}
+              } ${ehHoje ? "border-sky-900/60 bg-sky-950/40" : "border-neutral-800 bg-neutral-900/60"}`}
             >
               <Icone
                 path={CAMINHO_CALENDARIO}
@@ -664,7 +668,7 @@ export async function PainelDeReservas({
           const periodosOrdenados = Array.from(grupoDeData.keys()).sort();
 
           const corpoDoDia = (
-            <div className="mt-3 flex flex-col gap-4">
+            <div className="divide-y divide-neutral-800">
               {periodosOrdenados.map((periodo) => (
                 <CartaoDePeriodo
                   key={periodo}
@@ -677,13 +681,20 @@ export async function PainelDeReservas({
             </div>
           );
 
+          // Cabeçalho e períodos moram dentro de UM cartão só (borda+cantos arredondados aqui,
+          // não em cada pedaço interno) — o cabeçalho vira só a faixa de topo, cortada pelo
+          // overflow-hidden, em vez de parecer uma caixa separada em cima de outra.
+          const classeDoCartaoDoDia = `overflow-hidden rounded-2xl border bg-neutral-900 ${
+            ehHoje ? "border-sky-900/60" : "border-neutral-800"
+          }`;
+
           return usarAcordeaoDeDatas ? (
-            <details key={data} className="group" open={abrirPorPadrao}>
+            <details key={data} className={`group ${classeDoCartaoDoDia}`} open={abrirPorPadrao}>
               <summary className="list-none [&::-webkit-details-marker]:hidden">{cabecalhoDoDia}</summary>
               {corpoDoDia}
             </details>
           ) : (
-            <div key={data}>
+            <div key={data} className={classeDoCartaoDoDia}>
               {cabecalhoDoDia}
               {corpoDoDia}
             </div>

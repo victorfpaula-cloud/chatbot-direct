@@ -190,25 +190,27 @@ export function CartaoDePeriodo({
       ? Math.min(100, Math.round((totalDePessoasDoGrupo / limiteMaximo) * 100))
       : null;
   // Azul (mesmo tom dos botões/destaques da tela) pra ocupação tranquila; amber e vermelho
-  // continuam de aviso mesmo, pra não perder o sinal de "atenção" quando a capacidade aperta.
+  // continuam de aviso mesmo, pra não perder o sinal de "atenção" quando a capacidade aperta. Sem
+  // caixa/borda própria (isso virou uma seção dentro do cartão do dia, não um cartão à parte) — o
+  // sinal de status agora é só a cor da barra + do texto de "X/Y pessoas".
   const status =
     percentual === null
-      ? { barra: "bg-neutral-600", borda: "border-neutral-800" }
+      ? { barra: "bg-neutral-600", texto: "text-neutral-400" }
       : percentual >= 100
-        ? { barra: "bg-red-500", borda: "border-red-900/60" }
+        ? { barra: "bg-red-500", texto: "text-red-400" }
         : percentual >= 70
-          ? { barra: "bg-amber-500", borda: "border-amber-900/60" }
-          : { barra: "bg-sky-500", borda: "border-sky-800/60" };
+          ? { barra: "bg-amber-500", texto: "text-amber-400" }
+          : { barra: "bg-sky-500", texto: "text-sky-400" };
   const estiloPeriodo = estiloDoPeriodo(periodo);
 
   return (
-    <div className={`rounded-2xl border-2 bg-neutral-900 p-5 shadow-md shadow-black/20 ${status.borda}`}>
+    <div className="p-4">
       <div className="flex items-center justify-between gap-3">
         <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${estiloPeriodo.cor}`}>
           <Icone path={estiloPeriodo.caminho} className="h-3.5 w-3.5" />
           {estiloPeriodo.rotulo}
         </span>
-        <span className="flex items-center gap-1 text-xs text-neutral-400">
+        <span className={`flex items-center gap-1 text-xs font-medium ${status.texto}`}>
           <Icone path={CAMINHO_PESSOAS} className="h-3.5 w-3.5" />
           {totalDePessoasDoGrupo}
           {typeof limiteMaximo === "number" ? ` / ${limiteMaximo}` : ""} pessoas

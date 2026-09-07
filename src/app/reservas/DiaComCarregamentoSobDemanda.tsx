@@ -64,8 +64,11 @@ export function DiaComCarregamentoSobDemanda({
   }
 
   return (
+    // Cabeçalho + períodos dentro de UM cartão só (mesmo espírito da tela Hoje) — a borda e os
+    // cantos arredondados ficam aqui no `<details>`, cortando o cabeçalho por cima via
+    // overflow-hidden, em vez de cada pedaço interno ter sua própria caixa flutuando à parte.
     <details
-      className="group"
+      className="group overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900"
       onToggle={(evento) => {
         const abriu = (evento.target as HTMLDetailsElement).open;
         // "erro" também dispara uma nova tentativa — sem isso, fechar e reabrir o dropdown depois
@@ -76,26 +79,24 @@ export function DiaComCarregamentoSobDemanda({
     >
       <summary className="list-none [&::-webkit-details-marker]:hidden">{cabecalho}</summary>
 
-      <div className="mt-3 flex flex-col gap-4">
-        {estado === "carregando" && (
-          <p className="rounded-xl border border-dashed border-neutral-800 px-4 py-6 text-center text-sm text-neutral-500">
-            Carregando reservas...
-          </p>
-        )}
-        {estado === "erro" && (
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-red-900/60 px-4 py-6 text-center text-sm text-red-400">
-            <p>Não foi possível carregar as reservas desse dia.</p>
-            <button
-              type="button"
-              onClick={carregar}
-              className="rounded-lg border border-red-800/60 px-3 py-1.5 text-xs font-medium text-red-300 hover:border-red-600"
-            >
-              Tentar novamente
-            </button>
-          </div>
-        )}
-        {estado === "carregado" &&
-          Object.keys(gruposPorPeriodo)
+      {estado === "carregando" && (
+        <p className="px-4 py-6 text-center text-sm text-neutral-500">Carregando reservas...</p>
+      )}
+      {estado === "erro" && (
+        <div className="flex flex-col items-center gap-3 px-4 py-6 text-center text-sm text-red-400">
+          <p>Não foi possível carregar as reservas desse dia.</p>
+          <button
+            type="button"
+            onClick={carregar}
+            className="rounded-lg border border-red-800/60 px-3 py-1.5 text-xs font-medium text-red-300 hover:border-red-600"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+      {estado === "carregado" && (
+        <div className="divide-y divide-neutral-800">
+          {Object.keys(gruposPorPeriodo)
             .sort()
             .map((chavePeriodo) => (
               <CartaoDePeriodo
@@ -106,7 +107,8 @@ export function DiaComCarregamentoSobDemanda({
                 hrefAtualizar={hrefAtualizar}
               />
             ))}
-      </div>
+        </div>
+      )}
     </details>
   );
 }
