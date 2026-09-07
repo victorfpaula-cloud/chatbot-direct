@@ -3,20 +3,14 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { NOME_DO_COOKIE_DE_SESSAO } from "@/lib/funcionarios-cookie";
 import { BotaoSair } from "@/app/contas/BotaoSair";
 import { SeletorDeConta } from "./SeletorDeConta";
-import { FormularioDeEdicaoDeReserva } from "./FormularioDeEdicaoDeReserva";
-import { BotaoExcluirReserva } from "./BotaoExcluirReserva";
-
-type Reserva = {
-  id: string;
-  instagram_scoped_id: string;
-  cliente_nome: string | null;
-  cliente_instagram_username: string | null;
-  data_reserva: string;
-  periodo: string | null;
-  quantidade_pessoas: number | null;
-  whatsapp: string | null;
-  confirmado_em: string;
-};
+import { DiaComCarregamentoSobDemanda } from "./DiaComCarregamentoSobDemanda";
+import {
+  type Reserva,
+  Icone,
+  CAMINHO_PESSOAS,
+  CAMINHO_TICKET,
+  CartaoDePeriodo,
+} from "./reservasCompartilhado";
 
 type FiltroDePeriodo = "todos" | "almoco" | "jantar";
 
@@ -34,70 +28,16 @@ const TITULO_DA_PAGINA: Record<ModoDaTelaDeReservas, string> = {
   futuras: "Reservas futuras",
 };
 
-// --- Ícones (mesmo estilo de traço já usado no botão de sair e no link de WhatsApp) ---
-
-function Icone({
-  path,
-  className,
-}: {
-  path: string;
-  className?: string;
-}) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className ?? "h-4 w-4"}
-      aria-hidden="true"
-    >
-      <path d={path} />
-    </svg>
-  );
-}
+// --- Ícones (mesmo estilo de traço já usado no botão de sair e no link de WhatsApp) — os que só
+// são usados nesta tela (fora dos cartões de reserva, que moraram pra reservasCompartilhado.tsx). ---
 
 const CAMINHO_CALENDARIO = "M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z";
-const CAMINHO_PESSOAS =
-  "M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM23 21v-2a4 4 0 0 0-3-3.87M17 3.13a4 4 0 0 1 0 7.75";
-const CAMINHO_TICKET =
-  "M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4V9z";
 const CAMINHO_FUNIL = "M22 3H2l8 9.46V19l4 2v-8.54L22 3z";
 const CAMINHO_RELOGIO_HISTORICO = "M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8";
 const CAMINHO_SETA_DIREITA = "M5 12h14M12 5l7 7-7 7";
 const CAMINHO_SETA_ESQUERDA = "M19 12H5M12 19l-7-7 7-7";
 const CAMINHO_ATUALIZAR = "M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15";
 const CAMINHO_SETA_BAIXO = "M6 9l6 6 6-6";
-const CAMINHO_SOL =
-  "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42";
-const CAMINHO_LUA = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
-
-// --- Estilo por cliente/dia ---
-
-const CORES_DE_AVATAR = [
-  "bg-emerald-950 text-emerald-300",
-  "bg-sky-950 text-sky-300",
-  "bg-amber-950 text-amber-300",
-  "bg-fuchsia-950 text-fuchsia-300",
-  "bg-rose-950 text-rose-300",
-];
-
-function corDoAvatar(id: string): string {
-  let soma = 0;
-  for (const caractere of id) soma += caractere.charCodeAt(0);
-  return CORES_DE_AVATAR[soma % CORES_DE_AVATAR.length];
-}
-
-const ESTILO_DO_PERIODO: Record<string, { rotulo: string; caminho: string; cor: string }> = {
-  almoco: { rotulo: "Almoço", caminho: CAMINHO_SOL, cor: "bg-amber-950 text-amber-300 border-amber-900/60" },
-  jantar: { rotulo: "Jantar", caminho: CAMINHO_LUA, cor: "bg-indigo-950 text-indigo-300 border-indigo-900/60" },
-};
-
-function estiloDoPeriodo(periodo: string) {
-  return ESTILO_DO_PERIODO[periodo] ?? { rotulo: periodo, caminho: CAMINHO_TICKET, cor: "bg-neutral-800 text-neutral-300 border-neutral-700" };
-}
 
 // --- Datas ---
 
@@ -139,22 +79,6 @@ function formatarDataCurta(dataISO: string): string {
   return `${dia}/${mes}`;
 }
 
-function formatarHora(iso: string): string {
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
-
-/** Link de WhatsApp a partir do que o cliente digitou — assume DDI 55 (Brasil) quando o número
- * já não vem com um (10-11 dígitos é DDD+número, sem DDI). */
-function linkDoWhatsapp(numero: string): string {
-  const digitos = numero.replace(/\D/g, "");
-  const comDDI = digitos.length <= 11 ? `55${digitos}` : digitos;
-  return `https://wa.me/${comDDI}`;
-}
-
 async function resolverContaDoFuncionario(
   admin: ReturnType<typeof criarClienteAdmin>
 ): Promise<{ id: string; page_name: string; instagram_username: string | null } | null> {
@@ -173,9 +97,14 @@ async function resolverContaDoFuncionario(
   return conta ? { id: conta.id, page_name: conta.page_name, instagram_username: conta.instagram_username } : null;
 }
 
+// "Futuras" não tem teto: uma data bem distante no lugar de um "até" de verdade, pra continuar
+// usando o mesmo filtro `.lte("data_reserva", ate)` da consulta sem precisar de um caminho
+// separado só pra esse caso. "Antigas" continua limitada aos últimos 30 dias.
+const SEM_LIMITE_FUTURO = "9999-12-31";
+
 function calcularIntervaloPadrao(modo: ModoDaTelaDeReservas, hoje: string): { de: string; ate: string } {
   if (modo === "antigas") return { de: somarDiasISO(hoje, -30), ate: somarDiasISO(hoje, -1) };
-  if (modo === "futuras") return { de: somarDiasISO(hoje, 1), ate: somarDiasISO(hoje, 30) };
+  if (modo === "futuras") return { de: somarDiasISO(hoje, 1), ate: SEM_LIMITE_FUTURO };
   return { de: hoje, ate: hoje };
 }
 
@@ -212,40 +141,74 @@ export async function PainelDeReservas({
   const busca = searchParams.busca?.trim() ?? "";
 
   let reservas: Reserva[] = [];
+  const contagemPorDia = new Map<string, number>();
   let limiteMaximo: number | null = null;
   let historico: { data: string; total: number }[] = [];
   let totalDeReservasNoAno = 0;
   let totalDePessoasNoAno = 0;
 
   if (contaSelecionada) {
-    let consulta = admin
-      .from("chatbot_reservations")
-      .select(
-        "id, instagram_scoped_id, cliente_nome, cliente_instagram_username, data_reserva, periodo, quantidade_pessoas, whatsapp, confirmado_em"
-      )
-      .eq("account_id", contaSelecionada.id)
-      .gte("data_reserva", de)
-      .lte("data_reserva", ate)
-      .order("data_reserva", { ascending: true })
-      .order("periodo", { ascending: true })
-      .order("confirmado_em", { ascending: true });
+    if (modo === "hoje") {
+      // Tela inicial: continua carregando tudo de cara (o intervalo aqui é sempre pequeno — o dia
+      // de hoje, ou um período customizado curto que o próprio Victor escolheu no filtro).
+      let consulta = admin
+        .from("chatbot_reservations")
+        .select(
+          "id, instagram_scoped_id, cliente_nome, cliente_instagram_username, data_reserva, periodo, quantidade_pessoas, whatsapp, confirmado_em"
+        )
+        .eq("account_id", contaSelecionada.id)
+        .gte("data_reserva", de)
+        .lte("data_reserva", ate)
+        .order("data_reserva", { ascending: true })
+        .order("periodo", { ascending: true })
+        .order("confirmado_em", { ascending: true });
 
-    if (filtroDePeriodo !== "todos") {
-      consulta = consulta.eq("periodo", filtroDePeriodo);
-    }
-    if (busca) {
-      // Tira vírgula e parênteses — o filtro `.or()` do PostgREST usa esses caracteres como
-      // separador de condição, então sem isso um nome de cliente com vírgula quebraria a busca.
-      const buscaSegura = busca.replace(/[,()]/g, "");
-      if (buscaSegura) {
-        consulta = consulta.or(
-          `cliente_nome.ilike.%${buscaSegura}%,cliente_instagram_username.ilike.%${buscaSegura}%`
-        );
+      if (filtroDePeriodo !== "todos") {
+        consulta = consulta.eq("periodo", filtroDePeriodo);
+      }
+      if (busca) {
+        // Tira vírgula e parênteses — o filtro `.or()` do PostgREST usa esses caracteres como
+        // separador de condição, então sem isso um nome de cliente com vírgula quebraria a busca.
+        const buscaSegura = busca.replace(/[,()]/g, "");
+        if (buscaSegura) {
+          consulta = consulta.or(
+            `cliente_nome.ilike.%${buscaSegura}%,cliente_instagram_username.ilike.%${buscaSegura}%`
+          );
+        }
+      }
+
+      const { data } = await consulta;
+      reservas = data ?? [];
+    } else {
+      // Antigas/Futuras: intervalo pode ser grande (30 dias pra trás, ou todas as reservas
+      // futuras sem teto) — busca só o suficiente pra montar o cabeçalho de cada dia (contagem),
+      // sem os dados completos de cada reserva. O detalhe de um dia só é buscado (via
+      // /api/reservas/dia) quando a pessoa abre o dropdown daquele dia, ver
+      // DiaComCarregamentoSobDemanda.tsx.
+      let consultaLeve = admin
+        .from("chatbot_reservations")
+        .select("data_reserva")
+        .eq("account_id", contaSelecionada.id)
+        .gte("data_reserva", de)
+        .lte("data_reserva", ate);
+
+      if (filtroDePeriodo !== "todos") {
+        consultaLeve = consultaLeve.eq("periodo", filtroDePeriodo);
+      }
+      if (busca) {
+        const buscaSegura = busca.replace(/[,()]/g, "");
+        if (buscaSegura) {
+          consultaLeve = consultaLeve.or(
+            `cliente_nome.ilike.%${buscaSegura}%,cliente_instagram_username.ilike.%${buscaSegura}%`
+          );
+        }
+      }
+
+      const { data: leve } = await consultaLeve;
+      for (const linha of leve ?? []) {
+        contagemPorDia.set(linha.data_reserva, (contagemPorDia.get(linha.data_reserva) ?? 0) + 1);
       }
     }
-
-    const { data } = await consulta;
-    reservas = data ?? [];
 
     const { data: config } = await admin
       .from("chatbot_account_settings")
@@ -314,15 +277,17 @@ export async function PainelDeReservas({
   }
 
   const porData = new Map<string, Map<string, Reserva[]>>();
-  for (const reserva of reservas) {
-    const grupoDeData = porData.get(reserva.data_reserva) ?? new Map<string, Reserva[]>();
-    const chaveDePeriodo = reserva.periodo ?? "sem_periodo";
-    const grupoDePeriodo = grupoDeData.get(chaveDePeriodo) ?? [];
-    grupoDePeriodo.push(reserva);
-    grupoDeData.set(chaveDePeriodo, grupoDePeriodo);
-    porData.set(reserva.data_reserva, grupoDeData);
+  if (modo === "hoje") {
+    for (const reserva of reservas) {
+      const grupoDeData = porData.get(reserva.data_reserva) ?? new Map<string, Reserva[]>();
+      const chaveDePeriodo = reserva.periodo ?? "sem_periodo";
+      const grupoDePeriodo = grupoDeData.get(chaveDePeriodo) ?? [];
+      grupoDePeriodo.push(reserva);
+      grupoDeData.set(chaveDePeriodo, grupoDePeriodo);
+      porData.set(reserva.data_reserva, grupoDeData);
+    }
   }
-  const datasOrdenadas = Array.from(porData.keys()).sort();
+  const datasOrdenadas = modo === "hoje" ? Array.from(porData.keys()).sort() : Array.from(contagemPorDia.keys()).sort();
 
   const totalDeReservas = reservas.length;
   const totalDePessoas = reservas.reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
@@ -356,7 +321,7 @@ export async function PainelDeReservas({
   // aberto de uma vez. Só na tela inicial ("hoje") o dia mais perto de hoje já vem expandido; nas
   // telas dedicadas de Antigas/Futuras todos ficam fechados por padrão — são só listas de
   // referência, não algo que se espera abrir tudo de cara.
-  const usarAcordeaoDeDatas = datasOrdenadas.length > 1;
+  const usarAcordeaoDeDatas = modo === "hoje" ? datasOrdenadas.length > 1 : datasOrdenadas.length > 0;
   const dataParaAbrirPorPadrao =
     modo === "hoje"
       ? datasOrdenadas.reduce(
@@ -512,7 +477,8 @@ export async function PainelDeReservas({
                       <input
                         type="date"
                         name="ate"
-                        defaultValue={ate}
+                        placeholder="Sem limite"
+                        defaultValue={ate === SEM_LIMITE_FUTURO ? "" : ate}
                         className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
                       />
                     </div>
@@ -612,10 +578,11 @@ export async function PainelDeReservas({
 
       <div className="mt-6 flex flex-col gap-6">
         {datasOrdenadas.map((data) => {
-          const grupoDeData = porData.get(data)!;
-          const periodosOrdenados = Array.from(grupoDeData.keys()).sort();
           const ehHoje = data === hoje;
-          const totalDoDia = periodosOrdenados.reduce((soma, p) => soma + grupoDeData.get(p)!.length, 0);
+          const totalDoDia =
+            modo === "hoje"
+              ? Array.from(porData.get(data)!.values()).reduce((soma, lista) => soma + lista.length, 0)
+              : contagemPorDia.get(data) ?? 0;
           const abrirPorPadrao = data === dataParaAbrirPorPadrao;
 
           // Cabeçalho do dia com bem mais destaque — é a informação mais importante da tela. Numa
@@ -654,142 +621,40 @@ export async function PainelDeReservas({
             </div>
           );
 
+          // Antigas/Futuras: o corpo é um Client Component que só busca os dados completos desse
+          // dia quando a pessoa abre o dropdown (ver DiaComCarregamentoSobDemanda.tsx) — em vez de
+          // a página inteira já vir com o intervalo todo (30 dias antigos, ou todas as futuras sem
+          // teto) carregado de cara.
+          if (modo !== "hoje") {
+            return (
+              <DiaComCarregamentoSobDemanda
+                key={data}
+                cabecalho={cabecalhoDoDia}
+                data={data}
+                contaId={ehFuncionario ? null : contaSelecionada!.id}
+                periodo={filtroDePeriodo}
+                busca={busca}
+                limiteMaximo={limiteMaximo}
+                hrefAtualizar={hrefAtualizar}
+              />
+            );
+          }
+
+          // Tela "hoje": os dados já vieram todos prontos do servidor — renderiza direto.
+          const grupoDeData = porData.get(data)!;
+          const periodosOrdenados = Array.from(grupoDeData.keys()).sort();
+
           const corpoDoDia = (
             <div className="mt-3 flex flex-col gap-4">
-              {periodosOrdenados.map((periodo) => {
-                  const reservasDoPeriodo = grupoDeData.get(periodo)!;
-                  const totalDePessoasDoGrupo = reservasDoPeriodo.reduce(
-                    (soma, r) => soma + (r.quantidade_pessoas ?? 0),
-                    0
-                  );
-                  const percentual =
-                    typeof limiteMaximo === "number" && limiteMaximo > 0
-                      ? Math.min(100, Math.round((totalDePessoasDoGrupo / limiteMaximo) * 100))
-                      : null;
-                  // Azul (mesmo tom dos botões/destaques da tela) pra ocupação tranquila; amber e
-                  // vermelho continuam de aviso mesmo, pra não perder o sinal de "atenção" quando
-                  // a capacidade aperta de verdade.
-                  const status =
-                    percentual === null
-                      ? { barra: "bg-neutral-600", borda: "border-neutral-800" }
-                      : percentual >= 100
-                        ? { barra: "bg-red-500", borda: "border-red-900/60" }
-                        : percentual >= 70
-                          ? { barra: "bg-amber-500", borda: "border-amber-900/60" }
-                          : { barra: "bg-sky-500", borda: "border-sky-800/60" };
-                  const estiloPeriodo = estiloDoPeriodo(periodo);
-
-                  return (
-                    <div
-                      key={periodo}
-                      className={`rounded-2xl border-2 bg-neutral-900 p-4 shadow-md shadow-black/20 ${status.borda}`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span
-                          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${estiloPeriodo.cor}`}
-                        >
-                          <Icone path={estiloPeriodo.caminho} className="h-3.5 w-3.5" />
-                          {estiloPeriodo.rotulo}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-neutral-400">
-                          <Icone path={CAMINHO_PESSOAS} className="h-3.5 w-3.5" />
-                          {totalDePessoasDoGrupo}
-                          {typeof limiteMaximo === "number" ? ` / ${limiteMaximo}` : ""} pessoas
-                        </span>
-                      </div>
-
-                      {percentual !== null && (
-                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
-                          <div
-                            className={`h-full rounded-full ${status.barra}`}
-                            style={{ width: `${percentual}%` }}
-                          />
-                        </div>
-                      )}
-
-                      <div className="mt-4 flex flex-col gap-2">
-                        {reservasDoPeriodo.map((reserva) => (
-                          <div
-                            key={reserva.id}
-                            className="flex items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2.5"
-                          >
-                            <div
-                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${corDoAvatar(
-                                reserva.id
-                              )}`}
-                            >
-                              {(reserva.cliente_nome ?? "C").charAt(0).toUpperCase()}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-baseline gap-x-1.5">
-                                <span className="truncate text-sm font-medium text-neutral-100">
-                                  {reserva.cliente_nome ?? "Cliente"}
-                                </span>
-                                {reserva.cliente_instagram_username && (
-                                  <a
-                                    href={`https://instagram.com/${reserva.cliente_instagram_username}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-xs text-neutral-500 hover:text-neutral-300"
-                                  >
-                                    @{reserva.cliente_instagram_username}
-                                  </a>
-                                )}
-                              </div>
-                              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-neutral-500">
-                                {reserva.whatsapp && (
-                                  <a
-                                    href={linkDoWhatsapp(reserva.whatsapp)}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex items-center gap-1 hover:text-neutral-300"
-                                  >
-                                    <svg
-                                      width="11"
-                                      height="11"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth={2}
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      className="shrink-0"
-                                    >
-                                      <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 3.15L3 21" />
-                                    </svg>
-                                    {reserva.whatsapp}
-                                  </a>
-                                )}
-                                <span>confirmada às {formatarHora(reserva.confirmado_em)}</span>
-                              </div>
-                            </div>
-
-                            <div className="flex shrink-0 flex-col items-end gap-1.5">
-                              <span className="rounded-full border border-neutral-700 bg-neutral-900 px-2.5 py-1 text-xs font-medium text-neutral-200">
-                                {reserva.quantidade_pessoas ?? "—"} pessoa
-                                {reserva.quantidade_pessoas === 1 ? "" : "s"}
-                              </span>
-                              <div className="flex items-center gap-1.5">
-                                <FormularioDeEdicaoDeReserva
-                                  action={`/api/reservas/${reserva.id}/editar`}
-                                  redirectTo={hrefAtualizar}
-                                  nomeCliente={reserva.cliente_nome ?? "esse cliente"}
-                                  quantidadeAtual={reserva.quantidade_pessoas ?? 1}
-                                />
-                                <BotaoExcluirReserva
-                                  action={`/api/reservas/${reserva.id}/excluir`}
-                                  redirectTo={hrefAtualizar}
-                                  nomeCliente={reserva.cliente_nome ?? "esse cliente"}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+              {periodosOrdenados.map((periodo) => (
+                <CartaoDePeriodo
+                  key={periodo}
+                  periodo={periodo}
+                  reservas={grupoDeData.get(periodo)!}
+                  limiteMaximo={limiteMaximo}
+                  hrefAtualizar={hrefAtualizar}
+                />
+              ))}
             </div>
           );
 
