@@ -72,7 +72,10 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  const ehRotaDeReservas = pathname === "/reservas" || pathname === "/api/reservas/logout";
+  // Prefixo, não igualdade exata: cobre /api/reservas/logout e as rotas de editar/excluir reserva
+  // (/api/reservas/<id>/editar, /api/reservas/<id>/excluir) — essas também precisam aceitar
+  // sessão de funcionário, não só a do Victor. /reservas/log fica de fora de propósito (só admin).
+  const ehRotaDeReservas = pathname === "/reservas" || pathname.startsWith("/api/reservas/");
 
   if (ehRotaDeReservas) {
     const resultado = await validarSessaoDeFuncionario(

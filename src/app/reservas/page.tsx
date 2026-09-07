@@ -2,6 +2,9 @@ import { cookies } from "next/headers";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { NOME_DO_COOKIE_DE_SESSAO } from "@/lib/funcionarios-cookie";
 import { BotaoSair } from "@/app/contas/BotaoSair";
+import { SeletorDeConta } from "./SeletorDeConta";
+import { FormularioDeEdicaoDeReserva } from "./FormularioDeEdicaoDeReserva";
+import { BotaoExcluirReserva } from "./BotaoExcluirReserva";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -338,7 +341,15 @@ export default async function ReservasPage({
             </button>
           </form>
         ) : (
-          <BotaoSair />
+          <div className="flex items-center gap-2">
+            <a
+              href={contaSelecionada ? `/reservas/log?conta=${contaSelecionada.id}` : "/reservas/log"}
+              className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:border-neutral-500"
+            >
+              Log de alterações
+            </a>
+            <BotaoSair />
+          </div>
         )}
       </div>
 
@@ -359,21 +370,13 @@ export default async function ReservasPage({
         </div>
       )}
 
-      {!ehFuncionario && (todasAsContas ?? []).length > 1 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {(todasAsContas ?? []).map((conta) => (
-            <a
-              key={conta.id}
-              href={href({ conta: conta.id })}
-              className={`rounded-lg border px-3 py-1.5 text-sm ${
-                conta.id === contaSelecionada?.id
-                  ? "border-neutral-500 bg-neutral-900 text-neutral-100"
-                  : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
-              }`}
-            >
-              {conta.page_name}
-            </a>
-          ))}
+      {!ehFuncionario && (todasAsContas ?? []).length > 1 && contaSelecionada && (
+        <div className="mt-4">
+          <SeletorDeConta
+            contas={todasAsContas ?? []}
+            contaSelecionadaId={contaSelecionada.id}
+            hrefs={Object.fromEntries((todasAsContas ?? []).map((c) => [c.id, href({ conta: c.id })]))}
+          />
         </div>
       )}
 
@@ -707,10 +710,25 @@ export default async function ReservasPage({
                               </div>
                             </div>
 
-                            <span className="shrink-0 rounded-full border border-neutral-700 bg-neutral-900 px-2.5 py-1 text-xs font-medium text-neutral-200">
-                              {reserva.quantidade_pessoas ?? "—"} pessoa
-                              {reserva.quantidade_pessoas === 1 ? "" : "s"}
-                            </span>
+                            <div className="flex shrink-0 flex-col items-end gap-1.5">
+                              <span className="rounded-full border border-neutral-700 bg-neutral-900 px-2.5 py-1 text-xs font-medium text-neutral-200">
+                                {reserva.quantidade_pessoas ?? "—"} pessoa
+                                {reserva.quantidade_pessoas === 1 ? "" : "s"}
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <FormularioDeEdicaoDeReserva
+                                  action={`/api/reservas/${reserva.id}/editar`}
+                                  redirectTo={hrefAtualizar}
+                                  nomeCliente={reserva.cliente_nome ?? "esse cliente"}
+                                  quantidadeAtual={reserva.quantidade_pessoas ?? 1}
+                                />
+                                <BotaoExcluirReserva
+                                  action={`/api/reservas/${reserva.id}/excluir`}
+                                  redirectTo={hrefAtualizar}
+                                  nomeCliente={reserva.cliente_nome ?? "esse cliente"}
+                                />
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>

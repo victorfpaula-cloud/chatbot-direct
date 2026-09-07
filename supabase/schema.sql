@@ -233,3 +233,26 @@ create table if not exists chatbot_funcionario_sessoes (
 create index if not exists chatbot_funcionario_sessoes_token_idx on chatbot_funcionario_sessoes(token);
 
 alter table chatbot_funcionario_sessoes enable row level security;
+
+-- ============================================================================
+-- Log de alterações manuais em reservas (editar quantidade de pessoas, excluir) feitas direto na
+-- tela /reservas — pelo Victor ou por um funcionário. Acessado só pelo Victor, em /reservas/log.
+-- `reserva_id` NÃO é foreign key: precisa sobreviver mesmo depois que a reserva é excluída (é
+-- exatamente o registro de "isso foi excluído"), então não pode ter `on delete cascade` puxando
+-- o próprio log junto.
+-- ============================================================================
+create table if not exists chatbot_reservas_log (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references chatbot_accounts(id) on delete cascade,
+  reserva_id uuid,
+  cliente_nome text,
+  autor text not null,
+  acao text not null,
+  detalhe text not null,
+  criado_em timestamptz not null default now()
+);
+
+create index if not exists chatbot_reservas_log_account_idx
+  on chatbot_reservas_log(account_id, criado_em desc);
+
+alter table chatbot_reservas_log enable row level security;
