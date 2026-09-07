@@ -32,9 +32,19 @@ import { NOME_DO_COOKIE_DE_SESSAO, validarSessaoDeFuncionario } from "@/lib/func
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Público de propósito: a tela de login do funcionário e o envio do formulário dela — ninguém
-  // consegue nem chegar ali se essas duas rotas também exigirem estar logado.
-  if (pathname === "/reservas/login" || pathname === "/api/reservas/login") {
+  // Público de propósito: a tela de login (do Victor e a do funcionário) e o envio do formulário
+  // da segunda — ninguém consegue nem chegar ali se essas rotas também exigirem estar logado.
+  // `/login` faltava aqui: a checagem de sessão sempre falhava pra quem ainda não tinha logado (óbvio,
+  // é a própria tela de login) e redirecionava de volta pra "/login" — um loop infinito de
+  // redirecionamento ("too many redirects"). Só não dava pra notar antes porque, sem
+  // NEXT_PUBLIC_SUPABASE_ANON_KEY configurada, o middleware inteiro "falhava aberto" (deixava
+  // passar sem checar nada) — assim que essa variável foi configurada certo, essa checagem passou
+  // a rodar de verdade e expôs o loop que já existia aqui.
+  if (
+    pathname === "/login" ||
+    pathname === "/reservas/login" ||
+    pathname === "/api/reservas/login"
+  ) {
     return NextResponse.next();
   }
 
