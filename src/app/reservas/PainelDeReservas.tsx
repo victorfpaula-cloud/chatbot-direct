@@ -120,12 +120,28 @@ export async function PainelDeReservas({
   const contaDoFuncionario = await resolverContaDoFuncionario(admin);
   const ehFuncionario = contaDoFuncionario !== null;
 
-  const { data: todasAsContas } = ehFuncionario
+  const { data: todasAsContasBrutas } = ehFuncionario
     ? { data: null }
     : await admin
         .from("chatbot_accounts")
         .select("id, page_name, instagram_username")
         .order("created_at", { ascending: true });
+
+  // Só entra no dropdown (e pode virar a conta selecionada) quem tem reservas habilitadas — nem
+  // toda página conectada usa essa função (botão "Ativar/desativar reservas" em /contas). O
+  // funcionário nem passa por aqui: a conta dele já vem fixa via resolverContaDoFuncionario.
+  let todasAsContas = todasAsContasBrutas;
+  if (todasAsContasBrutas && todasAsContasBrutas.length > 0) {
+    const { data: configs } = await admin
+      .from("chatbot_account_settings")
+      .select("account_id, reserva_habilitada")
+      .in(
+        "account_id",
+        todasAsContasBrutas.map((c) => c.id)
+      );
+    const habilitadas = new Set((configs ?? []).filter((c) => c.reserva_habilitada).map((c) => c.account_id));
+    todasAsContas = todasAsContasBrutas.filter((c) => habilitadas.has(c.id));
+  }
 
   const contaSelecionada = ehFuncionario
     ? contaDoFuncionario
@@ -566,8 +582,11 @@ export async function PainelDeReservas({
         </>
       )}
 
-      {!contaSelecionada && (
-        <p className="mt-8 text-sm text-neutral-500">Nenhuma conta conectada ainda.</p>
+      {!contaSelecionada && !ehFuncionario && (
+        <p className="mt-8 text-sm text-neutral-500">
+          Nenhuma conta com reservas ativadas ainda. Ative em "Ativar reservas", na tela de
+          contas.
+        </p>
       )}
 
       {contaSelecionada && datasOrdenadas.length === 0 && (

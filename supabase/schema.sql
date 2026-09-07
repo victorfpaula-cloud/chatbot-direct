@@ -162,6 +162,16 @@ alter table chatbot_account_settings
   add column if not exists reserva_datas_bloqueadas text;
 
 -- ============================================================================
+-- Liga/desliga a função de reservas por conta — nem toda página conectada vai usar reserva, então
+-- ela nasce DESLIGADA (default false) e só liga quando o Victor aperta "Ativar reservas" na tela
+-- de contas (/contas). Desligada, o webhook nunca entra no fluxo de reserva (mesmo que a
+-- palavra-chave esteja configurada), a aba de configuração de reserva não mostra o formulário, e a
+-- conta some do dropdown de contas em /reservas.
+-- ============================================================================
+alter table chatbot_account_settings
+  add column if not exists reserva_habilitada boolean not null default false;
+
+-- ============================================================================
 -- Reservas confirmadas — colunas que faltavam aqui (nome/@usuário do cliente, período, id do
 -- cliente no Direct e se já foi sincronizada com a planilha do Google), todas já gravadas por
 -- `finalizarReserva` em src/lib/reservas.ts.

@@ -59,7 +59,7 @@ export async function processarMensagemDeReserva(
   const { data: config, error: erroAoBuscarConfig } = await admin
     .from("chatbot_account_settings")
     .select(
-      "palavra_chave_reserva, reserva_pausa_ativa, reserva_pausa_mensagem, reserva_cutoff_horario, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_datas_bloqueadas"
+      "palavra_chave_reserva, reserva_habilitada, reserva_pausa_ativa, reserva_pausa_mensagem, reserva_cutoff_horario, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_datas_bloqueadas"
     )
     .eq("account_id", conta.id)
     .maybeSingle();
@@ -69,10 +69,16 @@ export async function processarMensagemDeReserva(
   // O campo "Palavra-chave da Reserva" aceita várias variações separadas por vírgula (ex: "reserva,
   // reservas, reservar") — igual ao campo de palavra-chave normal da aba Palavras-chave. Cada
   // variação é comparada separadamente contra a mensagem; basta UMA bater pra iniciar o fluxo.
-  const variacoesDaPalavraChaveDeReserva = (config?.palavra_chave_reserva ?? "")
-    .split(",")
-    .map((v: string) => normalizar(v.trim()))
-    .filter((v: string) => v.length > 0);
+  //
+  // `reserva_habilitada` é o interruptor geral da função (botão "Ativar/Desativar reservas" em
+  // /contas) — nem toda página conectada vai usar reserva, então desligada aqui bloqueia o início
+  // do fluxo mesmo que uma palavra-chave tenha ficado configurada de antes.
+  const variacoesDaPalavraChaveDeReserva = config?.reserva_habilitada
+    ? (config?.palavra_chave_reserva ?? "")
+        .split(",")
+        .map((v: string) => normalizar(v.trim()))
+        .filter((v: string) => v.length > 0)
+    : [];
 
   const bateuPalavraChave =
     variacoesDaPalavraChaveDeReserva.length > 0 &&

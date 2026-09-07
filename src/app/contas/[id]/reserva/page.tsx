@@ -1,4 +1,5 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { BotaoAtivarReservas } from "@/app/contas/BotaoAtivarReservas";
 import DatasBloqueadasEditor from "./DatasBloqueadasEditor";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function ReservaConfigPage({
   const { data: config } = await admin
     .from("chatbot_account_settings")
     .select(
-      "palavra_chave_reserva, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas"
+      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas"
     )
     .eq("account_id", params.id)
     .maybeSingle();
@@ -27,14 +28,54 @@ export default async function ReservaConfigPage({
     ? config.reserva_cutoff_horario.slice(0, 5)
     : "";
 
+  // Reservas desligadas nessa conta (botão "Ativar/desativar reservas" em /contas) — nem mostra a
+  // configuração, só o jeito de ligar de novo. Isso é o interruptor GERAL da função, diferente da
+  // "Pausar reservas temporariamente" lá embaixo (que só troca a mensagem enquanto a função
+  // continua ligada e configurada).
+  if (!config?.reserva_habilitada) {
+    return (
+      <div>
+        <h2 className="text-lg font-semibold">Reserva</h2>
+        <p className="mt-1 text-sm text-neutral-400">
+          Fluxo automático de reserva: só entra em ação quando o cliente manda a palavra-chave
+          configurada aqui. Depois disso, o bot pergunta data, período, quantidade de pessoas e
+          WhatsApp, mostra as regras e pede confirmação — tudo por conta própria.
+        </p>
+
+        <div className="mt-4 flex flex-col items-start gap-3 rounded-xl border border-dashed border-neutral-700 px-4 py-6">
+          <p className="text-sm text-neutral-400">
+            Reservas estão desativadas pra essa conta — a configuração fica escondida e o bot
+            nunca entra nesse fluxo até você ativar.
+          </p>
+          <form action="/api/contas/reservas-status" method="POST">
+            <input type="hidden" name="account_id" value={params.id} />
+            <input type="hidden" name="habilitar" value="1" />
+            <input type="hidden" name="redirect_to" value={`/contas/${params.id}/reserva`} />
+            <BotaoAtivarReservas habilitada={false} />
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <h2 className="text-lg font-semibold">Reserva</h2>
-      <p className="mt-1 text-sm text-neutral-400">
-        Fluxo automático de reserva: só entra em ação quando o cliente manda a palavra-chave
-        configurada aqui. Depois disso, o bot pergunta data, período, quantidade de pessoas e
-        WhatsApp, mostra as regras e pede confirmação — tudo por conta própria.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Reserva</h2>
+          <p className="mt-1 text-sm text-neutral-400">
+            Fluxo automático de reserva: só entra em ação quando o cliente manda a palavra-chave
+            configurada aqui. Depois disso, o bot pergunta data, período, quantidade de pessoas e
+            WhatsApp, mostra as regras e pede confirmação — tudo por conta própria.
+          </p>
+        </div>
+        <form action="/api/contas/reservas-status" method="POST" className="shrink-0">
+          <input type="hidden" name="account_id" value={params.id} />
+          <input type="hidden" name="habilitar" value="0" />
+          <input type="hidden" name="redirect_to" value={`/contas/${params.id}/reserva`} />
+          <BotaoAtivarReservas habilitada={true} />
+        </form>
+      </div>
 
       {searchParams.salvo && (
         <div className="mt-4 rounded-lg border border-green-900 bg-green-950 px-4 py-2 text-sm text-green-300">
