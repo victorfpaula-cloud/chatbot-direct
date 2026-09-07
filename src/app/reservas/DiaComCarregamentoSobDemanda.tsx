@@ -40,7 +40,13 @@ export function DiaComCarregamentoSobDemanda({
       if (busca) params.set("busca", busca);
 
       const resposta = await fetch(`/api/reservas/dia?${params.toString()}`);
-      if (!resposta.ok) throw new Error("falha na requisição");
+      if (!resposta.ok) {
+        // Loga o motivo real (status + corpo do erro) — sem isso, um 401/400/500 do lado do
+        // servidor e uma falha de rede do celular ficam indistinguíveis na tela.
+        const corpoDoErro = await resposta.text().catch(() => "");
+        console.error(`/api/reservas/dia falhou (${resposta.status}): ${corpoDoErro}`);
+        throw new Error("falha na requisição");
+      }
       const corpo = await resposta.json();
 
       const grupos: Record<string, Reserva[]> = {};
@@ -51,7 +57,8 @@ export function DiaComCarregamentoSobDemanda({
       }
       setGruposPorPeriodo(grupos);
       setEstado("carregado");
-    } catch {
+    } catch (erro) {
+      console.error("Falha ao carregar reservas do dia", erro);
       setEstado("erro");
     }
   }
@@ -61,7 +68,10 @@ export function DiaComCarregamentoSobDemanda({
       className="group"
       onToggle={(evento) => {
         const abriu = (evento.target as HTMLDetailsElement).open;
-        if (abriu && estado === "fechado") carregar();
+        // "erro" também dispara uma nova tentativa — sem isso, fechar e reabrir o dropdown depois
+        // de uma falha nunca tentava de novo (o estado ficava travado em "erro" pra sempre), apesar
+        // da própria mensagem de erro dizer pra "tentar abrir de novo".
+        if (abriu && (estado === "fechado" || estado === "erro")) carregar();
       }}
     >
       <summary className="list-none [&::-webkit-details-marker]:hidden">{cabecalho}</summary>
@@ -73,9 +83,16 @@ export function DiaComCarregamentoSobDemanda({
           </p>
         )}
         {estado === "erro" && (
-          <p className="rounded-xl border border-dashed border-red-900/60 px-4 py-6 text-center text-sm text-red-400">
-            Não foi possível carregar as reservas desse dia. Tente abrir de novo.
-          </p>
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-red-900/60 px-4 py-6 text-center text-sm text-red-400">
+            <p>Não foi possível carregar as reservas desse dia.</p>
+            <button
+              type="button"
+              onClick={carregar}
+              className="rounded-lg border border-red-800/60 px-3 py-1.5 text-xs font-medium text-red-300 hover:border-red-600"
+            >
+              Tentar novamente
+            </button>
+          </div>
         )}
         {estado === "carregado" &&
           Object.keys(gruposPorPeriodo)
