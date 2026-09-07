@@ -172,6 +172,15 @@ alter table chatbot_account_settings
   add column if not exists reserva_habilitada boolean not null default false;
 
 -- ============================================================================
+-- Cache da foto de perfil de cada conta (tela /contas) — antes buscava direto na Meta a cada
+-- abertura da tela; agora guarda aqui e só busca de novo quando estiver velha (ver
+-- src/app/contas/page.tsx), já que a foto de perfil de um restaurante quase nunca muda.
+-- ============================================================================
+alter table chatbot_accounts
+  add column if not exists foto_perfil_url text,
+  add column if not exists foto_perfil_atualizada_em timestamptz;
+
+-- ============================================================================
 -- Reservas confirmadas — colunas que faltavam aqui (nome/@usuário do cliente, período, id do
 -- cliente no Direct e se já foi sincronizada com a planilha do Google), todas já gravadas por
 -- `finalizarReserva` em src/lib/reservas.ts.

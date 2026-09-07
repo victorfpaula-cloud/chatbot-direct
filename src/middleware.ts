@@ -28,6 +28,14 @@ import { NOME_DO_COOKIE_DE_SESSAO, validarSessaoDeFuncionario } from "@/lib/func
  * Falha "aberta" (deixa passar sem exigir login) só se faltar configurar
  * `NEXT_PUBLIC_SUPABASE_ANON_KEY` — evita derrubar o site inteiro por um esquecimento de
  * variável de ambiente; ainda assim registra um erro no log pra não passar despercebido.
+ *
+ * Usa `getSession()` em vez de `getUser()` de propósito: `getUser()` sempre faz uma chamada de
+ * rede pro servidor do Supabase confirmar a sessão, em TODA navegação — com pouquíssima gente
+ * usando o site (só o Victor e alguns funcionários de restaurante), esse round-trip extra em
+ * cada clique só deixa tudo mais lento sem ganho real de segurança. `getSession()` confere a
+ * validade da sessão localmente (o token já vem assinado pelo Supabase) e só faz uma chamada de
+ * rede quando o token precisa renovar (por padrão, a cada 1h) — na prática vira "confere de
+ * verdade umas poucas vezes por dia" em vez de "toda hora".
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -76,10 +84,10 @@ export async function middleware(request: NextRequest) {
   });
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (user) {
+  if (session?.user) {
     return response;
   }
 

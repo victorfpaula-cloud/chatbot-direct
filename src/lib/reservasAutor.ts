@@ -36,12 +36,15 @@ export async function resolverAutorDaAcao(
       },
     });
 
+    // getSession() em vez de getUser() — mesmo motivo do middleware.ts: confere a sessão
+    // localmente (sem round-trip de rede a cada editar/excluir/busca sob demanda), só chamando o
+    // Supabase quando o token realmente precisa renovar.
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (user) {
-      return { tipo: "admin", autor: user.email ?? "Victor" };
+    if (session?.user) {
+      return { tipo: "admin", autor: session.user.email ?? "Victor" };
     }
   }
 

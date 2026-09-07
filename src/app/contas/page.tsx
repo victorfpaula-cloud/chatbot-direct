@@ -7,6 +7,56 @@ import { BotaoSair } from "./BotaoSair";
 
 export const dynamic = "force-dynamic";
 
+// A foto de perfil de um restaurante quase nunca muda — não faz sentido pedir ela pra Meta em
+// TODA abertura da tela. Só busca de novo (e regrava no banco) quando já faz mais de 24h da
+// última vez, ou quando essa conta ainda nunca teve uma foto guardada.
+const VALIDADE_DA_FOTO_MS = 24 * 60 * 60 * 1000;
+
+type ContaComFoto = {
+  id: string;
+  access_token: string;
+  instagram_user_id: string;
+  foto_perfil_url: string | null;
+  foto_perfil_atualizada_em: string | null;
+};
+
+async function atualizarFotosDePerfilVencidas(
+  admin: ReturnType<typeof criarClienteAdmin>,
+  contas: ContaComFoto[]
+): Promise<Map<string, string | null>> {
+  const agora = Date.now();
+  const vencidas = contas.filter(
+    (c) => !c.foto_perfil_atualizada_em || agora - new Date(c.foto_perfil_atualizada_em).getTime() > VALIDADE_DA_FOTO_MS
+  );
+
+  const fotosAtualizadas = new Map<string, string | null>();
+  if (vencidas.length === 0) return fotosAtualizadas;
+
+  const resultados = await Promise.all(
+    vencidas.map(async (conta) => ({
+      id: conta.id,
+      // Se a busca falhar (Meta fora do ar, token expirado, etc.), mantém a última foto boa em
+      // cache em vez de apagar ela — nunca queremos trocar uma foto que já funcionava por
+      // "nenhuma foto" só por causa de uma falha passageira na API.
+      foto: (await buscarFotoDePerfilDaConta(conta.access_token, conta.instagram_user_id)) ?? conta.foto_perfil_url,
+    }))
+  );
+
+  await Promise.all(
+    resultados.map(({ id, foto }) =>
+      admin
+        .from("chatbot_accounts")
+        .update({ foto_perfil_url: foto, foto_perfil_atualizada_em: new Date().toISOString() })
+        .eq("id", id)
+    )
+  );
+
+  for (const { id, foto } of resultados) {
+    fotosAtualizadas.set(id, foto);
+  }
+  return fotosAtualizadas;
+}
+
 const MENSAGENS_DE_ERRO: Record<string, string> = {
   parametros_faltando: "O Facebook não devolveu os dados esperados. Tenta conectar de novo.",
   state_invalido: "Essa tentativa de login expirou ou já foi usada. Tenta conectar de novo.",
@@ -81,41 +131,46 @@ export default async function ContasPage({
   const admin = criarClienteAdmin();
   const { data: contas } = await admin
     .from("chatbot_accounts")
-    .select("id, page_name, instagram_username, active, access_token, instagram_user_id")
+    .select(
+      "id, page_name, instagram_username, active, access_token, instagram_user_id, foto_perfil_url, foto_perfil_atualizada_em"
+    )
     .order("created_at", { ascending: true });
 
-  // Busca à parte (em vez de embutida na consulta acima) pra não depender de como o PostgREST
-  // infere a cardinalidade dessa relação — mais simples e explícito assim, no mesmo espírito da
-  // busca de estatísticas do dia logo abaixo.
+  const idsDasContas = (contas ?? []).map((c) => c.id);
+
+  // As três buscas abaixo (reservas habilitadas, estatísticas do dia, foto de perfil) são
+  // independentes entre si — cada uma só precisa da lista de contas, nenhuma depende do
+  // resultado da outra. Antes rodavam uma atrás da outra (cada uma esperando a anterior
+  // terminar); agora rodam ao mesmo tempo, então o tempo total de espera vira "a mais lenta
+  // delas", não "a soma de todas".
+  const [{ data: configs }, { data: atendimentosDeHoje }, fotosAtualizadas] = await Promise.all([
+    idsDasContas.length > 0
+      ? admin.from("chatbot_account_settings").select("account_id, reserva_habilitada").in("account_id", idsDasContas)
+      : Promise.resolve({ data: [] as { account_id: string; reserva_habilitada: boolean }[] }),
+    idsDasContas.length > 0
+      ? admin
+          .from("chatbot_atendimentos")
+          .select("account_id, instagram_scoped_id, status")
+          .gte("criado_em", inicioDoDiaEmSaoPauloISO())
+      : Promise.resolve({ data: [] as { account_id: string; instagram_scoped_id: string; status: string }[] }),
+    atualizarFotosDePerfilVencidas(admin, contas ?? []),
+  ]);
+
+  // Busca à parte (em vez de embutida na consulta de contas) pra não depender de como o
+  // PostgREST infere a cardinalidade dessa relação — mais simples e explícito assim.
   const reservasHabilitadasPorConta = new Map<string, boolean>();
-  if (contas && contas.length > 0) {
-    const { data: configs } = await admin
-      .from("chatbot_account_settings")
-      .select("account_id, reserva_habilitada")
-      .in(
-        "account_id",
-        contas.map((c) => c.id)
-      );
-    for (const config of configs ?? []) {
-      reservasHabilitadasPorConta.set(config.account_id, config.reserva_habilitada);
-    }
+  for (const config of configs ?? []) {
+    reservasHabilitadasPorConta.set(config.account_id, config.reserva_habilitada);
   }
 
-  // Foto de perfil de cada conta, buscada direto na Meta a cada abertura da tela (nunca guardada
-  // no banco — ver o comentário de buscarFotoDePerfilDaConta pra entender o motivo). O access_token
-  // só é usado aqui, dentro do servidor, pra fazer essa busca — nunca é passado pro componente de
-  // cliente (AvatarConta só recebe a URL da foto já pronta).
+  // Foto de perfil de cada conta — agora cacheada no banco (`chatbot_accounts.foto_perfil_url`) e
+  // só buscada de novo na Meta quando estiver velha (ver atualizarFotosDePerfilVencidas), já que a
+  // foto de um restaurante quase nunca muda. O access_token só é usado dentro do servidor pra
+  // fazer essa busca — nunca é passado pro componente de cliente (AvatarConta só recebe a URL já
+  // pronta).
   const fotosPorConta = new Map<string, string | null>();
-  if (contas && contas.length > 0) {
-    const resultados = await Promise.all(
-      contas.map(async (conta) => ({
-        id: conta.id,
-        foto: await buscarFotoDePerfilDaConta(conta.access_token, conta.instagram_user_id),
-      }))
-    );
-    for (const resultado of resultados) {
-      fotosPorConta.set(resultado.id, resultado.foto);
-    }
+  for (const conta of contas ?? []) {
+    fotosPorConta.set(conta.id, fotosAtualizadas.get(conta.id) ?? conta.foto_perfil_url ?? null);
   }
 
   // "Status do dia": conta rápida de quantos CLIENTES essa conta atendeu hoje e quantos tiveram
@@ -130,11 +185,6 @@ export default async function ContasPage({
   // várias vezes ao longo do dia.
   const estatisticasPorConta = new Map<string, EstatisticaDoDia>();
   if (contas && contas.length > 0) {
-    const { data: atendimentosDeHoje } = await admin
-      .from("chatbot_atendimentos")
-      .select("account_id, instagram_scoped_id, status")
-      .gte("criado_em", inicioDoDiaEmSaoPauloISO());
-
     const clientesRespondidosPorConta = new Map<string, Set<string>>();
     const clientesComErroPorConta = new Map<string, Set<string>>();
 

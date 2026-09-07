@@ -1,9 +1,11 @@
 import { cookies } from "next/headers";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { NOME_DO_COOKIE_DE_SESSAO } from "@/lib/funcionarios-cookie";
+import { hojeEmSaoPauloISO, somarDiasISO } from "@/lib/datas";
 import { BotaoSair } from "@/app/contas/BotaoSair";
 import { SeletorDeConta } from "./SeletorDeConta";
 import { DiaComCarregamentoSobDemanda } from "./DiaComCarregamentoSobDemanda";
+import { HistoricoSobDemanda } from "./HistoricoSobDemanda";
 import {
   type Reserva,
   Icone,
@@ -41,17 +43,6 @@ const CAMINHO_SETA_BAIXO = "M6 9l6 6 6-6";
 
 // --- Datas ---
 
-function hojeEmSaoPauloISO(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
-}
-
-function somarDiasISO(dataISO: string, dias: number): string {
-  const [ano, mes, dia] = dataISO.split("-").map((v) => parseInt(v, 10));
-  const data = new Date(Date.UTC(ano, mes - 1, dia));
-  data.setUTCDate(data.getUTCDate() + dias);
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "UTC" }).format(data);
-}
-
 function diferencaEmDias(dataISO: string, referenciaISO: string): number {
   const [a1, a2, a3] = dataISO.split("-").map(Number);
   const [b1, b2, b3] = referenciaISO.split("-").map(Number);
@@ -72,11 +63,6 @@ function formatarDataExtensa(dataISO: string): string {
     month: "long",
   }).format(new Date(Date.UTC(ano, mes - 1, dia)));
   return primeiraLetraMaiuscula(formatado);
-}
-
-function formatarDataCurta(dataISO: string): string {
-  const [, mes, dia] = dataISO.split("-");
-  return `${dia}/${mes}`;
 }
 
 async function resolverContaDoFuncionario(
@@ -159,11 +145,17 @@ export async function PainelDeReservas({
   let reservas: Reserva[] = [];
   const contagemPorDia = new Map<string, number>();
   let limiteMaximo: number | null = null;
-  let historico: { data: string; total: number }[] = [];
-  let totalDeReservasNoAno = 0;
-  let totalDePessoasNoAno = 0;
-
   if (contaSelecionada) {
+    // A busca de reservas (pesada em "hoje", leve nas outras telas) e o limite de capacidade não
+    // dependem uma da outra — rodam ao mesmo tempo em vez de uma esperar a outra terminar. O
+    // histórico/totais do ano saiu daqui de vez: agora é buscado sob demanda só quando a pessoa
+    // abre aquele bloco (ver HistoricoSobDemanda.tsx + /api/reservas/historico).
+    const consultaLimite = admin
+      .from("chatbot_account_settings")
+      .select("reserva_limite_maximo")
+      .eq("account_id", contaSelecionada.id)
+      .maybeSingle();
+
     if (modo === "hoje") {
       // Tela inicial: continua carregando tudo de cara (o intervalo aqui é sempre pequeno — o dia
       // de hoje, ou um período customizado curto que o próprio Victor escolheu no filtro).
@@ -193,8 +185,9 @@ export async function PainelDeReservas({
         }
       }
 
-      const { data } = await consulta;
+      const [{ data }, { data: config }] = await Promise.all([consulta, consultaLimite]);
       reservas = data ?? [];
+      limiteMaximo = config?.reserva_limite_maximo ?? null;
     } else {
       // Antigas/Futuras: intervalo pode ser grande (30 dias pra trás, ou todas as reservas
       // futuras sem teto) — busca só o suficiente pra montar o cabeçalho de cada dia (contagem),
@@ -220,75 +213,11 @@ export async function PainelDeReservas({
         }
       }
 
-      const { data: leve } = await consultaLeve;
+      const [{ data: leve }, { data: config }] = await Promise.all([consultaLeve, consultaLimite]);
       for (const linha of leve ?? []) {
         contagemPorDia.set(linha.data_reserva, (contagemPorDia.get(linha.data_reserva) ?? 0) + 1);
       }
-    }
-
-    const { data: config } = await admin
-      .from("chatbot_account_settings")
-      .select("reserva_limite_maximo")
-      .eq("account_id", contaSelecionada.id)
-      .maybeSingle();
-    limiteMaximo = config?.reserva_limite_maximo ?? null;
-
-    // Histórico e totais do ano só aparecem na tela "hoje" (ver mais abaixo) — pula essas duas
-    // consultas nas telas de Antigas/Futuras, que agora são dedicadas só à lista de reservas.
-    if (modo === "hoje") {
-      const inicioHistorico = somarDiasISO(hoje, -13);
-      const { data: historicoRaw } = await admin
-        .from("chatbot_reservations")
-        .select("data_reserva")
-        .eq("account_id", contaSelecionada.id)
-        .gte("data_reserva", inicioHistorico)
-        .lte("data_reserva", hoje);
-
-      const contagemPorDia = new Map<string, number>();
-      for (const linha of historicoRaw ?? []) {
-        contagemPorDia.set(linha.data_reserva, (contagemPorDia.get(linha.data_reserva) ?? 0) + 1);
-      }
-      for (let i = 0; i < 14; i++) {
-        const dia = somarDiasISO(inicioHistorico, i);
-        historico.push({ data: dia, total: contagemPorDia.get(dia) ?? 0 });
-      }
-
-      // Total do ano vem de um cache que só recalcula na primeira visita do dia (não precisa ser
-      // em tempo real — só precisa estar certo "a partir de hoje"). Some o ano inteiro de novo só
-      // quando o cache não existe ainda ou é de um dia anterior; o resto do dia, todo mundo que
-      // abre a tela só lê essa linha, sem somar nada.
-      const anoAtual = parseInt(hoje.slice(0, 4), 10);
-      const { data: totalCacheado } = await admin
-        .from("chatbot_reservas_totais_anuais")
-        .select("total_reservas, total_pessoas, atualizado_em")
-        .eq("account_id", contaSelecionada.id)
-        .eq("ano", anoAtual)
-        .maybeSingle();
-
-      if (totalCacheado && totalCacheado.atualizado_em === hoje) {
-        totalDeReservasNoAno = totalCacheado.total_reservas;
-        totalDePessoasNoAno = totalCacheado.total_pessoas;
-      } else {
-        const { data: doAno } = await admin
-          .from("chatbot_reservations")
-          .select("quantidade_pessoas")
-          .eq("account_id", contaSelecionada.id)
-          .gte("data_reserva", `${anoAtual}-01-01`)
-          .lte("data_reserva", `${anoAtual}-12-31`);
-        totalDeReservasNoAno = doAno?.length ?? 0;
-        totalDePessoasNoAno = (doAno ?? []).reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
-
-        await admin.from("chatbot_reservas_totais_anuais").upsert(
-          {
-            account_id: contaSelecionada.id,
-            ano: anoAtual,
-            total_reservas: totalDeReservasNoAno,
-            total_pessoas: totalDePessoasNoAno,
-            atualizado_em: hoje,
-          },
-          { onConflict: "account_id,ano" }
-        );
-      }
+      limiteMaximo = config?.reserva_limite_maximo ?? null;
     }
   }
 
@@ -307,7 +236,6 @@ export async function PainelDeReservas({
 
   const totalDeReservas = reservas.length;
   const totalDePessoas = reservas.reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
-  const maiorDoHistorico = Math.max(1, ...historico.map((h) => h.total));
   const ehSomenteHoje = modo === "hoje" && de === hoje && ate === hoje;
   const rotuloDoEscopo = ehSomenteHoje ? "hoje" : "no período";
 
@@ -716,49 +644,7 @@ export async function PainelDeReservas({
       </div>
 
       {contaSelecionada && modo === "hoje" && (
-        <div className="mt-10 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
-          <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
-            <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
-            Histórico e totais do ano
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
-              <p className="text-xs text-neutral-500">Reservas em {hoje.slice(0, 4)}</p>
-              <p className="mt-1 text-xl font-semibold text-neutral-100">{totalDeReservasNoAno}</p>
-            </div>
-            <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
-              <p className="text-xs text-neutral-500">Pessoas atendidas em {hoje.slice(0, 4)}</p>
-              <p className="mt-1 text-xl font-semibold text-neutral-100">{totalDePessoasNoAno}</p>
-            </div>
-          </div>
-
-          <p className="mt-4 text-xs text-neutral-500">Reservas confirmadas por dia — últimos 14 dias</p>
-          <svg
-            role="img"
-            aria-label="Reservas confirmadas por dia, nos últimos 14 dias"
-            viewBox="0 0 336 72"
-            className="mt-2 w-full"
-            preserveAspectRatio="none"
-          >
-            <line x1="0" y1="64" x2="336" y2="64" stroke="#2c2c2a" strokeWidth="1" />
-            {historico.map((dia, i) => {
-              const altura = dia.total === 0 ? 0 : Math.max(4, Math.round((dia.total / maiorDoHistorico) * 56));
-              const x = i * 24 + 2;
-              return (
-                <rect key={dia.data} x={x} y={64 - altura} width="20" height={altura} rx="3" fill="#3987e5">
-                  <title>
-                    {formatarDataCurta(dia.data)}: {dia.total} reserva{dia.total === 1 ? "" : "s"}
-                  </title>
-                </rect>
-              );
-            })}
-          </svg>
-          <div className="mt-1 flex justify-between text-[10px] text-neutral-600">
-            <span>{formatarDataCurta(historico[0]?.data ?? hoje)}</span>
-            <span>{formatarDataCurta(historico[historico.length - 1]?.data ?? hoje)}</span>
-          </div>
-        </div>
+        <HistoricoSobDemanda contaId={ehFuncionario ? null : contaSelecionada.id} hoje={hoje} />
       )}
     </main>
   );
