@@ -21,8 +21,44 @@ type Reserva = {
 
 type FiltroDePeriodo = "todos" | "almoco" | "jantar";
 
-// Mesma técnica de "cor estável por id" já usada nos avatares de /contas — cada cliente sempre
-// cai na mesma cor, sem precisar guardar nada a mais no banco pra isso.
+// --- Ícones (mesmo estilo de traço já usado no botão de sair e no link de WhatsApp) ---
+
+function Icone({
+  path,
+  className,
+}: {
+  path: string;
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className ?? "h-4 w-4"}
+      aria-hidden="true"
+    >
+      <path d={path} />
+    </svg>
+  );
+}
+
+const CAMINHO_CALENDARIO = "M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z";
+const CAMINHO_PESSOAS =
+  "M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM23 21v-2a4 4 0 0 0-3-3.87M17 3.13a4 4 0 0 1 0 7.75";
+const CAMINHO_TICKET =
+  "M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4V9z";
+const CAMINHO_FUNIL = "M22 3H2l8 9.46V19l4 2v-8.54L22 3z";
+const CAMINHO_RELOGIO_HISTORICO = "M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8";
+const CAMINHO_SOL =
+  "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42";
+const CAMINHO_LUA = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
+
+// --- Estilo por cliente/dia ---
+
 const CORES_DE_AVATAR = [
   "bg-emerald-950 text-emerald-300",
   "bg-sky-950 text-sky-300",
@@ -37,6 +73,17 @@ function corDoAvatar(id: string): string {
   return CORES_DE_AVATAR[soma % CORES_DE_AVATAR.length];
 }
 
+const ESTILO_DO_PERIODO: Record<string, { rotulo: string; caminho: string; cor: string }> = {
+  almoco: { rotulo: "Almoço", caminho: CAMINHO_SOL, cor: "bg-amber-950 text-amber-300 border-amber-900/60" },
+  jantar: { rotulo: "Jantar", caminho: CAMINHO_LUA, cor: "bg-indigo-950 text-indigo-300 border-indigo-900/60" },
+};
+
+function estiloDoPeriodo(periodo: string) {
+  return ESTILO_DO_PERIODO[periodo] ?? { rotulo: periodo, caminho: CAMINHO_TICKET, cor: "bg-neutral-800 text-neutral-300 border-neutral-700" };
+}
+
+// --- Datas ---
+
 function hojeEmSaoPauloISO(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
 }
@@ -48,7 +95,11 @@ function somarDiasISO(dataISO: string, dias: number): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "UTC" }).format(data);
 }
 
-function formatarDataCompleta(dataISO: string): string {
+function primeiraLetraMaiuscula(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function formatarDataExtensa(dataISO: string): string {
   const [ano, mes, dia] = dataISO.split("-").map((v) => parseInt(v, 10));
   const formatado = new Intl.DateTimeFormat("pt-BR", {
     timeZone: "UTC",
@@ -56,10 +107,7 @@ function formatarDataCompleta(dataISO: string): string {
     day: "2-digit",
     month: "long",
   }).format(new Date(Date.UTC(ano, mes - 1, dia)));
-
-  // Só a primeira letra — o CSS `capitalize` deixaria "De Setembro" com D maiúsculo, já que ele
-  // maiúsculiza a primeira letra de CADA palavra, não só a do começo da frase.
-  return formatado.charAt(0).toUpperCase() + formatado.slice(1);
+  return primeiraLetraMaiuscula(formatado);
 }
 
 function formatarDataCurta(dataISO: string): string {
@@ -85,18 +133,20 @@ function linkDoWhatsapp(numero: string): string {
 
 async function resolverContaDoFuncionario(
   admin: ReturnType<typeof criarClienteAdmin>
-): Promise<{ id: string; page_name: string } | null> {
+): Promise<{ id: string; page_name: string; instagram_username: string | null } | null> {
   const token = cookies().get(NOME_DO_COOKIE_DE_SESSAO)?.value;
   if (!token) return null;
 
   const { data: sessao } = await admin
     .from("chatbot_funcionario_sessoes")
-    .select("funcionario_id, chatbot_funcionarios(account_id, chatbot_accounts(id, page_name))")
+    .select(
+      "funcionario_id, chatbot_funcionarios(account_id, chatbot_accounts(id, page_name, instagram_username))"
+    )
     .eq("token", token)
     .maybeSingle();
 
   const conta = (sessao as any)?.chatbot_funcionarios?.chatbot_accounts;
-  return conta ? { id: conta.id, page_name: conta.page_name } : null;
+  return conta ? { id: conta.id, page_name: conta.page_name, instagram_username: conta.instagram_username } : null;
 }
 
 export default async function ReservasPage({
@@ -111,7 +161,10 @@ export default async function ReservasPage({
 
   const { data: todasAsContas } = ehFuncionario
     ? { data: null }
-    : await admin.from("chatbot_accounts").select("id, page_name").order("created_at", { ascending: true });
+    : await admin
+        .from("chatbot_accounts")
+        .select("id, page_name, instagram_username")
+        .order("created_at", { ascending: true });
 
   const contaSelecionada = ehFuncionario
     ? contaDoFuncionario
@@ -119,7 +172,7 @@ export default async function ReservasPage({
 
   const hoje = hojeEmSaoPauloISO();
   const de = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.de ?? "") ? searchParams.de! : hoje;
-  const ate = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.ate ?? "") ? searchParams.ate! : somarDiasISO(hoje, 7);
+  const ate = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.ate ?? "") ? searchParams.ate! : hoje;
   const filtroDePeriodo: FiltroDePeriodo = ["todos", "almoco", "jantar"].includes(searchParams.periodo ?? "")
     ? (searchParams.periodo as FiltroDePeriodo)
     : "todos";
@@ -128,6 +181,8 @@ export default async function ReservasPage({
   let reservas: Reserva[] = [];
   let limiteMaximo: number | null = null;
   let historico: { data: string; total: number }[] = [];
+  let totalDeReservasNoAno = 0;
+  let totalDePessoasNoAno = 0;
 
   if (contaSelecionada) {
     let consulta = admin
@@ -182,6 +237,16 @@ export default async function ReservasPage({
       const dia = somarDiasISO(inicioHistorico, i);
       historico.push({ data: dia, total: contagemPorDia.get(dia) ?? 0 });
     }
+
+    const anoAtual = hoje.slice(0, 4);
+    const { data: doAno } = await admin
+      .from("chatbot_reservations")
+      .select("quantidade_pessoas")
+      .eq("account_id", contaSelecionada.id)
+      .gte("data_reserva", `${anoAtual}-01-01`)
+      .lte("data_reserva", `${anoAtual}-12-31`);
+    totalDeReservasNoAno = doAno?.length ?? 0;
+    totalDePessoasNoAno = (doAno ?? []).reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
   }
 
   const porData = new Map<string, Map<string, Reserva[]>>();
@@ -195,15 +260,11 @@ export default async function ReservasPage({
   }
   const datasOrdenadas = Array.from(porData.keys()).sort();
 
-  const rotuloDoPeriodo: Record<string, string> = {
-    almoco: "Almoço",
-    jantar: "Jantar",
-    sem_periodo: "Sem período",
-  };
-
   const totalDeReservas = reservas.length;
   const totalDePessoas = reservas.reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
   const maiorDoHistorico = Math.max(1, ...historico.map((h) => h.total));
+  const ehSomenteHoje = de === hoje && ate === hoje;
+  const rotuloDoEscopo = ehSomenteHoje ? "hoje" : "no período";
 
   function href(sobrescreve: Partial<{ conta: string; de: string; ate: string; periodo: string; busca: string }>) {
     const params = new URLSearchParams();
@@ -224,11 +285,17 @@ export default async function ReservasPage({
     { rotulo: "Próximos 30 dias", de: hoje, ate: somarDiasISO(hoje, 30) },
   ];
 
+  const hrefReservasAntigas = href({ de: somarDiasISO(hoje, -365), ate: somarDiasISO(hoje, -1) });
+  const filtroPersonalizadoAtivo = !ehSomenteHoje || busca.length > 0;
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-100">Reservas</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold text-neutral-100">
+            <Icone path={CAMINHO_TICKET} className="h-5 w-5 text-sky-400" />
+            Reservas
+          </h1>
           <p className="mt-1 text-sm text-neutral-400">
             {contaSelecionada ? contaSelecionada.page_name : "Nenhuma conta disponível"}
           </p>
@@ -247,6 +314,23 @@ export default async function ReservasPage({
           <BotaoSair />
         )}
       </div>
+
+      {/* Data de hoje, sempre em destaque — funcionário e admin */}
+      <div className="mt-4 flex items-center gap-2 text-sm text-neutral-400">
+        <Icone path={CAMINHO_CALENDARIO} className="h-4 w-4 text-sky-400" />
+        Hoje é <span className="font-medium text-neutral-100">{formatarDataExtensa(hoje)}</span>
+      </div>
+
+      {/* Boas-vindas — só pra tela do funcionário, o Victor já sabe onde está */}
+      {ehFuncionario && contaSelecionada && (
+        <div className="mt-4 overflow-hidden rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-950 via-neutral-900 to-neutral-900 p-5 shadow-lg shadow-black/30">
+          <p className="text-xs font-medium uppercase tracking-wide text-sky-400">Painel da equipe</p>
+          <h2 className="mt-1 text-xl font-semibold text-neutral-50">
+            Bem-vindo às reservas do{" "}
+            {contaSelecionada.instagram_username ? `@${contaSelecionada.instagram_username}` : contaSelecionada.page_name}
+          </h2>
+        </div>
+      )}
 
       {!ehFuncionario && (todasAsContas ?? []).length > 1 && (
         <div className="mt-4 flex flex-wrap gap-2">
@@ -268,100 +352,131 @@ export default async function ReservasPage({
 
       {contaSelecionada && (
         <>
-          {/* Stat strip — leitura rápida do que esse filtro está mostrando, sem precisar contar
-              card por card. */}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3">
-              <p className="text-xs text-neutral-500">Reservas no período</p>
-              <p className="mt-1 text-2xl font-semibold text-neutral-100">{totalDeReservas}</p>
-            </div>
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3">
-              <p className="text-xs text-neutral-500">Pessoas no período</p>
-              <p className="mt-1 text-2xl font-semibold text-neutral-100">{totalDePessoas}</p>
-            </div>
-          </div>
+          {/* Filtros — presets de data e busca por nome ficam discretos dentro do dropdown;
+              período e "reservas antigas" continuam visíveis por serem os mais usados. */}
+          <div className="relative mt-6 flex flex-wrap items-center gap-2">
+            <details className="group relative">
+              <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 [&::-webkit-details-marker]:hidden hover:border-neutral-500">
+                <Icone path={CAMINHO_FUNIL} className="h-3.5 w-3.5" />
+                Filtros
+                {filtroPersonalizadoAtivo && <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />}
+              </summary>
 
-          {/* Atalhos de intervalo — um clique pras janelas mais usadas. */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            {presets.map((preset) => (
-              <a
-                key={preset.rotulo}
-                href={href({ de: preset.de, ate: preset.ate })}
-                className={`rounded-lg border px-3 py-1.5 text-sm ${
-                  de === preset.de && ate === preset.ate
-                    ? "border-neutral-500 bg-neutral-900 text-neutral-100"
-                    : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
-                }`}
-              >
-                {preset.rotulo}
-              </a>
-            ))}
-          </div>
+              <div className="absolute left-0 z-20 mt-2 w-72 rounded-2xl border border-neutral-700 bg-neutral-900 p-4 shadow-xl shadow-black/40">
+                <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Intervalo rápido</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {presets.map((preset) => (
+                    <a
+                      key={preset.rotulo}
+                      href={href({ de: preset.de, ate: preset.ate })}
+                      className={`rounded-lg border px-2.5 py-1 text-xs ${
+                        de === preset.de && ate === preset.ate
+                          ? "border-sky-700 bg-sky-950 text-sky-200"
+                          : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
+                      }`}
+                    >
+                      {preset.rotulo}
+                    </a>
+                  ))}
+                </div>
 
-          {/* Busca por nome + intervalo customizado — cobre o caso de querer uma data específica
-              ou achar a reserva de um cliente pelo nome, igual a busca "NOME contém" da planilha
-              antiga. */}
-          <form method="GET" className="mt-3 flex flex-wrap items-end gap-3">
-            {contaSelecionada && !ehFuncionario && (
-              <input type="hidden" name="conta" value={contaSelecionada.id} />
-            )}
-            <div>
-              <label className="text-xs text-neutral-500">Buscar por nome</label>
-              <input
-                type="text"
-                name="busca"
-                defaultValue={busca}
-                placeholder="Nome ou @usuário"
-                className="mt-1 w-40 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-neutral-500">De</label>
-              <input
-                type="date"
-                name="de"
-                defaultValue={de}
-                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-neutral-500">Até</label>
-              <input
-                type="date"
-                name="ate"
-                defaultValue={ate}
-                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm"
-              />
-            </div>
-            <input type="hidden" name="periodo" value={filtroDePeriodo} />
-            <button
-              type="submit"
-              className="rounded-lg border border-neutral-700 bg-neutral-100 px-4 py-1.5 text-sm font-medium text-neutral-950"
+                <form method="GET" className="mt-4 flex flex-col gap-3 border-t border-neutral-800 pt-4">
+                  {!ehFuncionario && <input type="hidden" name="conta" value={contaSelecionada.id} />}
+                  <input type="hidden" name="periodo" value={filtroDePeriodo} />
+
+                  <div>
+                    <label className="text-xs text-neutral-500">Buscar por nome</label>
+                    <input
+                      type="text"
+                      name="busca"
+                      defaultValue={busca}
+                      placeholder="Nome ou @usuário"
+                      className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="text-xs text-neutral-500">De</label>
+                      <input
+                        type="date"
+                        name="de"
+                        defaultValue={de}
+                        className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-neutral-500">Até</label>
+                      <input
+                        type="date"
+                        name="ate"
+                        defaultValue={ate}
+                        className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-neutral-700 bg-neutral-100 px-4 py-1.5 text-sm font-medium text-neutral-950"
+                  >
+                    Aplicar filtros
+                  </button>
+                </form>
+              </div>
+            </details>
+
+            <a
+              href={hrefReservasAntigas}
+              className="flex items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500"
             >
-              Filtrar
-            </button>
-          </form>
+              <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
+              Reservas antigas
+            </a>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(
-              [
-                { valor: "todos", rotulo: "Almoço e jantar" },
-                { valor: "almoco", rotulo: "Só almoço" },
-                { valor: "jantar", rotulo: "Só jantar" },
-              ] as { valor: FiltroDePeriodo; rotulo: string }[]
-            ).map((filtro) => (
-              <a
-                key={filtro.valor}
-                href={href({ periodo: filtro.valor })}
-                className={`rounded-lg border px-3 py-1 text-xs ${
-                  filtro.valor === filtroDePeriodo
-                    ? "border-neutral-500 bg-neutral-900 text-neutral-200"
-                    : "border-neutral-800 text-neutral-500 hover:border-neutral-600"
-                }`}
-              >
-                {filtro.rotulo}
-              </a>
-            ))}
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { valor: "todos", rotulo: "Almoço e jantar" },
+                  { valor: "almoco", rotulo: "Só almoço" },
+                  { valor: "jantar", rotulo: "Só jantar" },
+                ] as { valor: FiltroDePeriodo; rotulo: string }[]
+              ).map((filtro) => (
+                <a
+                  key={filtro.valor}
+                  href={href({ periodo: filtro.valor })}
+                  className={`rounded-lg border px-3 py-1.5 text-sm ${
+                    filtro.valor === filtroDePeriodo
+                      ? "border-neutral-500 bg-neutral-900 text-neutral-100"
+                      : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
+                  }`}
+                >
+                  {filtro.rotulo}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Stat cards — logo acima da lista, com destaque colorido, igual pedido */}
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 rounded-xl border border-sky-900/50 bg-gradient-to-br from-sky-950/60 to-neutral-900 px-4 py-3 shadow-sm shadow-sky-950/40">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-950 text-sky-300">
+                <Icone path={CAMINHO_TICKET} className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-neutral-400">Reservas {rotuloDoEscopo}</p>
+                <p className="text-2xl font-semibold text-neutral-50">{totalDeReservas}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-violet-900/50 bg-gradient-to-br from-violet-950/60 to-neutral-900 px-4 py-3 shadow-sm shadow-violet-950/40">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-950 text-violet-300">
+                <Icone path={CAMINHO_PESSOAS} className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-neutral-400">Pessoas {rotuloDoEscopo}</p>
+                <p className="text-2xl font-semibold text-neutral-50">{totalDePessoas}</p>
+              </div>
+            </div>
           </div>
         </>
       )}
@@ -384,16 +499,29 @@ export default async function ReservasPage({
 
           return (
             <div key={data}>
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-neutral-300">
-                {formatarDataCompleta(data)}
+              {/* Cabeçalho do dia com bem mais destaque — é a informação mais importante da tela */}
+              <div
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${
+                  ehHoje
+                    ? "border-sky-800/60 bg-sky-950/40"
+                    : "border-neutral-800 bg-neutral-900/60"
+                }`}
+              >
+                <Icone
+                  path={CAMINHO_CALENDARIO}
+                  className={`h-4 w-4 shrink-0 ${ehHoje ? "text-sky-400" : "text-neutral-500"}`}
+                />
+                <h2 className={`text-base font-semibold ${ehHoje ? "text-sky-100" : "text-neutral-200"}`}>
+                  {formatarDataExtensa(data)}
+                </h2>
                 {ehHoje && (
-                  <span className="rounded-full border border-sky-900 bg-sky-950 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-300">
+                  <span className="rounded-full border border-sky-700 bg-sky-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-200">
                     Hoje
                   </span>
                 )}
-              </h2>
+              </div>
 
-              <div className="mt-2 flex flex-col gap-4">
+              <div className="mt-3 flex flex-col gap-4">
                 {periodosOrdenados.map((periodo) => {
                   const reservasDoPeriodo = grupoDeData.get(periodo)!;
                   const totalDePessoasDoGrupo = reservasDoPeriodo.reduce(
@@ -404,25 +532,30 @@ export default async function ReservasPage({
                     typeof limiteMaximo === "number" && limiteMaximo > 0
                       ? Math.min(100, Math.round((totalDePessoasDoGrupo / limiteMaximo) * 100))
                       : null;
-                  const corDaBarra =
+                  const status =
                     percentual === null
-                      ? "bg-neutral-600"
+                      ? { barra: "bg-neutral-600", borda: "border-neutral-800" }
                       : percentual >= 100
-                        ? "bg-red-500"
+                        ? { barra: "bg-red-500", borda: "border-red-900/60" }
                         : percentual >= 70
-                          ? "bg-amber-500"
-                          : "bg-green-500";
+                          ? { barra: "bg-amber-500", borda: "border-amber-900/60" }
+                          : { barra: "bg-green-500", borda: "border-green-900/50" };
+                  const estiloPeriodo = estiloDoPeriodo(periodo);
 
                   return (
                     <div
                       key={periodo}
-                      className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/20"
+                      className={`rounded-2xl border-2 bg-neutral-900 p-4 shadow-md shadow-black/20 ${status.borda}`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-medium text-neutral-200">
-                          {rotuloDoPeriodo[periodo] ?? periodo}
+                        <span
+                          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${estiloPeriodo.cor}`}
+                        >
+                          <Icone path={estiloPeriodo.caminho} className="h-3.5 w-3.5" />
+                          {estiloPeriodo.rotulo}
                         </span>
-                        <span className="text-xs text-neutral-500">
+                        <span className="flex items-center gap-1 text-xs text-neutral-400">
+                          <Icone path={CAMINHO_PESSOAS} className="h-3.5 w-3.5" />
                           {totalDePessoasDoGrupo}
                           {typeof limiteMaximo === "number" ? ` / ${limiteMaximo}` : ""} pessoas
                         </span>
@@ -431,7 +564,7 @@ export default async function ReservasPage({
                       {percentual !== null && (
                         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
                           <div
-                            className={`h-full rounded-full ${corDaBarra}`}
+                            className={`h-full rounded-full ${status.barra}`}
                             style={{ width: `${percentual}%` }}
                           />
                         </div>
@@ -513,14 +646,28 @@ export default async function ReservasPage({
 
       {contaSelecionada && (
         <div className="mt-10 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-            Histórico — últimos 14 dias
-          </p>
+          <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+            <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
+            Histórico e totais do ano
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
+              <p className="text-xs text-neutral-500">Reservas em {hoje.slice(0, 4)}</p>
+              <p className="mt-1 text-xl font-semibold text-neutral-100">{totalDeReservasNoAno}</p>
+            </div>
+            <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
+              <p className="text-xs text-neutral-500">Pessoas atendidas em {hoje.slice(0, 4)}</p>
+              <p className="mt-1 text-xl font-semibold text-neutral-100">{totalDePessoasNoAno}</p>
+            </div>
+          </div>
+
+          <p className="mt-4 text-xs text-neutral-500">Reservas confirmadas por dia — últimos 14 dias</p>
           <svg
             role="img"
             aria-label="Reservas confirmadas por dia, nos últimos 14 dias"
             viewBox="0 0 336 72"
-            className="mt-3 w-full"
+            className="mt-2 w-full"
             preserveAspectRatio="none"
           >
             <line x1="0" y1="64" x2="336" y2="64" stroke="#2c2c2a" strokeWidth="1" />
