@@ -538,11 +538,44 @@ export async function PainelDeReservas({
             </a>
           </div>
 
-          {/* O resto (cards de estatística, área de navegação pra Antigas/Futuras, histórico) só
+          {/* O resto (área de navegação pra Antigas/Futuras, cards de estatística, histórico) só
               existe na tela inicial — Antigas/Futuras agora são telas dedicadas só à lista. */}
           {modo === "hoje" && (
             <>
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              {/* Área de navegação pra Antigas/Futuras — discreta e neutra de propósito (sem cor),
+                  bem mais baixa que os cards de estatística logo abaixo, que são o destaque de
+                  verdade da tela. */}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <a
+                  href={hrefDaTela("antigas")}
+                  className="group flex items-center justify-between gap-2 rounded-xl border border-neutral-800 bg-neutral-900/60 px-3 py-2 hover:border-neutral-700"
+                >
+                  <span className="flex items-center gap-2 text-sm text-neutral-400">
+                    <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
+                    Antigas
+                  </span>
+                  <Icone
+                    path={CAMINHO_SETA_DIREITA}
+                    className="h-3.5 w-3.5 shrink-0 text-neutral-600 group-hover:text-neutral-400"
+                  />
+                </a>
+
+                <a
+                  href={hrefDaTela("futuras")}
+                  className="group flex items-center justify-between gap-2 rounded-xl border border-neutral-800 bg-neutral-900/60 px-3 py-2 hover:border-neutral-700"
+                >
+                  <span className="flex items-center gap-2 text-sm text-neutral-400">
+                    <Icone path={CAMINHO_SETA_DIREITA} className="h-3.5 w-3.5" />
+                    Futuras
+                  </span>
+                  <Icone
+                    path={CAMINHO_SETA_DIREITA}
+                    className="h-3.5 w-3.5 shrink-0 text-neutral-600 group-hover:text-neutral-400"
+                  />
+                </a>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-3 rounded-xl border border-sky-900/50 bg-gradient-to-br from-sky-950/60 to-neutral-900 px-4 py-3 shadow-sm shadow-sky-950/40">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-950 text-sky-300">
                     <Icone path={CAMINHO_TICKET} className="h-4 w-4" />
@@ -561,49 +594,6 @@ export async function PainelDeReservas({
                     <p className="text-2xl font-semibold text-neutral-50">{totalDePessoas}</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Área de navegação pra Antigas/Futuras — agora são telas de verdade, então
-                  ganharam um espaço próprio e mais convidativo, em vez de só mais dois botões
-                  espremidos junto com Filtros/Atualizar. */}
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <a
-                  href={hrefDaTela("antigas")}
-                  className="group flex items-center justify-between gap-2 rounded-2xl border border-neutral-800 bg-neutral-900 p-4 shadow-sm shadow-black/20 hover:border-neutral-600"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-neutral-300">
-                      <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-neutral-100">Antigas</p>
-                      <p className="text-xs text-neutral-500">Últimos 30 dias</p>
-                    </div>
-                  </div>
-                  <Icone
-                    path={CAMINHO_SETA_DIREITA}
-                    className="h-4 w-4 shrink-0 text-neutral-600 group-hover:text-neutral-400"
-                  />
-                </a>
-
-                <a
-                  href={hrefDaTela("futuras")}
-                  className="group flex items-center justify-between gap-2 rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-950/40 to-neutral-900 p-4 shadow-sm shadow-black/20 hover:border-sky-700"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-950 text-sky-300">
-                      <Icone path={CAMINHO_SETA_DIREITA} className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-neutral-100">Futuras</p>
-                      <p className="text-xs text-neutral-500">Próximos 30 dias</p>
-                    </div>
-                  </div>
-                  <Icone
-                    path={CAMINHO_SETA_DIREITA}
-                    className="h-4 w-4 shrink-0 text-sky-600 group-hover:text-sky-400"
-                  />
-                </a>
               </div>
             </>
           )}
@@ -634,15 +624,15 @@ export async function PainelDeReservas({
           // sempre aberto, sem esconder nada atrás de um clique à toa.
           const cabecalhoDoDia = (
             <div
-              className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${
+              className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 ${
                 usarAcordeaoDeDatas ? "cursor-pointer" : ""
               } ${ehHoje ? "border-sky-800/60 bg-sky-950/40" : "border-neutral-800 bg-neutral-900/60"}`}
             >
               <Icone
                 path={CAMINHO_CALENDARIO}
-                className={`h-4 w-4 shrink-0 ${ehHoje ? "text-sky-400" : "text-neutral-500"}`}
+                className={`h-5 w-5 shrink-0 ${ehHoje ? "text-sky-400" : "text-neutral-500"}`}
               />
-              <span className={`text-base font-semibold ${ehHoje ? "text-sky-100" : "text-neutral-200"}`}>
+              <span className={`text-lg font-semibold ${ehHoje ? "text-sky-100" : "text-neutral-200"}`}>
                 {formatarDataExtensa(data)}
               </span>
               {ehHoje && (
