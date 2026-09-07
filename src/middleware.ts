@@ -16,10 +16,11 @@ import { NOME_DO_COOKIE_DE_SESSAO, validarSessaoDeFuncionario } from "@/lib/func
  * no ShoppingHub — inclusive o mesmo usuário já cadastrado lá funciona aqui, sem precisar criar
  * nada novo, porque os três projetos compartilham o mesmo projeto Supabase.
  *
- * `/reservas` (e seu logout) tem uma segunda porta de entrada, totalmente separada: o login
- * próprio dos funcionários do restaurante (`chatbot_funcionarios`/`chatbot_funcionario_sessoes`,
- * ver src/lib/funcionarios.ts) — pensado só pra dar acesso à tela de reservas do dia, sem
- * enxergar mais nada do painel. O Victor continua vendo essa mesma tela com a sessão normal dele.
+ * `/reservas`, `/reservas/antigas` e `/reservas/futuras` (e seu logout) têm uma segunda porta de
+ * entrada, totalmente separada: o login próprio dos funcionários do restaurante
+ * (`chatbot_funcionarios`/`chatbot_funcionario_sessoes`, ver src/lib/funcionarios.ts) — pensado só
+ * pra dar acesso às telas de reservas, sem enxergar mais nada do painel (`/reservas/log` fica de
+ * fora de propósito). O Victor continua vendo essas mesmas telas com a sessão normal dele.
  * Se a conta for pausada (botão "Pausar" em /contas), a sessão do funcionário passa a contar como
  * inválida também — mesmo quem já estava logado é redirecionado pro login com uma mensagem
  * específica (`validarSessaoDeFuncionario`, em src/lib/funcionarios-cookie.ts).
@@ -72,10 +73,14 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Prefixo, não igualdade exata: cobre /api/reservas/logout e as rotas de editar/excluir reserva
-  // (/api/reservas/<id>/editar, /api/reservas/<id>/excluir) — essas também precisam aceitar
-  // sessão de funcionário, não só a do Victor. /reservas/log fica de fora de propósito (só admin).
-  const ehRotaDeReservas = pathname === "/reservas" || pathname.startsWith("/api/reservas/");
+  // Cobre as três telas de reservas (Hoje/Antigas/Futuras, ver src/app/reservas/PainelDeReservas.tsx)
+  // e /api/reservas/* (logout, editar, excluir reserva) — todas aceitam sessão de funcionário, não
+  // só a do Victor. /reservas/log fica de fora de propósito (só admin).
+  const ehRotaDeReservas =
+    pathname === "/reservas" ||
+    pathname === "/reservas/antigas" ||
+    pathname === "/reservas/futuras" ||
+    pathname.startsWith("/api/reservas/");
 
   if (ehRotaDeReservas) {
     const resultado = await validarSessaoDeFuncionario(
