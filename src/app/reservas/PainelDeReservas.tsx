@@ -254,32 +254,36 @@ export async function PainelDeReservas({
       .maybeSingle();
     limiteMaximo = config?.reserva_limite_maximo ?? null;
 
-    const inicioHistorico = somarDiasISO(hoje, -13);
-    const { data: historicoRaw } = await admin
-      .from("chatbot_reservations")
-      .select("data_reserva")
-      .eq("account_id", contaSelecionada.id)
-      .gte("data_reserva", inicioHistorico)
-      .lte("data_reserva", hoje);
+    // Histórico e totais do ano só aparecem na tela "hoje" (ver mais abaixo) — pula essas duas
+    // consultas nas telas de Antigas/Futuras, que agora são dedicadas só à lista de reservas.
+    if (modo === "hoje") {
+      const inicioHistorico = somarDiasISO(hoje, -13);
+      const { data: historicoRaw } = await admin
+        .from("chatbot_reservations")
+        .select("data_reserva")
+        .eq("account_id", contaSelecionada.id)
+        .gte("data_reserva", inicioHistorico)
+        .lte("data_reserva", hoje);
 
-    const contagemPorDia = new Map<string, number>();
-    for (const linha of historicoRaw ?? []) {
-      contagemPorDia.set(linha.data_reserva, (contagemPorDia.get(linha.data_reserva) ?? 0) + 1);
-    }
-    for (let i = 0; i < 14; i++) {
-      const dia = somarDiasISO(inicioHistorico, i);
-      historico.push({ data: dia, total: contagemPorDia.get(dia) ?? 0 });
-    }
+      const contagemPorDia = new Map<string, number>();
+      for (const linha of historicoRaw ?? []) {
+        contagemPorDia.set(linha.data_reserva, (contagemPorDia.get(linha.data_reserva) ?? 0) + 1);
+      }
+      for (let i = 0; i < 14; i++) {
+        const dia = somarDiasISO(inicioHistorico, i);
+        historico.push({ data: dia, total: contagemPorDia.get(dia) ?? 0 });
+      }
 
-    const anoAtual = hoje.slice(0, 4);
-    const { data: doAno } = await admin
-      .from("chatbot_reservations")
-      .select("quantidade_pessoas")
-      .eq("account_id", contaSelecionada.id)
-      .gte("data_reserva", `${anoAtual}-01-01`)
-      .lte("data_reserva", `${anoAtual}-12-31`);
-    totalDeReservasNoAno = doAno?.length ?? 0;
-    totalDePessoasNoAno = (doAno ?? []).reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
+      const anoAtual = hoje.slice(0, 4);
+      const { data: doAno } = await admin
+        .from("chatbot_reservations")
+        .select("quantidade_pessoas")
+        .eq("account_id", contaSelecionada.id)
+        .gte("data_reserva", `${anoAtual}-01-01`)
+        .lte("data_reserva", `${anoAtual}-12-31`);
+      totalDeReservasNoAno = doAno?.length ?? 0;
+      totalDePessoasNoAno = (doAno ?? []).reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
+    }
   }
 
   const porData = new Map<string, Map<string, Reserva[]>>();
@@ -321,16 +325,22 @@ export async function PainelDeReservas({
   const hrefAtualizar = href({});
   const filtroPersonalizadoAtivo = !ehSomenteHoje || busca.length > 0;
 
-  // Lista longa de dias (reservas antigas/futuras) vira acordeão, uma dropdown por data, pra não
-  // precisar rolar por tudo aberto de uma vez — só o dia mais perto de hoje já vem expandido.
+  // Lista longa de dias vira acordeão, uma dropdown por data, pra não precisar rolar por tudo
+  // aberto de uma vez. Só na tela inicial ("hoje") o dia mais perto de hoje já vem expandido; nas
+  // telas dedicadas de Antigas/Futuras todos ficam fechados por padrão — são só listas de
+  // referência, não algo que se espera abrir tudo de cara.
   const usarAcordeaoDeDatas = datasOrdenadas.length > 1;
-  const dataParaAbrirPorPadrao = datasOrdenadas.reduce(
-    (maisProxima: string | null, atual) =>
-      maisProxima === null || Math.abs(diferencaEmDias(atual, hoje)) < Math.abs(diferencaEmDias(maisProxima, hoje))
-        ? atual
-        : maisProxima,
-    null
-  );
+  const dataParaAbrirPorPadrao =
+    modo === "hoje"
+      ? datasOrdenadas.reduce(
+          (maisProxima: string | null, atual) =>
+            maisProxima === null ||
+            Math.abs(diferencaEmDias(atual, hoje)) < Math.abs(diferencaEmDias(maisProxima, hoje))
+              ? atual
+              : maisProxima,
+          null
+        )
+      : null;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
@@ -377,11 +387,14 @@ export async function PainelDeReservas({
         )}
       </div>
 
-      {/* Data de hoje, sempre em destaque — funcionário e admin */}
-      <div className="mt-4 flex items-center gap-2 text-sm text-neutral-400">
-        <Icone path={CAMINHO_CALENDARIO} className="h-4 w-4 text-sky-400" />
-        Hoje é <span className="font-medium text-neutral-100">{formatarDataExtensa(hoje)}</span>
-      </div>
+      {/* Data de hoje, sempre em destaque — só na tela inicial; Antigas/Futuras agora são telas
+          dedicadas só à lista, sem esse tipo de informação extra. */}
+      {modo === "hoje" && (
+        <div className="mt-4 flex items-center gap-2 text-sm text-neutral-400">
+          <Icone path={CAMINHO_CALENDARIO} className="h-4 w-4 text-sky-400" />
+          Hoje é <span className="font-medium text-neutral-100">{formatarDataExtensa(hoje)}</span>
+        </div>
+      )}
 
       {/* Boas-vindas — só na tela inicial ("hoje") e só pro funcionário, o Victor já sabe onde
           está e já viu isso ao entrar — não precisa repetir toda vez que navega. */}
@@ -407,9 +420,9 @@ export async function PainelDeReservas({
 
       {contaSelecionada && (
         <>
-          {/* Navegação entre telas (Hoje/Antigas/Futuras são páginas de verdade agora, não só um
-              filtro) + Filtros (busca/período/intervalo customizado, discretos no dropdown) +
-              Atualizar. Hoje fica sempre visível e destacado quando é a tela atual. */}
+          {/* Filtros (busca/período/intervalo customizado, discretos no dropdown) + Atualizar.
+              Navegar entre Hoje/Antigas/Futuras agora é feito pela área de navegação abaixo (só
+              na tela inicial) e pelo botão "Voltar" no topo das telas de Antigas/Futuras. */}
           <div className="relative mt-6 flex flex-wrap items-center gap-2">
             <details className="group relative">
               <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 [&::-webkit-details-marker]:hidden hover:border-neutral-500">
@@ -489,41 +502,6 @@ export async function PainelDeReservas({
             </details>
 
             <a
-              href={hrefDaTela("hoje")}
-              className={`rounded-lg border px-3 py-1.5 text-sm ${
-                modo === "hoje"
-                  ? "border-sky-700 bg-sky-950 text-sky-200"
-                  : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
-              }`}
-            >
-              Hoje
-            </a>
-
-            <a
-              href={hrefDaTela("antigas")}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm ${
-                modo === "antigas"
-                  ? "border-sky-700 bg-sky-950 text-sky-200"
-                  : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
-              }`}
-            >
-              <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
-              Antigas
-            </a>
-
-            <a
-              href={hrefDaTela("futuras")}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm ${
-                modo === "futuras"
-                  ? "border-sky-700 bg-sky-950 text-sky-200"
-                  : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
-              }`}
-            >
-              Futuras
-              <Icone path={CAMINHO_SETA_DIREITA} className="h-3.5 w-3.5" />
-            </a>
-
-            <a
               href={hrefAtualizar}
               title="Recarregar com os dados mais recentes"
               className="flex items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500"
@@ -533,27 +511,75 @@ export async function PainelDeReservas({
             </a>
           </div>
 
-          {/* Stat cards — logo acima da lista, com destaque colorido, igual pedido */}
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-3 rounded-xl border border-sky-900/50 bg-gradient-to-br from-sky-950/60 to-neutral-900 px-4 py-3 shadow-sm shadow-sky-950/40">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-950 text-sky-300">
-                <Icone path={CAMINHO_TICKET} className="h-4 w-4" />
+          {/* O resto (cards de estatística, área de navegação pra Antigas/Futuras, histórico) só
+              existe na tela inicial — Antigas/Futuras agora são telas dedicadas só à lista. */}
+          {modo === "hoje" && (
+            <>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 rounded-xl border border-sky-900/50 bg-gradient-to-br from-sky-950/60 to-neutral-900 px-4 py-3 shadow-sm shadow-sky-950/40">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-950 text-sky-300">
+                    <Icone path={CAMINHO_TICKET} className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-neutral-400">Reservas {rotuloDoEscopo}</p>
+                    <p className="text-2xl font-semibold text-neutral-50">{totalDeReservas}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-xl border border-violet-900/50 bg-gradient-to-br from-violet-950/60 to-neutral-900 px-4 py-3 shadow-sm shadow-violet-950/40">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-950 text-violet-300">
+                    <Icone path={CAMINHO_PESSOAS} className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-neutral-400">Pessoas {rotuloDoEscopo}</p>
+                    <p className="text-2xl font-semibold text-neutral-50">{totalDePessoas}</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-neutral-400">Reservas {rotuloDoEscopo}</p>
-                <p className="text-2xl font-semibold text-neutral-50">{totalDeReservas}</p>
+
+              {/* Área de navegação pra Antigas/Futuras — agora são telas de verdade, então
+                  ganharam um espaço próprio e mais convidativo, em vez de só mais dois botões
+                  espremidos junto com Filtros/Atualizar. */}
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <a
+                  href={hrefDaTela("antigas")}
+                  className="group flex items-center justify-between gap-2 rounded-2xl border border-neutral-800 bg-neutral-900 p-4 shadow-sm shadow-black/20 hover:border-neutral-600"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-neutral-300">
+                      <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-neutral-100">Antigas</p>
+                      <p className="text-xs text-neutral-500">Últimos 30 dias</p>
+                    </div>
+                  </div>
+                  <Icone
+                    path={CAMINHO_SETA_DIREITA}
+                    className="h-4 w-4 shrink-0 text-neutral-600 group-hover:text-neutral-400"
+                  />
+                </a>
+
+                <a
+                  href={hrefDaTela("futuras")}
+                  className="group flex items-center justify-between gap-2 rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-950/40 to-neutral-900 p-4 shadow-sm shadow-black/20 hover:border-sky-700"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-950 text-sky-300">
+                      <Icone path={CAMINHO_SETA_DIREITA} className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-neutral-100">Futuras</p>
+                      <p className="text-xs text-neutral-500">Próximos 30 dias</p>
+                    </div>
+                  </div>
+                  <Icone
+                    path={CAMINHO_SETA_DIREITA}
+                    className="h-4 w-4 shrink-0 text-sky-600 group-hover:text-sky-400"
+                  />
+                </a>
               </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-xl border border-violet-900/50 bg-gradient-to-br from-violet-950/60 to-neutral-900 px-4 py-3 shadow-sm shadow-violet-950/40">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-950 text-violet-300">
-                <Icone path={CAMINHO_PESSOAS} className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xs text-neutral-400">Pessoas {rotuloDoEscopo}</p>
-                <p className="text-2xl font-semibold text-neutral-50">{totalDePessoas}</p>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </>
       )}
 
@@ -761,7 +787,7 @@ export async function PainelDeReservas({
         })}
       </div>
 
-      {contaSelecionada && (
+      {contaSelecionada && modo === "hoje" && (
         <div className="mt-10 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
           <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
             <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
