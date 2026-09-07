@@ -1,7 +1,6 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { buscarFotoDePerfilDaConta } from "@/lib/metaMessaging";
 import { BotaoPausar } from "./BotaoPausar";
-import { BotaoAtivarReservas } from "./BotaoAtivarReservas";
 import { AvatarConta } from "./AvatarConta";
 import { BotaoSair } from "./BotaoSair";
 
@@ -69,7 +68,6 @@ const MENSAGENS_DE_ERRO: Record<string, string> = {
   falha_ao_salvar_conta: "Deu um erro salvando a conta. Tenta de novo em instantes.",
   falha_ao_pausar: "Deu um erro pausando/reativando a conta. Tenta de novo em instantes.",
   falha_ao_excluir: "Deu um erro excluindo a conta. Tenta de novo em instantes.",
-  falha_ao_ativar_reservas: "Deu um erro ativando/desativando reservas dessa conta. Tenta de novo em instantes.",
 };
 
 // Estilo de cada conta (avatar + brilho ao passar o mouse) — escolhido de forma estável a partir
@@ -138,15 +136,11 @@ export default async function ContasPage({
 
   const idsDasContas = (contas ?? []).map((c) => c.id);
 
-  // As três buscas abaixo (reservas habilitadas, estatísticas do dia, foto de perfil) são
-  // independentes entre si — cada uma só precisa da lista de contas, nenhuma depende do
-  // resultado da outra. Antes rodavam uma atrás da outra (cada uma esperando a anterior
-  // terminar); agora rodam ao mesmo tempo, então o tempo total de espera vira "a mais lenta
-  // delas", não "a soma de todas".
-  const [{ data: configs }, { data: atendimentosDeHoje }, fotosAtualizadas] = await Promise.all([
-    idsDasContas.length > 0
-      ? admin.from("chatbot_account_settings").select("account_id, reserva_habilitada").in("account_id", idsDasContas)
-      : Promise.resolve({ data: [] as { account_id: string; reserva_habilitada: boolean }[] }),
+  // As duas buscas abaixo (estatísticas do dia e foto de perfil) são independentes entre si —
+  // cada uma só precisa da lista de contas, nenhuma depende do resultado da outra. Antes
+  // rodavam uma atrás da outra (cada uma esperando a anterior terminar); agora rodam ao mesmo
+  // tempo, então o tempo total de espera vira "a mais lenta delas", não "a soma de todas".
+  const [{ data: atendimentosDeHoje }, fotosAtualizadas] = await Promise.all([
     idsDasContas.length > 0
       ? admin
           .from("chatbot_atendimentos")
@@ -155,13 +149,6 @@ export default async function ContasPage({
       : Promise.resolve({ data: [] as { account_id: string; instagram_scoped_id: string; status: string }[] }),
     atualizarFotosDePerfilVencidas(admin, contas ?? []),
   ]);
-
-  // Busca à parte (em vez de embutida na consulta de contas) pra não depender de como o
-  // PostgREST infere a cardinalidade dessa relação — mais simples e explícito assim.
-  const reservasHabilitadasPorConta = new Map<string, boolean>();
-  for (const config of configs ?? []) {
-    reservasHabilitadasPorConta.set(config.account_id, config.reserva_habilitada);
-  }
 
   // Foto de perfil de cada conta — agora cacheada no banco (`chatbot_accounts.foto_perfil_url`) e
   // só buscada de novo na Meta quando estiver velha (ver atualizarFotosDePerfilVencidas), já que a
@@ -267,7 +254,6 @@ export default async function ContasPage({
         {(contas ?? []).map((conta) => {
           const estilo = estiloDaConta(conta.id);
           const stats = estatisticasPorConta.get(conta.id) ?? { respondidas: 0, erros: 0 };
-          const reservasHabilitadas = reservasHabilitadasPorConta.get(conta.id) ?? false;
 
           return (
             <div
@@ -331,20 +317,6 @@ export default async function ContasPage({
                   )}
                 </a>
 
-                {/* Nem toda página vai usar reserva — esse selo mostra de cara se a função está
-                    ligada nessa conta, sem precisar entrar na configuração pra descobrir. */}
-                <div className="mt-2">
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
-                      reservasHabilitadas
-                        ? "border-violet-800/60 bg-violet-950/40 text-violet-300"
-                        : "border-neutral-700 bg-neutral-900 text-neutral-500"
-                    }`}
-                  >
-                    {reservasHabilitadas ? "Reservas ativas" : "Reservas desativadas"}
-                  </span>
-                </div>
-
                 <div className="mt-5 flex flex-col gap-2">
                   <a
                     href={`/contas/${conta.id}/palavras-chave`}
@@ -353,21 +325,12 @@ export default async function ContasPage({
                     Configurar atendimento
                   </a>
 
-                  <div className="flex gap-2">
-                    <a
-                      href={`/contas/${conta.id}/reserva`}
-                      className="flex-1 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-center text-xs font-medium text-neutral-300 hover:bg-neutral-950"
-                    >
-                      Configurar reservas
-                    </a>
-
-                    <form action="/api/contas/reservas-status" method="POST" className="flex-1">
-                      <input type="hidden" name="account_id" value={conta.id} />
-                      <input type="hidden" name="habilitar" value={reservasHabilitadas ? "0" : "1"} />
-                      <input type="hidden" name="redirect_to" value="/contas" />
-                      <BotaoAtivarReservas habilitada={reservasHabilitadas} />
-                    </form>
-                  </div>
+                  <a
+                    href={`/contas/${conta.id}/reserva`}
+                    className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-center text-xs font-medium text-neutral-300 hover:bg-neutral-950"
+                  >
+                    Configurar reservas
+                  </a>
 
                   <div className="flex gap-2">
                     <form action="/api/contas/status" method="POST" className="flex-1">
