@@ -7,7 +7,15 @@ import { resolverAutorDaAcao } from "@/lib/reservasAutor";
  * pra carregar os dados de um dia só quando a pessoa realmente abre o dropdown daquele dia, em vez
  * de a página inteira já vir com todo o intervalo (30 dias antigos ou todas as reservas futuras)
  * carregado de cara.
+ *
+ * Essa rota só lê parâmetros de uma URL que só existe em tempo de requisição real (a data
+ * pedida, a conta), então não tem nada pra "pré-gerar" em build — sem isso o Next.js tenta gerar
+ * ela como página estática no build, e nesse momento as variáveis de ambiente do Supabase ainda
+ * não estão disponíveis do jeito certo, o que quebra o build (mesmo caso de
+ * /api/auth/facebook/start).
  */
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   const admin = criarClienteAdmin();
   const autorInfo = await resolverAutorDaAcao(request, admin);
