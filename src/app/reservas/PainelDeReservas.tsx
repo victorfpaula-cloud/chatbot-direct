@@ -274,15 +274,42 @@ export async function PainelDeReservas({
         historico.push({ data: dia, total: contagemPorDia.get(dia) ?? 0 });
       }
 
-      const anoAtual = hoje.slice(0, 4);
-      const { data: doAno } = await admin
-        .from("chatbot_reservations")
-        .select("quantidade_pessoas")
+      // Total do ano vem de um cache que só recalcula na primeira visita do dia (não precisa ser
+      // em tempo real — só precisa estar certo "a partir de hoje"). Some o ano inteiro de novo só
+      // quando o cache não existe ainda ou é de um dia anterior; o resto do dia, todo mundo que
+      // abre a tela só lê essa linha, sem somar nada.
+      const anoAtual = parseInt(hoje.slice(0, 4), 10);
+      const { data: totalCacheado } = await admin
+        .from("chatbot_reservas_totais_anuais")
+        .select("total_reservas, total_pessoas, atualizado_em")
         .eq("account_id", contaSelecionada.id)
-        .gte("data_reserva", `${anoAtual}-01-01`)
-        .lte("data_reserva", `${anoAtual}-12-31`);
-      totalDeReservasNoAno = doAno?.length ?? 0;
-      totalDePessoasNoAno = (doAno ?? []).reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
+        .eq("ano", anoAtual)
+        .maybeSingle();
+
+      if (totalCacheado && totalCacheado.atualizado_em === hoje) {
+        totalDeReservasNoAno = totalCacheado.total_reservas;
+        totalDePessoasNoAno = totalCacheado.total_pessoas;
+      } else {
+        const { data: doAno } = await admin
+          .from("chatbot_reservations")
+          .select("quantidade_pessoas")
+          .eq("account_id", contaSelecionada.id)
+          .gte("data_reserva", `${anoAtual}-01-01`)
+          .lte("data_reserva", `${anoAtual}-12-31`);
+        totalDeReservasNoAno = doAno?.length ?? 0;
+        totalDePessoasNoAno = (doAno ?? []).reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
+
+        await admin.from("chatbot_reservas_totais_anuais").upsert(
+          {
+            account_id: contaSelecionada.id,
+            ano: anoAtual,
+            total_reservas: totalDeReservasNoAno,
+            total_pessoas: totalDePessoasNoAno,
+            atualizado_em: hoje,
+          },
+          { onConflict: "account_id,ano" }
+        );
+      }
     }
   }
 

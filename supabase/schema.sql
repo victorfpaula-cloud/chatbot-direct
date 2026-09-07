@@ -232,6 +232,23 @@ create table if not exists chatbot_funcionario_sessoes (
 
 create index if not exists chatbot_funcionario_sessoes_token_idx on chatbot_funcionario_sessoes(token);
 
+-- ============================================================================
+-- Cache do "total do ano" (reservas + pessoas) mostrado na tela /reservas — recalculado no
+-- máximo uma vez por dia (na primeira visita do dia), não a cada carregamento de página: somar
+-- o ano inteiro de novo em toda visita seria bem mais consulta no banco do que precisa pra um
+-- número que só precisa estar certo "a partir de hoje", não em tempo real.
+-- ============================================================================
+create table if not exists chatbot_reservas_totais_anuais (
+  account_id uuid not null references chatbot_accounts(id) on delete cascade,
+  ano integer not null,
+  total_reservas integer not null,
+  total_pessoas integer not null,
+  atualizado_em date not null,
+  primary key (account_id, ano)
+);
+
+alter table chatbot_reservas_totais_anuais enable row level security;
+
 alter table chatbot_funcionario_sessoes enable row level security;
 
 -- ============================================================================
