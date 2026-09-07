@@ -325,13 +325,6 @@ export default async function ContasPage({
                     Configurar atendimento
                   </a>
 
-                  <a
-                    href={`/contas/${conta.id}/reserva`}
-                    className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-center text-xs font-medium text-neutral-300 hover:bg-neutral-950"
-                  >
-                    Configurar reservas
-                  </a>
-
                   <div className="flex gap-2">
                     <form action="/api/contas/status" method="POST" className="flex-1">
                       <input type="hidden" name="account_id" value={conta.id} />
