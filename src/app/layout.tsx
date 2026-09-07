@@ -1,9 +1,24 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Chatbot Direct",
   description: "Atendimento automático de Instagram Direct",
+  // Sem isso, "Adicionar à Tela de Início" no iPhone funciona só na primeira página: o Safari
+  // mostra o app sem a própria barra de endereço só na abertura pelo ícone, e assim que a pessoa
+  // navega pra uma segunda ou terceira página (troca de URL de verdade), o Safari "esquece" que é
+  // um app instalado e volta a mostrar a barra de endereço em cima e os atalhos dele embaixo —
+  // exatamente o problema relatado (05/09/2026). Com isso aqui, toda página do app avisa o iOS
+  // que é pra continuar em modo app (sem chrome do navegador), não só a primeira.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Chatbot Direct",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#171717",
 };
 
 export default function RootLayout({

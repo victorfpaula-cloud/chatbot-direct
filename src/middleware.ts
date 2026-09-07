@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { NOME_DO_COOKIE_DE_SESSAO } from "@/lib/funcionarios-cookie";
+import { NOME_DO_COOKIE_DE_SESSAO, validarSessaoDeFuncionario } from "@/lib/funcionarios-cookie";
 
 /**
  * Exige login em todo o painel (/contas e tudo dentro dele — configuração do Gemini, palavras-
@@ -20,6 +20,9 @@ import { NOME_DO_COOKIE_DE_SESSAO } from "@/lib/funcionarios-cookie";
  * próprio dos funcionários do restaurante (`chatbot_funcionarios`/`chatbot_funcionario_sessoes`,
  * ver src/lib/funcionarios.ts) — pensado só pra dar acesso à tela de reservas do dia, sem
  * enxergar mais nada do painel. O Victor continua vendo essa mesma tela com a sessão normal dele.
+ * Se a conta for pausada (botão "Pausar" em /contas), a sessão do funcionário passa a contar como
+ * inválida também — mesmo quem já estava logado é redirecionado pro login com uma mensagem
+ * específica (`validarSessaoDeFuncionario`, em src/lib/funcionarios-cookie.ts).
  *
  * Falha "aberta" (deixa passar sem exigir login) só se faltar configurar
  * `NEXT_PUBLIC_SUPABASE_ANON_KEY` — evita derrubar o site inteiro por um esquecimento de
@@ -71,29 +74,29 @@ export async function middleware(request: NextRequest) {
 
   const ehRotaDeReservas = pathname === "/reservas" || pathname === "/api/reservas/logout";
 
-  if (ehRotaDeReservas && (await temSessaoDeFuncionarioValida(request))) {
-    return response;
+  if (ehRotaDeReservas) {
+    const resultado = await validarSessaoDeFuncionario(
+      criarClienteAdmin(),
+      request.cookies.get(NOME_DO_COOKIE_DE_SESSAO)?.value
+    );
+
+    if (resultado.valida) {
+      return response;
+    }
+
+    const destino = request.nextUrl.clone();
+    destino.pathname = "/reservas/login";
+    // Conta pausada (botão "Pausar" em /contas) — mesmo quem já estava logado é barrado, com uma
+    // mensagem específica em vez do erro genérico de "faça login" (ver /reservas/login/page.tsx).
+    if (resultado.motivo === "conta_pausada") {
+      destino.searchParams.set("indisponivel", "1");
+    }
+    return NextResponse.redirect(destino);
   }
 
   const destino = request.nextUrl.clone();
-  destino.pathname = ehRotaDeReservas ? "/reservas/login" : "/login";
+  destino.pathname = "/login";
   return NextResponse.redirect(destino);
-}
-
-async function temSessaoDeFuncionarioValida(request: NextRequest): Promise<boolean> {
-  const token = request.cookies.get(NOME_DO_COOKIE_DE_SESSAO)?.value;
-  if (!token) return false;
-
-  const admin = criarClienteAdmin();
-  const { data: sessao } = await admin
-    .from("chatbot_funcionario_sessoes")
-    .select("expira_em")
-    .eq("token", token)
-    .maybeSingle();
-
-  if (!sessao) return false;
-
-  return new Date(sessao.expira_em).getTime() > Date.now();
 }
 
 export const config = {

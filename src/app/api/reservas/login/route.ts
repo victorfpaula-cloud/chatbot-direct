@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
   const { data: funcionario, error } = await admin
     .from("chatbot_funcionarios")
-    .select("id, senha_hash")
+    .select("id, senha_hash, chatbot_accounts(active)")
     .eq("usuario", usuario)
     .maybeSingle();
 
@@ -32,6 +32,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(
       new URL("/reservas/login?erro=Usuário ou senha incorretos.", request.url)
     );
+  }
+
+  // Conta pausada (botão "Pausar" em /contas) — recusa o login, sem criar sessão nenhuma, com uma
+  // mensagem específica em vez do erro genérico acima (mesma checagem que o middleware faz pra
+  // sessão já existente, ver validarSessaoDeFuncionario em src/lib/funcionarios-cookie.ts).
+  if (!(funcionario as any).chatbot_accounts?.active) {
+    return NextResponse.redirect(new URL("/reservas/login?indisponivel=1", request.url));
   }
 
   const token = gerarTokenDeSessao();
