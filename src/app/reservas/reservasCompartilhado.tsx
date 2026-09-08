@@ -150,7 +150,7 @@ export function CartaoDeReserva({ reserva, hrefAtualizar }: { reserva: Reserva; 
 
       {/* Ações num rodapé separado por uma linha, em vez de espremidas do lado do badge — ficam
           maiores e mais fáceis de tocar. */}
-      <div className="mt-3 flex items-center justify-end gap-2 border-t border-neutral-900 pt-3">
+      <div className="mt-3 flex items-center justify-start gap-2 border-t border-neutral-900 pt-3">
         <FormularioDeEdicaoDeReserva
           action={`/api/reservas/${reserva.id}/editar`}
           redirectTo={hrefAtualizar}

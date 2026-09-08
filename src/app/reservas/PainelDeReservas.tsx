@@ -553,9 +553,13 @@ export async function PainelDeReservas({
           // Sem cantos/borda própria aqui de propósito — é só a faixa de topo de UM cartão só
           // (cabeçalho + períodos + reservas), não uma caixa separada flutuando em cima de outras
           // caixas (era exatamente essa sensação de "vários cartões soltos" que incomodava).
+          // `rounded-t-2xl` aqui (em vez de `overflow-hidden` no cartão inteiro) é de propósito:
+          // com só 1 reserva o cartão fica baixo, e a caixinha de "Editar" (que abre pra baixo)
+          // precisava desse espaço — `overflow-hidden` no cartão cortava ela fora da tela sem
+          // deixar nem editar nem cancelar.
           const cabecalhoDoDia = (
             <div
-              className={`flex items-center gap-2.5 border-b px-4 py-3 ${
+              className={`flex items-center gap-2.5 rounded-t-2xl border-b px-4 py-3 ${
                 usarAcordeaoDeDatas ? "cursor-pointer" : ""
               } ${ehHoje ? "border-sky-900/60 bg-sky-950/40" : "border-neutral-800 bg-neutral-900/60"}`}
             >
@@ -623,9 +627,10 @@ export async function PainelDeReservas({
           );
 
           // Cabeçalho e períodos moram dentro de UM cartão só (borda+cantos arredondados aqui,
-          // não em cada pedaço interno) — o cabeçalho vira só a faixa de topo, cortada pelo
-          // overflow-hidden, em vez de parecer uma caixa separada em cima de outra.
-          const classeDoCartaoDoDia = `overflow-hidden rounded-2xl border bg-neutral-900 ${
+          // não em cada pedaço interno) — sem `overflow-hidden` (o cabeçalho já nasce com
+          // `rounded-t-2xl` pra combinar com os cantos do cartão), porque isso cortava a caixinha
+          // de "Editar" quando ela precisava abrir pra baixo além da altura do cartão.
+          const classeDoCartaoDoDia = `rounded-2xl border bg-neutral-900 ${
             ehHoje ? "border-sky-900/60" : "border-neutral-800"
           }`;
 

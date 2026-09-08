@@ -65,10 +65,11 @@ export function DiaComCarregamentoSobDemanda({
 
   return (
     // Cabeçalho + períodos dentro de UM cartão só (mesmo espírito da tela Hoje) — a borda e os
-    // cantos arredondados ficam aqui no `<details>`, cortando o cabeçalho por cima via
-    // overflow-hidden, em vez de cada pedaço interno ter sua própria caixa flutuando à parte.
+    // cantos arredondados ficam aqui no `<details>`; sem `overflow-hidden` (o cabeçalho, recebido
+    // via prop, já nasce com `rounded-t-2xl`), porque isso cortava a caixinha de "Editar" quando
+    // ela precisava abrir pra baixo além da altura do cartão.
     <details
-      className="group overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900"
+      className="group rounded-2xl border border-neutral-800 bg-neutral-900"
       onToggle={(evento) => {
         const abriu = (evento.target as HTMLDetailsElement).open;
         // "erro" também dispara uma nova tentativa — sem isso, fechar e reabrir o dropdown depois

@@ -24,7 +24,7 @@ export function FormularioDeEdicaoDeReserva({
       <form
         action={action}
         method="POST"
-        className="absolute right-0 z-10 mt-2 flex w-56 flex-col gap-2 rounded-xl border border-neutral-700 bg-neutral-900 p-3 shadow-xl shadow-black/40"
+        className="absolute left-0 z-10 mt-2 flex w-56 flex-col gap-2 rounded-xl border border-neutral-700 bg-neutral-900 p-3 shadow-xl shadow-black/40"
         onSubmit={(evento) => {
           const confirmou = window.confirm(
             `Tem certeza que quer alterar o número de pessoas da reserva de ${nomeCliente}?`
