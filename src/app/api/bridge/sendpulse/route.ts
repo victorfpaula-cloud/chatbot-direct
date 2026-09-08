@@ -13,17 +13,32 @@ import { registrarAtendimento } from "@/lib/atendimentos";
 //
 // Autenticado por um segredo compartilhado (não dá pra usar a assinatura da Meta aqui, já que
 // quem está chamando é o SendPulse, não a Meta).
+//
+// O botão "Pedido de teste" do construtor de fluxo da SendPulse chama esse endpoint direto do
+// navegador (não do servidor deles) — o navegador manda um preflight OPTIONS antes do POST de
+// verdade, e sem responder esse preflight com os cabeçalhos de CORS certos, ele falha com 405
+// antes mesmo do POST ser tentado. Por isso o OPTIONS abaixo e os cabeçalhos em toda resposta.
+const CABECALHOS_CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, x-bridge-secret",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CABECALHOS_CORS });
+}
+
 export async function POST(request: NextRequest) {
   const segredoRecebido = request.headers.get("x-bridge-secret");
   const segredoEsperado = process.env.SENDPULSE_BRIDGE_SECRET;
 
   if (!segredoEsperado || segredoRecebido !== segredoEsperado) {
-    return NextResponse.json({ erro: "Não autorizado." }, { status: 401 });
+    return NextResponse.json({ erro: "Não autorizado." }, { status: 401, headers: CABECALHOS_CORS });
   }
 
   const corpo = await request.json().catch(() => null);
   if (!corpo) {
-    return NextResponse.json({ erro: "JSON inválido." }, { status: 400 });
+    return NextResponse.json({ erro: "JSON inválido." }, { status: 400, headers: CABECALHOS_CORS });
   }
 
   const contaUsername: string | undefined = corpo.conta_username
@@ -41,7 +56,7 @@ export async function POST(request: NextRequest) {
   if (!contaUsername || !textoDaMensagem || !contatoId) {
     return NextResponse.json(
       { erro: "Faltou conta_username, texto ou contato_id no corpo da requisição." },
-      { status: 400 }
+      { status: 400, headers: CABECALHOS_CORS }
     );
   }
 
@@ -55,7 +70,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (!conta) {
-    return NextResponse.json({ erro: `Conta "@${contaUsername}" não encontrada/ativa.` }, { status: 404 });
+    return NextResponse.json(
+      { erro: `Conta "@${contaUsername}" não encontrada/ativa.` },
+      { status: 404, headers: CABECALHOS_CORS }
+    );
   }
 
   // Mesmo prefixo em toda mensagem vinda dessa ponte — evita colidir com o instagram_scoped_id
@@ -94,5 +112,5 @@ export async function POST(request: NextRequest) {
   // `resposta: null` quando o bot ficou em silêncio de propósito (nenhuma palavra-chave bateu e a
   // conta não tem Gemini configurado) — o fluxo da SendPulse precisa checar isso antes de mandar
   // (ver aviso no chat).
-  return NextResponse.json({ resposta: respostaFinal });
+  return NextResponse.json({ resposta: respostaFinal }, { headers: CABECALHOS_CORS });
 }
