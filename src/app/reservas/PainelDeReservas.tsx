@@ -65,22 +65,34 @@ function formatarDataExtensa(dataISO: string): string {
   return primeiraLetraMaiuscula(formatado);
 }
 
+/** Além da conta, devolve o usuário do funcionário logado — usado no cabeçalho da tela pra
+ * mostrar discretamente "quem está vendo" (só relevante quando é sessão de funcionário; o Victor
+ * já sabe que é ele mesmo). */
 async function resolverContaDoFuncionario(
   admin: ReturnType<typeof criarClienteAdmin>
-): Promise<{ id: string; page_name: string; instagram_username: string | null } | null> {
+): Promise<{
+  conta: { id: string; page_name: string; instagram_username: string | null };
+  usuario: string;
+} | null> {
   const token = cookies().get(NOME_DO_COOKIE_DE_SESSAO)?.value;
   if (!token) return null;
 
   const { data: sessao } = await admin
     .from("chatbot_funcionario_sessoes")
     .select(
-      "funcionario_id, chatbot_funcionarios(account_id, chatbot_accounts(id, page_name, instagram_username))"
+      "funcionario_id, chatbot_funcionarios(usuario, account_id, chatbot_accounts(id, page_name, instagram_username))"
     )
     .eq("token", token)
     .maybeSingle();
 
-  const conta = (sessao as any)?.chatbot_funcionarios?.chatbot_accounts;
-  return conta ? { id: conta.id, page_name: conta.page_name, instagram_username: conta.instagram_username } : null;
+  const funcionario = (sessao as any)?.chatbot_funcionarios;
+  const conta = funcionario?.chatbot_accounts;
+  if (!conta) return null;
+
+  return {
+    conta: { id: conta.id, page_name: conta.page_name, instagram_username: conta.instagram_username },
+    usuario: funcionario.usuario,
+  };
 }
 
 // "Futuras" não tem teto: uma data bem distante no lugar de um "até" de verdade, pra continuar
@@ -103,8 +115,8 @@ export async function PainelDeReservas({
 }) {
   const admin = criarClienteAdmin();
 
-  const contaDoFuncionario = await resolverContaDoFuncionario(admin);
-  const ehFuncionario = contaDoFuncionario !== null;
+  const infoDoFuncionario = await resolverContaDoFuncionario(admin);
+  const ehFuncionario = infoDoFuncionario !== null;
 
   const { data: todasAsContasBrutas } = ehFuncionario
     ? { data: null }
@@ -130,7 +142,7 @@ export async function PainelDeReservas({
   }
 
   const contaSelecionada = ehFuncionario
-    ? contaDoFuncionario
+    ? infoDoFuncionario!.conta
     : (todasAsContas ?? []).find((c) => c.id === searchParams.conta) ?? (todasAsContas ?? [])[0] ?? null;
 
   const hoje = hojeEmSaoPauloISO();
@@ -319,6 +331,27 @@ export async function PainelDeReservas({
                 <span className="text-neutral-700">·</span>
                 <Icone path={CAMINHO_CALENDARIO} className="h-3.5 w-3.5 text-sky-400" />
                 <span className="text-neutral-300">{formatarDataExtensa(hoje)}</span>
+              </span>
+            )}
+            {/* Usuário logado — só pro funcionário (o Victor já sabe que é ele mesmo), bem
+                discreto, só pra saber "quem" tá vendo essa tela num aparelho compartilhado. */}
+            {ehFuncionario && infoDoFuncionario && (
+              <span className="flex items-center gap-1.5 text-neutral-500">
+                <span className="text-neutral-700">·</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-3 w-3 shrink-0"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" />
+                </svg>
+                {infoDoFuncionario.usuario}
               </span>
             )}
           </p>
