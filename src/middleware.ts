@@ -10,6 +10,11 @@ import { NOME_DO_COOKIE_DE_SESSAO, validarSessaoDeFuncionario } from "@/lib/func
  * sessão de verdade:
  * - `api/webhook/instagram`: quem chama é a Meta, não o navegador do Victor — validado pela
  *   própria assinatura HMAC (`X-Hub-Signature-256`), não por login.
+ * - `api/bridge/sendpulse`: quem chama é o SendPulse (ponte temporária, ver
+ *   src/app/api/bridge/sendpulse/route.ts) — validado por segredo compartilhado
+ *   (`x-bridge-secret`), não por sessão. Sem essa exceção, toda chamada sem sessão caía no
+ *   redirecionamento pra `/login` lá embaixo, e como `/login` não aceita POST, virava um 405
+ *   confuso pro SendPulse, sem nem chegar no código da ponte.
  * - `/login`: senão ninguém conseguiria nem chegar na tela de login pra entrar.
  *
  * Mesmo padrão de autenticação (Supabase Auth por sessão/cookie) já usado no agendador-stories e
@@ -127,6 +132,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/webhook/instagram|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png).*)",
+    "/((?!api/webhook/instagram|api/bridge/sendpulse|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png).*)",
   ],
 };
