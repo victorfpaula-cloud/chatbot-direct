@@ -309,8 +309,18 @@ export async function PainelDeReservas({
             <Icone path={CAMINHO_TICKET} className="h-5 w-5 text-sky-400" />
             {TITULO_DA_PAGINA[modo]}
           </h1>
-          <p className="mt-1 text-sm text-neutral-400">
-            {contaSelecionada ? contaSelecionada.page_name : "Nenhuma conta disponível"}
+          {/* Conta + data de hoje juntas numa linha só — antes eram duas linhas separadas
+              ("Único Sushi Bar" numa, "Hoje é terça-feira..." noutra) mais uma faixa inteira de
+              boas-vindas repetindo o nome da conta de novo pro funcionário. Ficava repetitivo. */}
+          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-neutral-400">
+            <span>{contaSelecionada ? contaSelecionada.page_name : "Nenhuma conta disponível"}</span>
+            {modo === "hoje" && contaSelecionada && (
+              <span className="flex items-center gap-1.5">
+                <span className="text-neutral-700">·</span>
+                <Icone path={CAMINHO_CALENDARIO} className="h-3.5 w-3.5 text-sky-400" />
+                <span className="text-neutral-300">{formatarDataExtensa(hoje)}</span>
+              </span>
+            )}
           </p>
         </div>
 
@@ -335,27 +345,6 @@ export async function PainelDeReservas({
           </div>
         )}
       </div>
-
-      {/* Data de hoje, sempre em destaque — só na tela inicial; Antigas/Futuras agora são telas
-          dedicadas só à lista, sem esse tipo de informação extra. */}
-      {modo === "hoje" && (
-        <div className="mt-4 flex items-center gap-2 text-sm text-neutral-400">
-          <Icone path={CAMINHO_CALENDARIO} className="h-4 w-4 text-sky-400" />
-          Hoje é <span className="font-medium text-neutral-100">{formatarDataExtensa(hoje)}</span>
-        </div>
-      )}
-
-      {/* Boas-vindas — só na tela inicial ("hoje") e só pro funcionário, o Victor já sabe onde
-          está e já viu isso ao entrar — não precisa repetir toda vez que navega. */}
-      {modo === "hoje" && ehFuncionario && contaSelecionada && (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-950 via-neutral-900 to-neutral-900 p-5 shadow-lg shadow-black/30">
-          <p className="text-xs font-medium uppercase tracking-wide text-sky-400">Painel da equipe</p>
-          <h2 className="mt-1 text-xl font-semibold text-neutral-50">
-            Bem-vindo às reservas do{" "}
-            {contaSelecionada.instagram_username ? `@${contaSelecionada.instagram_username}` : contaSelecionada.page_name}
-          </h2>
-        </div>
-      )}
 
       {!ehFuncionario && (todasAsContas ?? []).length > 1 && contaSelecionada && (
         <div className="mt-4">
