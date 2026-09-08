@@ -1,6 +1,33 @@
 import crypto from "node:crypto";
+import { AsyncLocalStorage } from "node:async_hooks";
 
 const GRAPH_API_VERSION = "v21.0";
+
+export type MensagemDaPonte =
+  | { tipo: "texto"; texto: string }
+  | { tipo: "botoes"; texto: string; botoes: { titulo: string; payload: string }[] };
+
+/**
+ * Ponte temporária com o SendPulse (ver src/app/api/bridge/sendpulse/route.ts): enquanto a Meta
+ * não aprova o App do chatbot-direct pra conversar com clientes de verdade (Standard Access só
+ * deixa mandar mensagem pra admin/testador do App), o SendPulse continua sendo quem manda a
+ * mensagem de verdade pro Direct — o chatbot-direct só decide o QUE responder.
+ *
+ * Em vez de reescrever `processarMensagemDeReserva` (fluxo de estado com dezenas de chamadas de
+ * envio espalhadas) pra devolver texto em vez de mandar direto, essas duas funções de envio
+ * conferem se estão rodando dentro de `executarComPonteSendPulse` e, se estiverem, só empilham a
+ * mensagem no coletor em vez de chamar a Graph API — o resto do fluxo de reserva não muda uma
+ * linha. Fora da ponte (webhook direto da Meta), o comportamento é exatamente o de sempre.
+ */
+const armazenamentoDaPonte = new AsyncLocalStorage<MensagemDaPonte[]>();
+
+export async function executarComPonteSendPulse<T>(
+  funcao: () => Promise<T>
+): Promise<{ resultado: T; mensagens: MensagemDaPonte[] }> {
+  const mensagens: MensagemDaPonte[] = [];
+  const resultado = await armazenamentoDaPonte.run(mensagens, funcao);
+  return { resultado, mensagens };
+}
 
 /**
  * Confere a assinatura X-Hub-Signature-256 que a Meta manda em todo webhook, calculada em cima
@@ -36,6 +63,12 @@ export async function enviarMensagemDirect(
   igsidDoCliente: string,
   texto: string
 ): Promise<void> {
+  const coletorDaPonte = armazenamentoDaPonte.getStore();
+  if (coletorDaPonte) {
+    coletorDaPonte.push({ tipo: "texto", texto });
+    return;
+  }
+
   const resposta = await fetch(
     `https://graph.facebook.com/${GRAPH_API_VERSION}/me/messages?access_token=${encodeURIComponent(
       tokenDaConta
@@ -78,6 +111,12 @@ export async function enviarMensagemComBotoes(
   texto: string,
   botoes: { titulo: string; payload: string }[]
 ): Promise<void> {
+  const coletorDaPonte = armazenamentoDaPonte.getStore();
+  if (coletorDaPonte) {
+    coletorDaPonte.push({ tipo: "botoes", texto, botoes });
+    return;
+  }
+
   const resposta = await fetch(
     `https://graph.facebook.com/${GRAPH_API_VERSION}/me/messages?access_token=${encodeURIComponent(
       tokenDaConta
@@ -112,6 +151,28 @@ export async function enviarMensagemComBotoes(
       `Falha ao enviar mensagem com botões pro Direct (status ${resposta.status}): ${corpoErro}`
     );
   }
+}
+
+/**
+ * Junta o que foi coletado por `executarComPonteSendPulse` num único texto pro SendPulse mandar.
+ * O construtor de fluxo visual do SendPulse só tem um campo de texto simples pra resposta da
+ * ponte (não dá pra montar botão tocável dinâmico a partir de uma resposta de API) — então um
+ * passo com botões vira a pergunta seguida da lista das opções em texto puro. Isso funciona sem
+ * nenhuma mudança no fluxo de reserva porque `interpretarData`/`interpretarPeriodo`/
+ * `interpretarSimNao` (em reservas.ts) já aceitam essas mesmas palavras digitadas livremente, não
+ * só o payload do clique — mesma dualidade "digita ou toca" que o fluxo direto pela Meta usa.
+ * Se nada foi coletado (bot ficou em silêncio de propósito), devolve null.
+ */
+export function formatarMensagensDaPonte(mensagens: MensagemDaPonte[]): string | null {
+  if (mensagens.length === 0) return null;
+
+  return mensagens
+    .map((mensagem) =>
+      mensagem.tipo === "texto"
+        ? mensagem.texto
+        : `${mensagem.texto}\n\n${mensagem.botoes.map((botao) => `• ${botao.titulo}`).join("\n")}`
+    )
+    .join("\n\n");
 }
 
 /**

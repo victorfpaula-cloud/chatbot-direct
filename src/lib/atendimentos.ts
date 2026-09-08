@@ -25,10 +25,15 @@ export async function registrarAtendimento(
     respostaEnviada: string | null;
     status: StatusAtendimento;
     erroDetalhe: string | null;
+    // Usado pela ponte do SendPulse (idDoCliente é um id sintético "sendpulse:...", não um IGSID
+    // de verdade — buscarPerfilDoCliente falharia à toa) — o SendPulse já manda nome/username do
+    // contato junto com a mensagem, então não precisa nem tentar a Graph API aqui.
+    perfilConhecido?: { nome: string; username: string | null };
   }
 ): Promise<void> {
   try {
-    const perfil = await buscarPerfilDoCliente(dados.tokenDaConta, dados.idDoCliente);
+    const perfil =
+      dados.perfilConhecido ?? (await buscarPerfilDoCliente(dados.tokenDaConta, dados.idDoCliente));
 
     const { error } = await admin.from("chatbot_atendimentos").insert({
       account_id: dados.contaId,
