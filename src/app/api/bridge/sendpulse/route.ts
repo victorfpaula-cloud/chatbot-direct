@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { executarComPonteSendPulse, formatarMensagensDaPonte } from "@/lib/metaMessaging";
+import { executarComPonteSendPulse, formatarMensagensDaPonte, type MensagemDaPonte } from "@/lib/metaMessaging";
 import { decidirEResponder } from "@/lib/respostaAutomatica";
 import { registrarAtendimento } from "@/lib/atendimentos";
+import { enviarBotoesPelaApiDaSendPulse } from "@/lib/sendpulseApi";
 
 // Ponte temporária: enquanto o App Review do chatbot-direct não sai (Standard Access só deixa a
 // Meta mandar mensagem pra admin/testador do App, nunca pra cliente de verdade), o SendPulse —
@@ -85,7 +86,26 @@ export async function POST(request: NextRequest) {
     decidirEResponder(admin, conta, idDoCliente, { text: textoDaMensagem })
   );
 
-  const respostaFinal = formatarMensagensDaPonte(mensagens);
+  // Tenta mandar cada passo com botão como botão de verdade via API da SendPulse (ver
+  // src/lib/sendpulseApi.ts). Se as credenciais ainda não estiverem configuradas, ou a chamada
+  // falhar por qualquer motivo (rede, to_chain_id errado, etc.), cai de volta pra lista de texto
+  // simples que já funciona hoje — nunca deixa esse passo sem resposta nenhuma por causa disso.
+  const mensagensRestantes: MensagemDaPonte[] = [];
+  for (const mensagem of mensagens) {
+    if (mensagem.tipo !== "botoes") {
+      mensagensRestantes.push(mensagem);
+      continue;
+    }
+
+    try {
+      await enviarBotoesPelaApiDaSendPulse(contatoId, mensagem.texto, mensagem.botoes);
+    } catch (erro) {
+      console.error("[ponte SendPulse] falha ao enviar botão via API, caindo no texto:", erro);
+      mensagensRestantes.push(mensagem);
+    }
+  }
+
+  const respostaFinal = formatarMensagensDaPonte(mensagensRestantes);
 
   await registrarAtendimento(admin, {
     contaId: conta.id,
