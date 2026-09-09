@@ -560,9 +560,11 @@ export async function PainelDeReservas({
                 </a>
               </div>
 
+              {/* As duas na mesma cor (azul), com um degradê bem mais suave que antes — eram um
+                  azul e um roxo brigando entre si e com o resto da tela. */}
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-3 rounded-xl border border-sky-900/50 bg-gradient-to-br from-sky-950/60 to-neutral-900 px-4 py-3 shadow-sm shadow-sky-950/40">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-950 text-sky-300">
+                <div className="flex items-center gap-3 rounded-xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-neutral-900 px-4 py-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-500/10 text-sky-300">
                     <Icone path={CAMINHO_TICKET} className="h-4 w-4" />
                   </div>
                   <div>
@@ -570,8 +572,8 @@ export async function PainelDeReservas({
                     <p className="text-2xl font-semibold text-neutral-50">{totalDeReservas}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border border-violet-900/50 bg-gradient-to-br from-violet-950/60 to-neutral-900 px-4 py-3 shadow-sm shadow-violet-950/40">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-950 text-violet-300">
+                <div className="flex items-center gap-3 rounded-xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-neutral-900 px-4 py-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-500/10 text-sky-300">
                     <Icone path={CAMINHO_PESSOAS} className="h-4 w-4" />
                   </div>
                   <div>
@@ -619,21 +621,18 @@ export async function PainelDeReservas({
           // com só 1 reserva o cartão fica baixo, e a caixinha de "Editar" (que abre pra baixo)
           // precisava desse espaço — `overflow-hidden` no cartão cortava ela fora da tela sem
           // deixar nem editar nem cancelar.
+          // Neutro sempre (nem calendário nem o texto da data mudam de cor por ser "hoje") — o
+          // selo abaixo já avisa isso sozinho, não precisa pintar tudo em volta de azul também.
           const cabecalhoDoDia = (
             <div
-              className={`flex items-center gap-2.5 rounded-t-2xl border-b px-4 py-3 ${
+              className={`flex items-center gap-2.5 rounded-t-2xl border-b border-neutral-800 bg-neutral-900/60 px-4 py-3 ${
                 usarAcordeaoDeDatas ? "cursor-pointer" : ""
-              } ${ehHoje ? "border-sky-900/60 bg-sky-950/40" : "border-neutral-800 bg-neutral-900/60"}`}
+              }`}
             >
-              <Icone
-                path={CAMINHO_CALENDARIO}
-                className={`h-5 w-5 shrink-0 ${ehHoje ? "text-sky-400" : "text-neutral-500"}`}
-              />
-              <span className={`text-lg font-semibold ${ehHoje ? "text-sky-100" : "text-neutral-200"}`}>
-                {formatarDataExtensa(data)}
-              </span>
+              <Icone path={CAMINHO_CALENDARIO} className="h-5 w-5 shrink-0 text-neutral-500" />
+              <span className="text-lg font-semibold text-neutral-100">{formatarDataExtensa(data)}</span>
               {ehHoje && (
-                <span className="rounded-full border border-sky-700 bg-sky-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-200">
+                <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-300">
                   Hoje
                 </span>
               )}
@@ -692,9 +691,8 @@ export async function PainelDeReservas({
           // não em cada pedaço interno) — sem `overflow-hidden` (o cabeçalho já nasce com
           // `rounded-t-2xl` pra combinar com os cantos do cartão), porque isso cortava a caixinha
           // de "Editar" quando ela precisava abrir pra baixo além da altura do cartão.
-          const classeDoCartaoDoDia = `rounded-2xl border bg-neutral-900 ${
-            ehHoje ? "border-sky-900/60" : "border-neutral-800"
-          }`;
+          const classeDoCartaoDoDia =
+            "rounded-2xl border border-neutral-800 bg-neutral-900 shadow-[0_16px_38px_-18px_rgba(56,150,229,0.14),0_6px_14px_-6px_rgba(0,0,0,0.5)]";
 
           return usarAcordeaoDeDatas ? (
             <details key={data} className={`group ${classeDoCartaoDoDia}`} open={abrirPorPadrao}>

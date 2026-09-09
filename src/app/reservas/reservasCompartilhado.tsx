@@ -47,9 +47,13 @@ const CAMINHO_SOL =
   "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42";
 const CAMINHO_LUA = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
 
+// Mesma família visual do selo "Hoje" do cabeçalho do dia (borda + fundo bem suaves na cor, texto
+// só um pouco mais claro) — antes cada período tinha um preenchimento sólido próprio (âmbar ou
+// índigo) competindo com o resto da tela, que hoje usa só azul (+ âmbar aqui, de propósito, pra
+// diferenciar almoço de jantar de relance).
 const ESTILO_DO_PERIODO: Record<string, { rotulo: string; caminho: string; cor: string }> = {
-  almoco: { rotulo: "Almoço", caminho: CAMINHO_SOL, cor: "bg-amber-950 text-amber-300 border-amber-900/60" },
-  jantar: { rotulo: "Jantar", caminho: CAMINHO_LUA, cor: "bg-indigo-950 text-indigo-300 border-indigo-900/60" },
+  almoco: { rotulo: "Almoço", caminho: CAMINHO_SOL, cor: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
+  jantar: { rotulo: "Jantar", caminho: CAMINHO_LUA, cor: "bg-sky-500/10 text-sky-300 border-sky-500/30" },
 };
 
 export function estiloDoPeriodo(periodo: string) {
