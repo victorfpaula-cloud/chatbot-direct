@@ -41,6 +41,16 @@ const TIMEOUT_CONVERSA_ABANDONADA_MS = 60 * 60 * 1000;
 // pra quem mudou de ideia ou perguntou outra coisa sem querer mais continuar a reserva.
 const SUGESTAO_DE_CANCELAR = ' Se preferir, digite "cancelar" pra encerrar essa reserva.';
 
+// Palavras que, junto com a palavra-chave de reserva (ex: "reserva"), indicam que a pessoa já TEM
+// uma reserva e quer mexer nela — não fazer uma nova. Usado só como ponto de partida (a conta pode
+// personalizar em `palavra_chave_alterar_reserva`); precisa bater ISSO **e** a palavra-chave normal
+// de reserva pra não confundir com "quero fazer uma reserva".
+const PALAVRAS_ALTERACAO_PADRAO = "mudar,alterar,trocar,editar,aumentar,diminuir,adicionar,remover";
+
+// Só dá pra mudar a QUANTIDADE de pessoas, nunca a data (reportado como decisão de negócio: se a
+// pessoa quiser outro dia, tem que fazer uma reserva nova) — e só até um horário de corte no dia da
+// própria reserva (depois disso, ela avisa a equipe direto na chegada).
+
 /**
  * Ponto de entrada, chamado pelo webhook ANTES da checagem de palavra-chave comum. Devolve
  * `true` quando tratou a mensagem (o webhook para por ali), `false` quando não tem nada a ver
@@ -59,7 +69,7 @@ export async function processarMensagemDeReserva(
   const { data: config, error: erroAoBuscarConfig } = await admin
     .from("chatbot_account_settings")
     .select(
-      "palavra_chave_reserva, reserva_habilitada, reserva_pausa_ativa, reserva_pausa_mensagem, reserva_cutoff_horario, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_datas_bloqueadas"
+      "palavra_chave_reserva, reserva_habilitada, reserva_pausa_ativa, reserva_pausa_mensagem, reserva_cutoff_horario, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario"
     )
     .eq("account_id", conta.id)
     .maybeSingle();
@@ -85,25 +95,53 @@ export async function processarMensagemDeReserva(
     !!textoDaMensagem &&
     variacoesDaPalavraChaveDeReserva.some((variacao: string) => normalizar(textoDaMensagem).includes(variacao));
 
+  // Intenção de ALTERAR uma reserva já existente (ex: "quero mudar minha reserva pra 9 pessoas") —
+  // precisa bater a palavra-chave de reserva E uma palavra de alteração ao mesmo tempo, senão
+  // "quero fazer uma reserva" (bate só a primeira) seria confundido com isso.
+  const variacoesDeAlteracao = config?.reserva_habilitada
+    ? (config?.palavra_chave_alterar_reserva || PALAVRAS_ALTERACAO_PADRAO)
+        .split(",")
+        .map((v: string) => normalizar(v.trim()))
+        .filter((v: string) => v.length > 0)
+    : [];
+
+  const bateuIntencaoDeAlterar =
+    variacoesDeAlteracao.length > 0 &&
+    bateuPalavraChave &&
+    !!textoDaMensagem &&
+    variacoesDeAlteracao.some((variacao: string) => normalizar(textoDaMensagem).includes(variacao));
+
   const { data: conversaEncontrada, error: erroAoBuscarConversa } = await admin
     .from("chatbot_conversations")
-    .select("id, etapa_atual, dados_coletados, atualizado_em")
+    .select("id, fluxo_atual, etapa_atual, dados_coletados, atualizado_em")
     .eq("account_id", conta.id)
     .eq("instagram_scoped_id", idDoCliente)
-    .eq("fluxo_atual", "reserva")
+    .in("fluxo_atual", ["reserva", "alterar_reserva"])
     .maybeSingle();
 
   if (erroAoBuscarConversa) throw erroAoBuscarConversa;
 
   let conversa = conversaEncontrada;
+  const bateuAlgumaPalavraChave = bateuPalavraChave || bateuIntencaoDeAlterar;
 
   if (
     conversa &&
-    !bateuPalavraChave &&
+    !bateuAlgumaPalavraChave &&
     Date.now() - new Date(conversa.atualizado_em).getTime() > TIMEOUT_CONVERSA_ABANDONADA_MS
   ) {
     await admin.from("chatbot_conversations").delete().eq("id", conversa.id);
     conversa = null;
+  }
+
+  // Checada ANTES da palavra-chave de reserva normal: como "mudar minha reserva" também contém a
+  // palavra "reserva", sem essa prioridade o código abaixo recomeçaria uma reserva NOVA do zero em
+  // vez de editar a que já existe.
+  if (bateuIntencaoDeAlterar && conversa?.fluxo_atual !== "alterar_reserva") {
+    if (conversa) {
+      await admin.from("chatbot_conversations").delete().eq("id", conversa.id);
+    }
+    await iniciarFluxoDeAlteracao(admin, conta, idDoCliente, config?.alteracao_cutoff_horario ?? null);
+    return true;
   }
 
   if (bateuPalavraChave) {
@@ -133,12 +171,134 @@ export async function processarMensagemDeReserva(
     return true;
   }
 
-  if (conversa) {
+  if (conversa?.fluxo_atual === "alterar_reserva") {
+    await continuarFluxoDeAlteracao(admin, conta, idDoCliente, conversa, textoDaMensagem);
+    return true;
+  }
+
+  if (conversa?.fluxo_atual === "reserva") {
     await continuarFluxo(admin, conta, idDoCliente, conversa, textoDaMensagem, payloadDoBotao);
     return true;
   }
 
   return false;
+}
+
+/**
+ * Fluxo separado (mais curto) pra quando o cliente já tem uma reserva e quer só mudar a
+ * quantidade de pessoas — nunca a data (decisão de negócio: outro dia é reserva nova). Assume que
+ * a pessoa tem no máximo UMA reserva futura em aberto (confirmado que é sempre assim na prática) e
+ * pega a mais próxima; se um dia isso deixar de ser verdade, o pior caso é editar a reserva errada
+ * (mais próxima) em vez de travar — aceitável, e visível no log de alterações.
+ */
+async function iniciarFluxoDeAlteracao(
+  admin: Admin,
+  conta: Conta,
+  idDoCliente: string,
+  cutoffAlteracao: string | null
+) {
+  const agora = agoraEmSaoPaulo();
+  const hojeISO = paraISO(agora);
+
+  const { data: reserva, error: erroAoBuscarReserva } = await admin
+    .from("chatbot_reservations")
+    .select("id, data_reserva, periodo, quantidade_pessoas")
+    .eq("account_id", conta.id)
+    .eq("instagram_scoped_id", idDoCliente)
+    .gte("data_reserva", hojeISO)
+    .order("data_reserva", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (erroAoBuscarReserva) {
+    console.error("Falha ao buscar reserva pra alteração:", erroAoBuscarReserva);
+  }
+
+  if (!reserva) {
+    await enviarMensagemDirect(
+      conta.access_token,
+      idDoCliente,
+      "Não encontrei nenhuma reserva em aberto no seu nome por aqui. Se quiser fazer uma nova, é só chamar."
+    );
+    return;
+  }
+
+  const ehHoje = reserva.data_reserva === hojeISO;
+  if (ehHoje && passouDoCutoff(cutoffAlteracao, agora.hora, agora.minuto)) {
+    await enviarMensagemDirect(
+      conta.access_token,
+      idDoCliente,
+      "Não dá mais pra alterar a quantidade de pessoas por aqui pra hoje — pode avisar a equipe direto na chegada."
+    );
+    return;
+  }
+
+  await admin.from("chatbot_conversations").insert({
+    account_id: conta.id,
+    instagram_scoped_id: idDoCliente,
+    fluxo_atual: "alterar_reserva",
+    etapa_atual: "aguardando_quantidade",
+    dados_coletados: { reservaId: reserva.id },
+    atualizado_em: new Date().toISOString(),
+  });
+
+  const dataFormatada = formatarDataBR(paraDataSimplesDeISO(reserva.data_reserva));
+  const periodoTexto = reserva.periodo === "almoco" ? " (almoço)" : reserva.periodo === "jantar" ? " (jantar)" : "";
+
+  await enviarMensagemDirect(
+    conta.access_token,
+    idDoCliente,
+    `Sua reserva de ${dataFormatada}${periodoTexto} está pra ${reserva.quantidade_pessoas ?? "?"} pessoa(s). ` +
+      `Pra quantas pessoas você quer mudar?` +
+      SUGESTAO_DE_CANCELAR
+  );
+}
+
+async function continuarFluxoDeAlteracao(
+  admin: Admin,
+  conta: Conta,
+  idDoCliente: string,
+  conversa: { id: string; dados_coletados: any },
+  textoDaMensagem: string | undefined
+) {
+  if (ehPedidoDeCancelamento(textoDaMensagem)) {
+    await enviarMensagemDirect(conta.access_token, idDoCliente, "Sem problema, não mudei nada na sua reserva.");
+    await encerrarConversa(admin, conversa.id);
+    return;
+  }
+
+  const novaQuantidade = interpretarQuantidade(textoDaMensagem);
+  if (!novaQuantidade) {
+    await enviarMensagemDirect(
+      conta.access_token,
+      idDoCliente,
+      "Não consegui entender — pode me dizer só o número de pessoas?" + SUGESTAO_DE_CANCELAR
+    );
+    return;
+  }
+
+  const dados = conversa.dados_coletados ?? {};
+  const { error: erroAoAtualizar } = await admin
+    .from("chatbot_reservations")
+    .update({ quantidade_pessoas: novaQuantidade })
+    .eq("id", dados.reservaId);
+
+  if (erroAoAtualizar) {
+    console.error("Falha ao atualizar quantidade de pessoas da reserva:", erroAoAtualizar);
+    await enviarMensagemDirect(
+      conta.access_token,
+      idDoCliente,
+      "Deu um probleminha aqui pra atualizar sua reserva — pode tentar de novo em alguns minutos? Se persistir, chama a gente direto."
+    );
+    return;
+  }
+
+  await enviarMensagemDirect(
+    conta.access_token,
+    idDoCliente,
+    `Prontinho, atualizei sua reserva pra ${novaQuantidade} pessoa(s).`
+  );
+  await encerrarConversa(admin, conversa.id);
 }
 
 async function iniciarFluxo(
@@ -731,6 +891,11 @@ function somarDias({ ano, mes, dia }: DataSimples, quantidade: number): DataSimp
 
 function paraISO({ ano, mes, dia }: DataSimples): string {
   return `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+}
+
+function paraDataSimplesDeISO(dataISO: string): DataSimples {
+  const [ano, mes, dia] = dataISO.split("-").map((v) => parseInt(v, 10));
+  return { ano, mes, dia };
 }
 
 function formatarDataBR({ ano, mes, dia }: DataSimples): string {

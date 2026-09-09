@@ -16,6 +16,10 @@ export type Reserva = {
   quantidade_pessoas: number | null;
   whatsapp: string | null;
   confirmado_em: string;
+  // Só vem preenchida na tela "Hoje" (busca ao vivo na Meta, ver PainelDeReservas.tsx) — nas
+  // outras telas (Antigas/Futuras) fica undefined de propósito, pra não pesar com reservas em
+  // volume bem maior.
+  fotoDePerfilUrl?: string | null;
 };
 
 export function Icone({ path, className }: { path: string; className?: string }) {
@@ -80,21 +84,30 @@ export function CartaoDeReserva({ reserva, hrefAtualizar }: { reserva: Reserva; 
       {/* Identidade do cliente + badge de pessoas, com mais espaço e o nome maior — antes tudo
           (nome, @usuário, telefone, horário e as ações) ficava espremido numa linha só. */}
       <div className="flex items-start gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-violet-950 text-violet-300">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-6 w-6"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" />
-          </svg>
-        </div>
+        {reserva.fotoDePerfilUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={reserva.fotoDePerfilUrl}
+            alt=""
+            className="h-12 w-12 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-violet-950 text-violet-300">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" />
+            </svg>
+          </div>
+        )}
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">

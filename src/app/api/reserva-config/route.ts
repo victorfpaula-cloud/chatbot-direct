@@ -27,6 +27,8 @@ export async function POST(request: NextRequest) {
   const reservaMsgConfirmada = formData.get("reserva_msg_confirmada")?.toString() ?? "";
   const reservaMsgRecusada = formData.get("reserva_msg_recusada")?.toString() ?? "";
   const reservaDatasBloqueadas = formData.get("reserva_datas_bloqueadas")?.toString() ?? "";
+  const palavraChaveAlterarReserva = formData.get("palavra_chave_alterar_reserva")?.toString() ?? "";
+  const alteracaoCutoffHorario = formData.get("alteracao_cutoff_horario")?.toString() ?? "";
 
   const limiteNormalBruto = formData.get("reserva_limite_normal")?.toString().trim();
   const limiteMaximoBruto = formData.get("reserva_limite_maximo")?.toString().trim();
@@ -58,6 +60,8 @@ export async function POST(request: NextRequest) {
       reserva_msg_confirmada: reservaMsgConfirmada || null,
       reserva_msg_recusada: reservaMsgRecusada || null,
       reserva_datas_bloqueadas: reservaDatasBloqueadas || null,
+      palavra_chave_alterar_reserva: palavraChaveAlterarReserva || null,
+      alteracao_cutoff_horario: alteracaoCutoffHorario || null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "account_id" }

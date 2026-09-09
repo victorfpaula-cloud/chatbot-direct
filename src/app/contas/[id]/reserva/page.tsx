@@ -18,7 +18,7 @@ export default async function ReservaConfigPage({
   const { data: config } = await admin
     .from("chatbot_account_settings")
     .select(
-      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas"
+      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario"
     )
     .eq("account_id", params.id)
     .maybeSingle();
@@ -26,6 +26,9 @@ export default async function ReservaConfigPage({
   // Postgres devolve hora como "18:00:00" — o campo <input type="time"> espera "18:00".
   const cutoffParaInput = config?.reserva_cutoff_horario
     ? config.reserva_cutoff_horario.slice(0, 5)
+    : "";
+  const cutoffAlteracaoParaInput = config?.alteracao_cutoff_horario
+    ? config.alteracao_cutoff_horario.slice(0, 5)
     : "";
 
   // Reservas desligadas nessa conta (botão "Ativar/desativar reservas" em /contas) — nem mostra a
@@ -352,6 +355,44 @@ export default async function ReservaConfigPage({
             <DatasBloqueadasEditor
               nome="reserva_datas_bloqueadas"
               valorInicial={config?.reserva_datas_bloqueadas ?? ""}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/30">
+          <p className="text-sm font-medium text-neutral-200">Alterar reserva já feita</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Deixa o cliente mudar a QUANTIDADE de pessoas de uma reserva que já fez, direto pelo
+            Direct — pra mudar de dia, ele precisa fazer uma reserva nova. Dispara quando a
+            mensagem tem a palavra-chave de reserva (acima) JUNTO com uma das palavras de alteração
+            abaixo (ex: "quero mudar minha reserva pra 9 pessoas").
+          </p>
+
+          <div className="mt-3">
+            <label className="text-xs text-neutral-400">Palavras que indicam alteração</label>
+            <input
+              type="text"
+              name="palavra_chave_alterar_reserva"
+              defaultValue={config?.palavra_chave_alterar_reserva ?? ""}
+              placeholder="mudar, alterar, trocar, editar, aumentar, diminuir, adicionar, remover"
+              className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+            />
+            <p className="mt-1 text-xs text-neutral-500">
+              Pode escrever mais de uma variação separada por vírgula. Em branco usa a lista padrão
+              mostrada como exemplo.
+            </p>
+          </div>
+
+          <div className="mt-3">
+            <label className="text-xs text-neutral-400">
+              Horário limite, NO DIA da reserva, pra ainda poder alterar (depois disso, o bot avisa
+              que não dá mais e pede pra informar direto na chegada)
+            </label>
+            <input
+              type="time"
+              name="alteracao_cutoff_horario"
+              defaultValue={cutoffAlteracaoParaInput}
+              className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
             />
           </div>
         </div>

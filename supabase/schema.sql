@@ -331,3 +331,12 @@ create index if not exists chatbot_mensagens_pendentes_conversa_idx
   on chatbot_mensagens_pendentes(account_id, instagram_scoped_id, criado_em);
 
 alter table chatbot_mensagens_pendentes enable row level security;
+
+-- ============================================================================
+-- Alterar reserva já feita (só quantidade de pessoas, nunca a data — outro dia é reserva nova):
+-- palavra-chave de alteração (some com a de reserva pra disparar) e horário de corte no dia da
+-- própria reserva. Ver iniciarFluxoDeAlteracao/continuarFluxoDeAlteracao em src/lib/reservas.ts.
+-- ============================================================================
+alter table chatbot_account_settings
+  add column if not exists palavra_chave_alterar_reserva text,
+  add column if not exists alteracao_cutoff_horario time not null default '18:00';

@@ -252,3 +252,33 @@ export async function buscarFotoDePerfilDaConta(
     return null;
   }
 }
+
+/**
+ * Busca a foto de perfil de um CLIENTE (mesmo endpoint/campo de `buscarFotoDePerfilDaConta`, só
+ * que pelo `instagram_scoped_id` da conversa em vez do ID da própria conta) — usada só na tela
+ * "Reservas de hoje" pra mostrar a foto de verdade em vez da bolinha genérica, já que ali é sempre
+ * um número pequeno de reservas por dia. De propósito NUNCA é guardada no banco: é buscada de novo
+ * a cada abertura da tela, igual `buscarFotoDePerfilDaConta`. IDs sintéticos (reservas antigas
+ * migradas manualmente, sem IGSID de verdade) simplesmente falham na chamada e caem no null.
+ */
+export async function buscarFotoDePerfilDoCliente(
+  tokenDaConta: string,
+  instagramScopedId: string
+): Promise<string | null> {
+  try {
+    const resposta = await fetch(
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${instagramScopedId}?fields=profile_picture_url&access_token=${encodeURIComponent(
+        tokenDaConta
+      )}`,
+      { cache: "no-store" }
+    );
+
+    if (!resposta.ok) return null;
+
+    const dados = await resposta.json();
+    return typeof dados?.profile_picture_url === "string" ? dados.profile_picture_url : null;
+  } catch (erro) {
+    console.error("Falha ao buscar foto de perfil do cliente:", erro);
+    return null;
+  }
+}
