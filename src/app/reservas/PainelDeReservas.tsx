@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { NOME_DO_COOKIE_DE_SESSAO } from "@/lib/funcionarios-cookie";
 import { buscarFotoDePerfilDoCliente } from "@/lib/metaMessaging";
+import { buscarFotoDePerfilPelaApiDaSendPulse } from "@/lib/sendpulseApi";
 import { hojeEmSaoPauloISO, somarDiasISO } from "@/lib/datas";
 import { BotaoSair } from "@/app/contas/BotaoSair";
 import { SeletorDeConta } from "./SeletorDeConta";
@@ -213,16 +214,28 @@ export async function PainelDeReservas({
       limiteMaximo = config?.reserva_limite_maximo ?? null;
 
       // Só nessa tela ("hoje", volume baixo — em média 3 a 5 reservas por dia, no máximo umas 20):
-      // busca a foto de perfil de verdade de cada cliente na Meta, ao vivo, sem guardar no banco.
-      // Uma chamada por @usuário único (não por reserva) pra não repetir à toa se a mesma pessoa
-      // tiver mais de uma reserva no dia.
-      if (contaComToken?.access_token && reservas.length > 0) {
+      // busca a foto de perfil de verdade de cada cliente, ao vivo, sem guardar no banco. Uma
+      // chamada por @usuário único (não por reserva) pra não repetir à toa se a mesma pessoa tiver
+      // mais de uma reserva no dia.
+      //
+      // `instagram_scoped_id` vem em 3 formatos diferentes dependendo de como a reserva chegou:
+      // um IGSID de verdade da Meta (webhook direto), `sendpulse:<id>` (pela ponte — hoje é
+      // praticamente todo mundo, enquanto o App Review não sai, então a Graph API da Meta NUNCA
+      // teria a foto desse ID) ou `manual:...` (reserva antiga migrada à mão, sem foto nenhuma pra
+      // buscar). Cada um busca no lugar certo.
+      if (reservas.length > 0) {
         const idsUnicos = Array.from(new Set(reservas.map((r) => r.instagram_scoped_id)));
         const fotosPorId = new Map<string, string | null>(
           await Promise.all(
-            idsUnicos.map(
-              async (id) => [id, await buscarFotoDePerfilDoCliente(contaComToken.access_token, id)] as const
-            )
+            idsUnicos.map(async (id) => {
+              if (id.startsWith("manual:")) return [id, null] as const;
+              if (id.startsWith("sendpulse:")) {
+                const contatoId = id.slice("sendpulse:".length);
+                return [id, await buscarFotoDePerfilPelaApiDaSendPulse(contatoId)] as const;
+              }
+              if (!contaComToken?.access_token) return [id, null] as const;
+              return [id, await buscarFotoDePerfilDoCliente(contaComToken.access_token, id)] as const;
+            })
           )
         );
         reservas = reservas.map((r) => ({ ...r, fotoDePerfilUrl: fotosPorId.get(r.instagram_scoped_id) ?? null }));

@@ -45,6 +45,54 @@ export async function enviarTextoPelaApiDaSendPulse(contatoId: string, texto: st
 }
 
 /**
+ * Busca a foto de perfil de um contato pela API da SendPulse — necessário porque quem chega pela
+ * ponte (ver src/app/api/bridge/sendpulse/route.ts) usa um ID interno da SendPulse
+ * (`sendpulse:<contato_id>`), NUNCA o instagram_scoped_id (IGSID) de verdade da Meta. Chamar a
+ * Graph API da Meta com esse ID sempre falha (é só isso que fazia o avatar nunca aparecer na tela
+ * de Reservas de hoje pra quem reservou pela ponte — hoje, praticamente todo mundo, já que o App
+ * Review da Meta ainda não saiu).
+ *
+ * ATENÇÃO: a documentação da SendPulse não pôde ser consultada ao escrever isso (bloqueada na rede
+ * daqui) — o nome exato do campo da foto no retorno da API não foi confirmado ao vivo. Por isso
+ * checa alguns nomes de campo mais prováveis (baseado em como a Meta/Messenger costumam nomear
+ * esse campo) em vez de confiar só num. Se nenhum bater, cai em null (mesmo comportamento de
+ * antes: bolinha genérica) sem quebrar nada — só precisa de um ajuste rápido no nome do campo se o
+ * teste em produção não mostrar a foto de primeira.
+ */
+export async function buscarFotoDePerfilPelaApiDaSendPulse(contatoId: string): Promise<string | null> {
+  const chaveDeApi = process.env.SENDPULSE_API_KEY;
+  if (!chaveDeApi) return null;
+
+  try {
+    const resposta = await fetch(`${SENDPULSE_API_BASE}/instagram/contacts/get/${contatoId}`, {
+      headers: { Authorization: `Bearer ${chaveDeApi}` },
+      cache: "no-store",
+    });
+
+    if (!resposta.ok) return null;
+
+    const dados = await resposta.json();
+    const contato = dados?.data ?? dados;
+
+    const candidatos = [
+      contato?.channel_data?.profile_pic,
+      contato?.channel_data?.profile_picture_url,
+      contato?.channel_data?.photo,
+      contato?.profile_pic,
+      contato?.profile_picture_url,
+      contato?.photo,
+      contato?.picture,
+    ];
+
+    const foto = candidatos.find((v) => typeof v === "string" && v.length > 0);
+    return typeof foto === "string" ? foto : null;
+  } catch (erro) {
+    console.error("Falha ao buscar foto de perfil pela API da SendPulse:", erro);
+    return null;
+  }
+}
+
+/**
  * Manda uma mensagem com botões tocáveis de verdade. Diferença importante desse formato: o botão
  * não carrega um payload livre como no Button Template da Meta — ele aponta pra um `to_chain_id`
  * (o ID de um "chain"/fluxo dentro do construtor visual da própria SendPulse, não o ID de um
