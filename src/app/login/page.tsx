@@ -33,9 +33,9 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-950 p-8 shadow-lg shadow-black/40">
         <div className="flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-sm font-bold text-neutral-900">
-            CD
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Chatbot Direct" className="h-12 w-12 rounded-full object-cover" />
+
           <div className="text-center">
             <div className="text-lg font-semibold text-neutral-100">Chatbot Direct</div>
             <p className="mt-1 text-xs text-neutral-500">Painel administrativo — acesso restrito</p>
