@@ -4,6 +4,7 @@ import { executarComPonteSendPulse, formatarMensagensDaPonte, type MensagemDaPon
 import { decidirEResponder } from "@/lib/respostaAutomatica";
 import { registrarAtendimento } from "@/lib/atendimentos";
 import { enviarBotoesPelaApiDaSendPulse, enviarTextoPelaApiDaSendPulse } from "@/lib/sendpulseApi";
+import { usernameEstaIgnorado } from "@/lib/ignorados";
 
 // Ponte temporária: enquanto o App Review do chatbot-direct não sai (Standard Access só deixa a
 // Meta mandar mensagem pra admin/testador do App, nunca pra cliente de verdade), o SendPulse —
@@ -81,6 +82,12 @@ export async function POST(request: NextRequest) {
       { erro: `Conta "@${contaUsername}" não encontrada/ativa.` },
       { status: 404, headers: CABECALHOS_CORS }
     );
+  }
+
+  // @usuário na lista de ignorados dessa conta (ex.: o próprio dono) — ignora completamente, sem
+  // responder e sem registrar em chatbot_atendimentos (ver src/app/contas/[id]/ignorados).
+  if (await usernameEstaIgnorado(admin, conta.id, username)) {
+    return NextResponse.json({ resposta: null }, { headers: CABECALHOS_CORS });
   }
 
   // Mesmo prefixo em toda mensagem vinda dessa ponte — evita colidir com o instagram_scoped_id

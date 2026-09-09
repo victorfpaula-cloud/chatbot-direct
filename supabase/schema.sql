@@ -292,3 +292,22 @@ create index if not exists chatbot_reservas_log_account_idx
   on chatbot_reservas_log(account_id, criado_em desc);
 
 alter table chatbot_reservas_log enable row level security;
+
+-- ============================================================================
+-- Lista de @usuários que o bot NUNCA deve responder (ex.: o próprio dono da conta) — cadastro
+-- dinâmico por conta, mesmo padrão de chatbot_keywords (lista sem teto fixo, "+ adicionar").
+-- Checado ANTES de processar qualquer mensagem: se o @usuário de quem mandou estiver aqui, o bot
+-- ignora completamente (nem responde, nem registra em chatbot_atendimentos).
+-- ============================================================================
+create table if not exists chatbot_ignorados (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references chatbot_accounts(id) on delete cascade,
+  instagram_username text not null,
+  nome text,
+  created_at timestamptz not null default now(),
+  unique (account_id, instagram_username)
+);
+
+create index if not exists chatbot_ignorados_account_idx on chatbot_ignorados(account_id);
+
+alter table chatbot_ignorados enable row level security;

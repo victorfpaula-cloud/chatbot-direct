@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { assinaturaValida } from "@/lib/metaMessaging";
+import { assinaturaValida, buscarPerfilDoCliente } from "@/lib/metaMessaging";
 import { decidirEResponder } from "@/lib/respostaAutomatica";
 import { registrarAtendimento } from "@/lib/atendimentos";
+import { contaTemIgnorados, usernameEstaIgnorado } from "@/lib/ignorados";
 
 export async function GET(request: NextRequest) {
   const modo = request.nextUrl.searchParams.get("hub.mode");
@@ -106,6 +107,17 @@ async function processarEventoDeMensagem(admin: ReturnType<typeof criarClienteAd
       `Mensagem recebida pra uma conta ainda não conectada no sistema (instagram_user_id=${idDaContaRecebendo}).`
     );
     return;
+  }
+
+  // @usuário na lista de ignorados dessa conta (ex.: o próprio dono) — ignora completamente, sem
+  // responder e sem registrar em chatbot_atendimentos (ver src/app/contas/[id]/ignorados). Só
+  // busca o perfil na Graph API (custa uma chamada extra) se a conta tiver algum @usuário
+  // cadastrado pra ignorar — a maioria não tem, então a maioria das mensagens não paga esse custo.
+  if (await contaTemIgnorados(admin, conta.id)) {
+    const perfil = await buscarPerfilDoCliente(conta.access_token, idDoCliente);
+    if (await usernameEstaIgnorado(admin, conta.id, perfil.username)) {
+      return;
+    }
   }
 
   // Descrição amigável do que o cliente mandou, pra aparecer no histórico de atendimentos — toque

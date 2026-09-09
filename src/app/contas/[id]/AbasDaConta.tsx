@@ -7,6 +7,7 @@ const ABAS = [
   { segmento: "gemini", rotulo: "Gemini" },
   { segmento: "reserva", rotulo: "Reserva" },
   { segmento: "atendimentos", rotulo: "Atendimentos" },
+  { segmento: "ignorados", rotulo: "Ignorados" },
   { segmento: "funcionarios", rotulo: "Funcionários" },
 ];
 
