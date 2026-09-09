@@ -711,7 +711,7 @@ export async function PainelDeReservas({
       </div>
 
       {contaSelecionada && modo === "hoje" && (
-        <HistoricoSobDemanda contaId={ehFuncionario ? null : contaSelecionada.id} hoje={hoje} />
+        <HistoricoSobDemanda contaId={ehFuncionario ? null : contaSelecionada.id} />
       )}
     </main>
   );

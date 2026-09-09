@@ -350,3 +350,29 @@ alter table chatbot_account_settings
 alter table chatbot_account_settings
   add column if not exists reserva_offset_historico_reservas integer not null default 0,
   add column if not exists reserva_offset_historico_pessoas integer not null default 0;
+
+-- ============================================================================
+-- Soma o total acumulado de reservas/pessoas de uma conta de forma incremental — chamada uma vez
+-- por reserva confirmada (finalizarReserva) e ao ajustar a quantidade de pessoas numa reserva já
+-- existente (continuarFluxoDeAlteracao), sempre em src/lib/reservas.ts. Substitui o recálculo
+-- diário somando TODA a tabela chatbot_reservations de novo: em vez disso, cada evento soma só a
+-- sua própria diferença em cima do total que já está guardado (ver reserva_offset_historico_* pro
+-- valor inicial de cada conta). `ano = 0` é uma chave fixa (não é um ano de verdade), só reaproveita
+-- a mesma tabela chatbot_reservas_totais_anuais. Não desconta reserva excluída/editada manualmente
+-- pela tela — é um contador cumulativo "de sempre", não um espelho ao vivo da tabela de reservas.
+-- ============================================================================
+create or replace function incrementar_reserva_totais_acumulados(
+  p_account_id uuid,
+  p_delta_reservas integer,
+  p_delta_pessoas integer,
+  p_atualizado_em date
+) returns void
+language sql
+as $$
+  insert into chatbot_reservas_totais_anuais (account_id, ano, total_reservas, total_pessoas, atualizado_em)
+  values (p_account_id, 0, p_delta_reservas, p_delta_pessoas, p_atualizado_em)
+  on conflict (account_id, ano) do update
+  set total_reservas = chatbot_reservas_totais_anuais.total_reservas + excluded.total_reservas,
+      total_pessoas = chatbot_reservas_totais_anuais.total_pessoas + excluded.total_pessoas,
+      atualizado_em = excluded.atualizado_em;
+$$;

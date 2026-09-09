@@ -4,29 +4,17 @@ import { useState } from "react";
 import { Icone } from "./reservasCompartilhado";
 
 type Estado = "fechado" | "carregando" | "carregado" | "erro";
-type Dados = { historico: { data: string; total: number }[]; totalDeReservasNoAno: number; totalDePessoasNoAno: number };
+type Dados = { totalDeReservasNoAno: number; totalDePessoasNoAno: number };
 
 const CAMINHO_RELOGIO_HISTORICO = "M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8";
 const CAMINHO_SETA_BAIXO = "M6 9l6 6 6-6";
 
-function formatarDataCurta(dataISO: string): string {
-  const [, mes, dia] = dataISO.split("-");
-  return `${dia}/${mes}`;
-}
-
 /**
- * Bloco "Histórico e totais do ano" da tela Hoje — fechado por padrão, só busca os dados
- * (/api/reservas/historico) quando a pessoa realmente abre. É informação "bom saber", não
- * essencial pra ver as reservas do dia, então não vale a pena pagar essas duas consultas em toda
- * abertura da tela.
+ * Bloco "Histórico e total de reservas" da tela Hoje — fechado por padrão, só busca os dados
+ * (/api/reservas/historico) quando a pessoa realmente abre. É um contador simples (soma
+ * incremental mantida em src/lib/reservas.ts, não uma consulta pesada), então abrir não pesa.
  */
-export function HistoricoSobDemanda({
-  contaId,
-  hoje,
-}: {
-  contaId: string | null;
-  hoje: string;
-}) {
+export function HistoricoSobDemanda({ contaId }: { contaId: string | null }) {
   const [estado, setEstado] = useState<Estado>("fechado");
   const [dados, setDados] = useState<Dados | null>(null);
 
@@ -48,8 +36,6 @@ export function HistoricoSobDemanda({
       setEstado("erro");
     }
   }
-
-  const maiorDoHistorico = Math.max(1, ...(dados?.historico.map((h) => h.total) ?? []));
 
   return (
     <details
@@ -80,44 +66,16 @@ export function HistoricoSobDemanda({
           </div>
         )}
         {estado === "carregado" && dados && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
-                <p className="text-xs text-neutral-500">Total de reservas até hoje</p>
-                <p className="mt-1 text-xl font-semibold text-neutral-100">{dados.totalDeReservasNoAno}</p>
-              </div>
-              <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
-                <p className="text-xs text-neutral-500">Pessoas atendidas</p>
-                <p className="mt-1 text-xl font-semibold text-neutral-100">{dados.totalDePessoasNoAno}</p>
-              </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
+              <p className="text-xs text-neutral-500">Total de reservas até hoje</p>
+              <p className="mt-1 text-xl font-semibold text-neutral-100">{dados.totalDeReservasNoAno}</p>
             </div>
-
-            <p className="mt-4 text-xs text-neutral-500">Reservas confirmadas por dia — últimos 14 dias</p>
-            <svg
-              role="img"
-              aria-label="Reservas confirmadas por dia, nos últimos 14 dias"
-              viewBox="0 0 336 72"
-              className="mt-2 w-full"
-              preserveAspectRatio="none"
-            >
-              <line x1="0" y1="64" x2="336" y2="64" stroke="#2c2c2a" strokeWidth="1" />
-              {dados.historico.map((dia, i) => {
-                const altura = dia.total === 0 ? 0 : Math.max(4, Math.round((dia.total / maiorDoHistorico) * 56));
-                const x = i * 24 + 2;
-                return (
-                  <rect key={dia.data} x={x} y={64 - altura} width="20" height={altura} rx="3" fill="#3987e5">
-                    <title>
-                      {formatarDataCurta(dia.data)}: {dia.total} reserva{dia.total === 1 ? "" : "s"}
-                    </title>
-                  </rect>
-                );
-              })}
-            </svg>
-            <div className="mt-1 flex justify-between text-[10px] text-neutral-600">
-              <span>{formatarDataCurta(dados.historico[0]?.data ?? hoje)}</span>
-              <span>{formatarDataCurta(dados.historico[dados.historico.length - 1]?.data ?? hoje)}</span>
+            <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
+              <p className="text-xs text-neutral-500">Pessoas atendidas</p>
+              <p className="mt-1 text-xl font-semibold text-neutral-100">{dados.totalDePessoasNoAno}</p>
             </div>
-          </>
+          </div>
         )}
       </div>
     </details>

@@ -238,7 +238,7 @@ async function iniciarFluxoDeAlteracao(
     instagram_scoped_id: idDoCliente,
     fluxo_atual: "alterar_reserva",
     etapa_atual: "aguardando_quantidade",
-    dados_coletados: { reservaId: reserva.id },
+    dados_coletados: { reservaId: reserva.id, quantidadeAtual: reserva.quantidade_pessoas ?? 0 },
     atualizado_em: new Date().toISOString(),
   });
 
@@ -293,12 +293,38 @@ async function continuarFluxoDeAlteracao(
     return;
   }
 
+  const quantidadeAnterior = dados.quantidadeAtual ?? novaQuantidade;
+  await ajustarTotalAcumulado(admin, conta.id, 0, novaQuantidade - quantidadeAnterior);
+
   await enviarMensagemDirect(
     conta.access_token,
     idDoCliente,
     `Prontinho, atualizei sua reserva pra ${novaQuantidade} pessoa(s).`
   );
   await encerrarConversa(admin, conversa.id);
+}
+
+/**
+ * Soma incremental do total acumulado (ver função `incrementar_reserva_totais_acumulados` no
+ * banco) — nunca deixa esse ajuste quebrar o fluxo de reserva se falhar por qualquer motivo (é só
+ * um contador pra tela de estatísticas, não afeta a reserva em si).
+ */
+async function ajustarTotalAcumulado(
+  admin: Admin,
+  accountId: string,
+  deltaReservas: number,
+  deltaPessoas: number
+): Promise<void> {
+  const { error } = await admin.rpc("incrementar_reserva_totais_acumulados", {
+    p_account_id: accountId,
+    p_delta_reservas: deltaReservas,
+    p_delta_pessoas: deltaPessoas,
+    p_atualizado_em: paraISO(agoraEmSaoPaulo()),
+  });
+
+  if (error) {
+    console.error("Falha ao ajustar total acumulado de reservas:", error);
+  }
 }
 
 async function iniciarFluxo(
@@ -716,6 +742,8 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
     );
     return;
   }
+
+  await ajustarTotalAcumulado(admin, conta.id, 1, dados.quantidade_pessoas ?? 0);
 
   // Avisa o cliente ANTES de tentar escrever na planilha — a reserva já está garantida no banco
   // nesse ponto, então uma falha na planilha (rede, permissão) não pode virar um "não deu certo"
