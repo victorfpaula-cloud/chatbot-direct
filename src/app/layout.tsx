@@ -4,6 +4,13 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Chatbot Direct",
   description: "Atendimento automático de Instagram Direct",
+  // Referenciado explicitamente (em vez de deixar o Next.js gerar sozinho a partir de um
+  // manifest.ts na raiz) porque esse jeito automático NÃO respeita um manifest diferente
+  // declarado por uma pasta filha (ver src/app/reservas/layout.tsx) — sempre usava esse daqui pra
+  // toda rota do site, inclusive /reservas, fazendo o atalho da tela de início do funcionário abrir
+  // em "/contas" (o start_url daqui) em vez de "/reservas". Com o campo explícito, a metadata da
+  // pasta mais específica vence normalmente, como já acontece com os ícones.
+  manifest: "/manifest.webmanifest",
   // Sem isso, "Adicionar à Tela de Início" no iPhone funciona só na primeira página: o Safari
   // mostra o app sem a própria barra de endereço só na abertura pelo ícone, e assim que a pessoa
   // navega pra uma segunda ou terceira página (troca de URL de verdade), o Safari "esquece" que é
