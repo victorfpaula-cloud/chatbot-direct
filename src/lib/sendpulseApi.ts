@@ -69,7 +69,15 @@ export async function buscarFotoDePerfilPelaApiDaSendPulse(contatoId: string): P
       cache: "no-store",
     });
 
-    if (!resposta.ok) return null;
+    if (!resposta.ok) {
+      // Diagnóstico temporário (ver comentário acima) — sem isso não tem como saber, só pelos
+      // logs da Vercel, se o problema é o endpoint/autenticação (aqui) ou o nome do campo (abaixo).
+      const corpoErro = await resposta.text().catch(() => "");
+      console.error(
+        `[foto de perfil SendPulse] GET /instagram/contacts/get/${contatoId} falhou (status ${resposta.status}): ${corpoErro}`
+      );
+      return null;
+    }
 
     const dados = await resposta.json();
     const contato = dados?.data ?? dados;
@@ -85,6 +93,13 @@ export async function buscarFotoDePerfilPelaApiDaSendPulse(contatoId: string): P
     ];
 
     const foto = candidatos.find((v) => typeof v === "string" && v.length > 0);
+
+    if (!foto) {
+      // Diagnóstico temporário: nenhum dos nomes de campo "chutados" bateu — loga a resposta
+      // inteira uma vez pra descobrir o nome certo nos logs da Vercel, em vez de ficar chutando.
+      console.error(`[foto de perfil SendPulse] nenhum campo de foto reconhecido na resposta: ${JSON.stringify(dados)}`);
+    }
+
     return typeof foto === "string" ? foto : null;
   } catch (erro) {
     console.error("Falha ao buscar foto de perfil pela API da SendPulse:", erro);
