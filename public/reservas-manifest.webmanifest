@@ -1,0 +1,10 @@
+{
+  "name": "Reservas",
+  "short_name": "Reservas",
+  "start_url": "/reservas",
+  "scope": "/reservas",
+  "display": "standalone",
+  "background_color": "#171717",
+  "theme_color": "#171717",
+  "icons": [{ "src": "/reservas-icon.png", "sizes": "512x512", "type": "image/png" }]
+}

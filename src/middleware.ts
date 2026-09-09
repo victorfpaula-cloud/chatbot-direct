@@ -132,6 +132,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/webhook/instagram|api/bridge/sendpulse|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png).*)",
+    // reservas/icon.png, reservas/apple-icon.png, reservas-manifest.webmanifest e reservas-logo.png
+    // precisam ficar públicos pelo mesmo motivo do favicon/ícone principal: quem busca esses
+    // arquivos é o navegador (pra montar o atalho na tela de início do funcionário) OU a própria
+    // tela de login do funcionário antes de ele logar — nenhum dos dois tem sessão de admin.
+    "/((?!api/webhook/instagram|api/bridge/sendpulse|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png).*)",
   ],
 };

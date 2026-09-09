@@ -14,7 +14,7 @@ export default function LoginDeFuncionarioPage({
       <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-950 p-8 shadow-lg shadow-black/40">
         <div className="flex flex-col items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Chatbot Direct" className="h-12 w-12 rounded-full object-cover" />
+          <img src="/reservas-logo.png" alt="Reservas" className="h-12 w-12 rounded-full object-cover" />
 
           <div className="text-center">
             <div className="text-lg font-semibold text-neutral-100">Reservas</div>
