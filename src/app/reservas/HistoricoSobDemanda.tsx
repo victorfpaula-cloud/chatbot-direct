@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icone } from "./reservasCompartilhado";
 
 type Estado = "fechado" | "carregando" | "carregado" | "erro";
@@ -37,16 +37,24 @@ export function HistoricoSobDemanda({ contaId }: { contaId: string | null }) {
     }
   }
 
+  // Fica aberto por padrão (diferente do resto da tela) — sem precisar de um toque a mais, já
+  // busca sozinho assim que a tela carrega.
+  useEffect(() => {
+    carregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <details
-      className="mt-10 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900"
+      open
+      className="mt-10 overflow-hidden rounded-2xl border border-sky-900/50 bg-neutral-900"
       onToggle={(evento) => {
         const abriu = (evento.target as HTMLDetailsElement).open;
         if (abriu && (estado === "fechado" || estado === "erro")) carregar();
       }}
     >
       <summary className="flex cursor-pointer list-none items-center gap-1.5 px-4 py-3 text-xs font-medium uppercase tracking-wide text-neutral-500 [&::-webkit-details-marker]:hidden">
-        <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
+        <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5 text-sky-400" />
         Histórico e total de reservas
         <Icone path={CAMINHO_SETA_BAIXO} className="ml-auto h-4 w-4 text-neutral-600" />
       </summary>
