@@ -47,16 +47,22 @@ export async function POST(request: NextRequest) {
     .trim()
     .replace(/^@/, "")
     .toLowerCase();
-  const textoDaMensagem: string | undefined = corpo.texto?.toString().trim();
+  // Texto NÃO é obrigatório aqui: quando o Instagram reconhece o conteúdo como um número de
+  // telefone (ou outro anexo especial — áudio, imagem, story), o cliente às vezes manda a
+  // mensagem sem nenhum texto simples junto. Antes, essa checagem rejeitava a requisição inteira
+  // (400) nesse caso, travando o fluxo de reserva bem no meio (ex: etapa do WhatsApp) — a lógica
+  // de reserva já sabe pedir de novo quando não entende a resposta, então deixamos passar em
+  // branco em vez de recusar de cara.
+  const textoDaMensagem: string | undefined = corpo.texto?.toString().trim() || undefined;
   const contatoId: string | undefined = corpo.contato_id?.toString();
   const username: string | null = corpo.username
     ? corpo.username.toString().replace(/^@/, "").toLowerCase()
     : null;
   const nomeDoCliente: string = corpo.nome ? corpo.nome.toString() : "Cliente";
 
-  if (!contaUsername || !textoDaMensagem || !contatoId) {
+  if (!contaUsername || !contatoId) {
     return NextResponse.json(
-      { erro: "Faltou conta_username, texto ou contato_id no corpo da requisição." },
+      { erro: "Faltou conta_username ou contato_id no corpo da requisição." },
       { status: 400, headers: CABECALHOS_CORS }
     );
   }
@@ -85,6 +91,12 @@ export async function POST(request: NextRequest) {
   const { resultado, mensagens } = await executarComPonteSendPulse(() =>
     decidirEResponder(admin, conta, idDoCliente, { text: textoDaMensagem })
   );
+
+  // Mesma descrição amigável usada no webhook direto pra mensagem sem texto (ver
+  // src/app/api/webhook/instagram/route.ts) — ajuda a entender esse caso no histórico de
+  // atendimentos em vez de mostrar uma string vazia.
+  const descricaoDaMensagemRecebida =
+    textoDaMensagem ?? "[mensagem sem texto — número de telefone, áudio, imagem, story etc.]";
 
   // Manda TODAS as mensagens (texto e botão) direto pela API da SendPulse, na mesma ordem em que
   // foram decididas (ver src/lib/sendpulseApi.ts) — antes, só a mensagem com botão saía por esse
@@ -115,7 +127,7 @@ export async function POST(request: NextRequest) {
     contaId: conta.id,
     tokenDaConta: conta.access_token,
     idDoCliente,
-    mensagemRecebida: textoDaMensagem,
+    mensagemRecebida: descricaoDaMensagemRecebida,
     tipoResposta: resultado.tipoResposta,
     respostaEnviada: respostaFinal,
     status: resultado.erroOcorrido
