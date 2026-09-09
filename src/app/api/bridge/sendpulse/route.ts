@@ -98,31 +98,28 @@ export async function POST(request: NextRequest) {
   const descricaoDaMensagemRecebida =
     textoDaMensagem ?? "[mensagem sem texto — número de telefone, áudio, imagem, story etc.]";
 
-  // Só vale a pena pagar o custo de uma chamada de rede extra (pra API da SendPulse) quando tem
-  // botão envolvido — é o único caso em que a ordem pode embaralhar (texto pela resposta HTTP,
-  // que só é entregue depois que o fluxo da SendPulse processa, versus botão direto/imediato).
-  // Passo sem botão nenhum (a maioria: Gemini, palavra-chave, e boa parte das perguntas da
-  // reserva) volta a sair só pela resposta HTTP, sem chamada extra — mais rápido, sem risco de
-  // desordem porque não tem o que desordenar.
-  const temBotao = mensagens.some((mensagem) => mensagem.tipo === "botoes");
-
-  let mensagensRestantes: MensagemDaPonte[] = mensagens;
+  // Manda TODA mensagem (com ou sem botão) direto pela API da SendPulse, nunca pela resposta
+  // HTTP (que passa pelo bloco "Mensagem" do fluxo deles). Motivo: em testes reais, a mensagem
+  // seguinte do cliente às vezes não chegava na ponte especificamente depois de um passo SEM
+  // botão que tinha sido entregue pelo caminho da resposta HTTP — suspeita de que o fluxo da
+  // SendPulse demora pra "rearmar" depois de processar aquele bloco. Isso custa uma chamada de
+  // rede a mais por mensagem (um pouco mais lento), mas elimina essa dependência de temporização
+  // do lado da SendPulse — prioridade é não travar o fluxo, nunca aconteceu isso com mensagem
+  // mandada por aqui. Se a chamada falhar por qualquer motivo, cai de volta pra devolver aquele
+  // trecho como texto na resposta HTTP, só nesse caso de falha real.
+  const mensagensRestantes: MensagemDaPonte[] = [];
   let erroAoEnviarMensagem: unknown = null;
-
-  if (temBotao) {
-    mensagensRestantes = [];
-    for (const mensagem of mensagens) {
-      try {
-        if (mensagem.tipo === "botoes") {
-          await enviarBotoesPelaApiDaSendPulse(contatoId, mensagem.texto, mensagem.botoes);
-        } else {
-          await enviarTextoPelaApiDaSendPulse(contatoId, mensagem.texto);
-        }
-      } catch (erro) {
-        console.error("[ponte SendPulse] falha ao enviar mensagem via API, caindo no texto da resposta HTTP:", erro);
-        erroAoEnviarMensagem = erro;
-        mensagensRestantes.push(mensagem);
+  for (const mensagem of mensagens) {
+    try {
+      if (mensagem.tipo === "botoes") {
+        await enviarBotoesPelaApiDaSendPulse(contatoId, mensagem.texto, mensagem.botoes);
+      } else {
+        await enviarTextoPelaApiDaSendPulse(contatoId, mensagem.texto);
       }
+    } catch (erro) {
+      console.error("[ponte SendPulse] falha ao enviar mensagem via API, caindo no texto da resposta HTTP:", erro);
+      erroAoEnviarMensagem = erro;
+      mensagensRestantes.push(mensagem);
     }
   }
 
