@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
   // falhar por qualquer motivo (rede, to_chain_id errado, etc.), cai de volta pra lista de texto
   // simples que já funciona hoje — nunca deixa esse passo sem resposta nenhuma por causa disso.
   const mensagensRestantes: MensagemDaPonte[] = [];
+  let erroAoEnviarBotao: unknown = null;
   for (const mensagem of mensagens) {
     if (mensagem.tipo !== "botoes") {
       mensagensRestantes.push(mensagem);
@@ -101,6 +102,7 @@ export async function POST(request: NextRequest) {
       await enviarBotoesPelaApiDaSendPulse(contatoId, mensagem.texto, mensagem.botoes);
     } catch (erro) {
       console.error("[ponte SendPulse] falha ao enviar botão via API, caindo no texto:", erro);
+      erroAoEnviarBotao = erro;
       mensagensRestantes.push(mensagem);
     }
   }
@@ -119,9 +121,14 @@ export async function POST(request: NextRequest) {
       : resultado.tipoResposta === "sem_resposta"
         ? "sem_resposta"
         : "respondido",
+    // Diagnóstico temporário: se a decisão em si não deu erro mas o envio do botão via API da
+    // SendPulse falhou (caiu no texto de backup), guarda o motivo aqui mesmo assim — só assim dá
+    // pra enxergar essa falha sem acesso aos logs do Vercel.
     erroDetalhe: resultado.erroOcorrido
       ? String((resultado.erroOcorrido as any)?.message ?? resultado.erroOcorrido)
-      : null,
+      : erroAoEnviarBotao
+        ? `[falha ao enviar botão, caiu no texto] ${String((erroAoEnviarBotao as any)?.message ?? erroAoEnviarBotao)}`
+        : null,
     perfilConhecido: { nome: nomeDoCliente, username },
   });
 
