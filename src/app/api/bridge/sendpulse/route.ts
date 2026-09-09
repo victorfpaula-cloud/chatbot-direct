@@ -3,7 +3,7 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { executarComPonteSendPulse, formatarMensagensDaPonte, type MensagemDaPonte } from "@/lib/metaMessaging";
 import { decidirEResponder } from "@/lib/respostaAutomatica";
 import { registrarAtendimento } from "@/lib/atendimentos";
-import { enviarBotoesPelaApiDaSendPulse } from "@/lib/sendpulseApi";
+import { enviarBotoesPelaApiDaSendPulse, enviarTextoPelaApiDaSendPulse } from "@/lib/sendpulseApi";
 
 // Ponte temporária: enquanto o App Review do chatbot-direct não sai (Standard Access só deixa a
 // Meta mandar mensagem pra admin/testador do App, nunca pra cliente de verdade), o SendPulse —
@@ -86,23 +86,25 @@ export async function POST(request: NextRequest) {
     decidirEResponder(admin, conta, idDoCliente, { text: textoDaMensagem })
   );
 
-  // Tenta mandar cada passo com botão como botão de verdade via API da SendPulse (ver
-  // src/lib/sendpulseApi.ts). Se as credenciais ainda não estiverem configuradas, ou a chamada
-  // falhar por qualquer motivo (rede, to_chain_id errado, etc.), cai de volta pra lista de texto
-  // simples que já funciona hoje — nunca deixa esse passo sem resposta nenhuma por causa disso.
+  // Manda TODAS as mensagens (texto e botão) direto pela API da SendPulse, na mesma ordem em que
+  // foram decididas (ver src/lib/sendpulseApi.ts) — antes, só a mensagem com botão saía por esse
+  // caminho direto/imediato e o texto simples saía pela resposta HTTP (que só é entregue depois
+  // que o fluxo da SendPulse processa), fazendo o texto chegar DEPOIS do botão no chat do
+  // cliente mesmo tendo sido decidido antes. Se a chamada falhar por qualquer motivo (credenciais
+  // não configuradas, rede, to_chain_id errado, etc.), cai de volta pra devolver aquele trecho
+  // como texto na resposta HTTP — nunca deixa um passo sem resposta nenhuma por causa disso.
   const mensagensRestantes: MensagemDaPonte[] = [];
-  let erroAoEnviarBotao: unknown = null;
+  let erroAoEnviarMensagem: unknown = null;
   for (const mensagem of mensagens) {
-    if (mensagem.tipo !== "botoes") {
-      mensagensRestantes.push(mensagem);
-      continue;
-    }
-
     try {
-      await enviarBotoesPelaApiDaSendPulse(contatoId, mensagem.texto, mensagem.botoes);
+      if (mensagem.tipo === "botoes") {
+        await enviarBotoesPelaApiDaSendPulse(contatoId, mensagem.texto, mensagem.botoes);
+      } else {
+        await enviarTextoPelaApiDaSendPulse(contatoId, mensagem.texto);
+      }
     } catch (erro) {
-      console.error("[ponte SendPulse] falha ao enviar botão via API, caindo no texto:", erro);
-      erroAoEnviarBotao = erro;
+      console.error("[ponte SendPulse] falha ao enviar mensagem via API, caindo no texto da resposta HTTP:", erro);
+      erroAoEnviarMensagem = erro;
       mensagensRestantes.push(mensagem);
     }
   }
@@ -121,13 +123,13 @@ export async function POST(request: NextRequest) {
       : resultado.tipoResposta === "sem_resposta"
         ? "sem_resposta"
         : "respondido",
-    // Diagnóstico temporário: se a decisão em si não deu erro mas o envio do botão via API da
-    // SendPulse falhou (caiu no texto de backup), guarda o motivo aqui mesmo assim — só assim dá
-    // pra enxergar essa falha sem acesso aos logs do Vercel.
+    // Diagnóstico temporário: se a decisão em si não deu erro mas o envio direto via API da
+    // SendPulse falhou (caiu no texto de backup da resposta HTTP), guarda o motivo aqui mesmo
+    // assim — só assim dá pra enxergar essa falha sem acesso aos logs do Vercel.
     erroDetalhe: resultado.erroOcorrido
       ? String((resultado.erroOcorrido as any)?.message ?? resultado.erroOcorrido)
-      : erroAoEnviarBotao
-        ? `[falha ao enviar botão, caiu no texto] ${String((erroAoEnviarBotao as any)?.message ?? erroAoEnviarBotao)}`
+      : erroAoEnviarMensagem
+        ? `[falha ao enviar via API, caiu no texto da resposta HTTP] ${String((erroAoEnviarMensagem as any)?.message ?? erroAoEnviarMensagem)}`
         : null,
     perfilConhecido: { nome: nomeDoCliente, username },
   });
