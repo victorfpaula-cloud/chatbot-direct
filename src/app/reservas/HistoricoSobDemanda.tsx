@@ -61,7 +61,7 @@ export function HistoricoSobDemanda({
     >
       <summary className="flex cursor-pointer list-none items-center gap-1.5 px-4 py-3 text-xs font-medium uppercase tracking-wide text-neutral-500 [&::-webkit-details-marker]:hidden">
         <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
-        Histórico e totais do ano
+        Histórico e total de reservas
         <Icone path={CAMINHO_SETA_BAIXO} className="ml-auto h-4 w-4 text-neutral-600" />
       </summary>
 
@@ -83,11 +83,11 @@ export function HistoricoSobDemanda({
           <>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
-                <p className="text-xs text-neutral-500">Reservas em {hoje.slice(0, 4)}</p>
+                <p className="text-xs text-neutral-500">Total de reservas até hoje</p>
                 <p className="mt-1 text-xl font-semibold text-neutral-100">{dados.totalDeReservasNoAno}</p>
               </div>
               <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
-                <p className="text-xs text-neutral-500">Pessoas atendidas em {hoje.slice(0, 4)}</p>
+                <p className="text-xs text-neutral-500">Pessoas atendidas</p>
                 <p className="mt-1 text-xl font-semibold text-neutral-100">{dados.totalDePessoasNoAno}</p>
               </div>
             </div>

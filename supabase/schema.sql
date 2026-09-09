@@ -340,3 +340,13 @@ alter table chatbot_mensagens_pendentes enable row level security;
 alter table chatbot_account_settings
   add column if not exists palavra_chave_alterar_reserva text,
   add column if not exists alteracao_cutoff_horario time not null default '18:00';
+
+-- ============================================================================
+-- Ponto de partida "histórico" (reservas feitas ANTES desse sistema existir, num sistema antigo) —
+-- some junto do total geral mostrado no bloco "Histórico e total de reservas" da tela /reservas,
+-- em vez de mostrar só o que esse sistema já registrou desde que entrou no ar. Zero por padrão
+-- (não afeta nenhuma conta que não tenha um histórico assim pra declarar).
+-- ============================================================================
+alter table chatbot_account_settings
+  add column if not exists reserva_offset_historico_reservas integer not null default 0,
+  add column if not exists reserva_offset_historico_pessoas integer not null default 0;
