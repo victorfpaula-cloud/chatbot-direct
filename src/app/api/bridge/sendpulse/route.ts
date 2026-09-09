@@ -98,26 +98,31 @@ export async function POST(request: NextRequest) {
   const descricaoDaMensagemRecebida =
     textoDaMensagem ?? "[mensagem sem texto — número de telefone, áudio, imagem, story etc.]";
 
-  // Manda TODAS as mensagens (texto e botão) direto pela API da SendPulse, na mesma ordem em que
-  // foram decididas (ver src/lib/sendpulseApi.ts) — antes, só a mensagem com botão saía por esse
-  // caminho direto/imediato e o texto simples saía pela resposta HTTP (que só é entregue depois
-  // que o fluxo da SendPulse processa), fazendo o texto chegar DEPOIS do botão no chat do
-  // cliente mesmo tendo sido decidido antes. Se a chamada falhar por qualquer motivo (credenciais
-  // não configuradas, rede, to_chain_id errado, etc.), cai de volta pra devolver aquele trecho
-  // como texto na resposta HTTP — nunca deixa um passo sem resposta nenhuma por causa disso.
-  const mensagensRestantes: MensagemDaPonte[] = [];
+  // Só vale a pena pagar o custo de uma chamada de rede extra (pra API da SendPulse) quando tem
+  // botão envolvido — é o único caso em que a ordem pode embaralhar (texto pela resposta HTTP,
+  // que só é entregue depois que o fluxo da SendPulse processa, versus botão direto/imediato).
+  // Passo sem botão nenhum (a maioria: Gemini, palavra-chave, e boa parte das perguntas da
+  // reserva) volta a sair só pela resposta HTTP, sem chamada extra — mais rápido, sem risco de
+  // desordem porque não tem o que desordenar.
+  const temBotao = mensagens.some((mensagem) => mensagem.tipo === "botoes");
+
+  let mensagensRestantes: MensagemDaPonte[] = mensagens;
   let erroAoEnviarMensagem: unknown = null;
-  for (const mensagem of mensagens) {
-    try {
-      if (mensagem.tipo === "botoes") {
-        await enviarBotoesPelaApiDaSendPulse(contatoId, mensagem.texto, mensagem.botoes);
-      } else {
-        await enviarTextoPelaApiDaSendPulse(contatoId, mensagem.texto);
+
+  if (temBotao) {
+    mensagensRestantes = [];
+    for (const mensagem of mensagens) {
+      try {
+        if (mensagem.tipo === "botoes") {
+          await enviarBotoesPelaApiDaSendPulse(contatoId, mensagem.texto, mensagem.botoes);
+        } else {
+          await enviarTextoPelaApiDaSendPulse(contatoId, mensagem.texto);
+        }
+      } catch (erro) {
+        console.error("[ponte SendPulse] falha ao enviar mensagem via API, caindo no texto da resposta HTTP:", erro);
+        erroAoEnviarMensagem = erro;
+        mensagensRestantes.push(mensagem);
       }
-    } catch (erro) {
-      console.error("[ponte SendPulse] falha ao enviar mensagem via API, caindo no texto da resposta HTTP:", erro);
-      erroAoEnviarMensagem = erro;
-      mensagensRestantes.push(mensagem);
     }
   }
 
