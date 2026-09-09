@@ -18,15 +18,27 @@ export type MensagemDaPonte =
  * conferem se estão rodando dentro de `executarComPonteSendPulse` e, se estiverem, só empilham a
  * mensagem no coletor em vez de chamar a Graph API — o resto do fluxo de reserva não muda uma
  * linha. Fora da ponte (webhook direto da Meta), o comportamento é exatamente o de sempre.
+ *
+ * O mesmo contexto também carrega o `perfilConhecido` (nome/@usuário que o SendPulse já manda
+ * junto da mensagem) — usado por `buscarPerfilDoCliente` abaixo, porque o `instagram_scoped_id`
+ * das conversas da ponte é sintético (`sendpulse:...`), não um IGSID de verdade, então a busca na
+ * Graph API sempre falharia e cairia no nome genérico "Cliente" (foi exatamente isso que
+ * aconteceu na reserva de teste — o nome salvo veio como "Cliente" em vez do nome real).
  */
-const armazenamentoDaPonte = new AsyncLocalStorage<MensagemDaPonte[]>();
+type ContextoDaPonte = {
+  mensagens: MensagemDaPonte[];
+  perfilConhecido?: { nome: string; username: string | null };
+};
+
+const armazenamentoDaPonte = new AsyncLocalStorage<ContextoDaPonte>();
 
 export async function executarComPonteSendPulse<T>(
+  perfilConhecido: { nome: string; username: string | null } | undefined,
   funcao: () => Promise<T>
 ): Promise<{ resultado: T; mensagens: MensagemDaPonte[] }> {
-  const mensagens: MensagemDaPonte[] = [];
-  const resultado = await armazenamentoDaPonte.run(mensagens, funcao);
-  return { resultado, mensagens };
+  const contexto: ContextoDaPonte = { mensagens: [], perfilConhecido };
+  const resultado = await armazenamentoDaPonte.run(contexto, funcao);
+  return { resultado, mensagens: contexto.mensagens };
 }
 
 /**
@@ -63,9 +75,9 @@ export async function enviarMensagemDirect(
   igsidDoCliente: string,
   texto: string
 ): Promise<void> {
-  const coletorDaPonte = armazenamentoDaPonte.getStore();
-  if (coletorDaPonte) {
-    coletorDaPonte.push({ tipo: "texto", texto });
+  const contextoDaPonte = armazenamentoDaPonte.getStore();
+  if (contextoDaPonte) {
+    contextoDaPonte.mensagens.push({ tipo: "texto", texto });
     return;
   }
 
@@ -111,9 +123,9 @@ export async function enviarMensagemComBotoes(
   texto: string,
   botoes: { titulo: string; payload: string }[]
 ): Promise<void> {
-  const coletorDaPonte = armazenamentoDaPonte.getStore();
-  if (coletorDaPonte) {
-    coletorDaPonte.push({ tipo: "botoes", texto, botoes });
+  const contextoDaPonte = armazenamentoDaPonte.getStore();
+  if (contextoDaPonte) {
+    contextoDaPonte.mensagens.push({ tipo: "botoes", texto, botoes });
     return;
   }
 
@@ -184,6 +196,11 @@ export async function buscarPerfilDoCliente(
   tokenDaConta: string,
   instagramScopedId: string
 ): Promise<{ nome: string; username: string | null }> {
+  const contextoDaPonte = armazenamentoDaPonte.getStore();
+  if (contextoDaPonte?.perfilConhecido) {
+    return contextoDaPonte.perfilConhecido;
+  }
+
   try {
     const resposta = await fetch(
       `https://graph.facebook.com/${GRAPH_API_VERSION}/${instagramScopedId}?fields=name,username&access_token=${encodeURIComponent(

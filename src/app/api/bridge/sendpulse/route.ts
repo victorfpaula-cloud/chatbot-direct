@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
   // conversas/atendimentos, então o painel mostra os dois fluxos juntos sem distinção.
   const idDoCliente = `sendpulse:${contatoId}`;
 
-  const { resultado, mensagens } = await executarComPonteSendPulse(() =>
+  const { resultado, mensagens } = await executarComPonteSendPulse({ nome: nomeDoCliente, username }, () =>
     decidirEResponder(admin, conta, idDoCliente, { text: textoDaMensagem })
   );
 
