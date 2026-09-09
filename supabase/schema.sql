@@ -311,3 +311,23 @@ create table if not exists chatbot_ignorados (
 create index if not exists chatbot_ignorados_account_idx on chatbot_ignorados(account_id);
 
 alter table chatbot_ignorados enable row level security;
+
+-- ============================================================================
+-- Fila usada pra agrupar mensagens mandadas em sequência rápida pela mesma pessoa (ver
+-- src/lib/debounce.ts) — evita responder cada mensagem separadamente quando a pessoa só está
+-- completando o próprio pensamento em duas ou três mensagens seguidas. Usada só no caminho de
+-- palavra-chave/Gemini, nunca no meio do fluxo de reserva (que precisa responder cada etapa na
+-- hora, sem atraso nenhum).
+-- ============================================================================
+create table if not exists chatbot_mensagens_pendentes (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references chatbot_accounts(id) on delete cascade,
+  instagram_scoped_id text not null,
+  texto text not null,
+  criado_em timestamptz not null default now()
+);
+
+create index if not exists chatbot_mensagens_pendentes_conversa_idx
+  on chatbot_mensagens_pendentes(account_id, instagram_scoped_id, criado_em);
+
+alter table chatbot_mensagens_pendentes enable row level security;
