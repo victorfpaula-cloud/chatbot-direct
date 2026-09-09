@@ -11,77 +11,35 @@ const SENDPULSE_API_BASE = "https://api.sendpulse.com";
  * a Meta. Configurado pra apontar de volta pro bloco "Solicitação de API" que já chama nossa
  * ponte — assim o toque no botão vira uma nova mensagem entrando no mesmo fluxo de sempre.
  *
+ * Autenticado pela "Chave de API" simples da conta da SendPulse (Configurações da conta > API >
+ * Chaves de API), usada direto como Bearer token — não precisa do vaivém de Client ID/Secret
+ * (SendPulse aceita os dois jeitos, esse é o mais simples).
+ *
  * Chamada só quando o fluxo de reserva gera um passo com botão (ver decidirEResponder/reservas.ts
- * através do coletor da ponte) — se as credenciais não estiverem configuradas ainda, ou a chamada
- * falhar por qualquer motivo, quem chamou (a rota da ponte) cai de volta na lista de texto simples
- * que já funciona hoje. Nada aqui muda o fluxo direto pela Meta nem qualquer coisa já em uso.
- */
-
-let tokenCacheado: { token: string; expiraEm: number } | null = null;
-
-async function obterTokenDeAcesso(): Promise<string> {
-  if (tokenCacheado && tokenCacheado.expiraEm > Date.now()) {
-    return tokenCacheado.token;
-  }
-
-  const clientId = process.env.SENDPULSE_API_CLIENT_ID;
-  const clientSecret = process.env.SENDPULSE_API_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error("SENDPULSE_API_CLIENT_ID/SENDPULSE_API_CLIENT_SECRET não configurados.");
-  }
-
-  const resposta = await fetch(`${SENDPULSE_API_BASE}/oauth/access_token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      grant_type: "client_credentials",
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
-    cache: "no-store",
-  });
-
-  if (!resposta.ok) {
-    const corpoErro = await resposta.text().catch(() => "");
-    throw new Error(`Falha ao obter token da API da SendPulse (status ${resposta.status}): ${corpoErro}`);
-  }
-
-  const dados = await resposta.json();
-  if (typeof dados?.access_token !== "string") {
-    throw new Error("Resposta da SendPulse sem access_token.");
-  }
-
-  // Renova 60s antes de expirar de verdade, pra nunca usar um token vencido por pouco.
-  tokenCacheado = {
-    token: dados.access_token,
-    expiraEm: Date.now() + (Number(dados.expires_in ?? 3600) - 60) * 1000,
-  };
-  return tokenCacheado.token;
-}
-
-/**
- * Manda uma mensagem com botões tocáveis de verdade pro contato via API da SendPulse. Lança erro
- * se as credenciais ou o `to_chain_id` não estiverem configurados, ou se a chamada falhar — quem
- * chama decide o que fazer no fallback (ver api/bridge/sendpulse/route.ts).
+ * através do coletor da ponte) — se a chave não estiver configurada ainda, ou a chamada falhar por
+ * qualquer motivo, quem chamou (a rota da ponte) cai de volta na lista de texto simples que já
+ * funciona hoje. Nada aqui muda o fluxo direto pela Meta nem qualquer coisa já em uso.
  */
 export async function enviarBotoesPelaApiDaSendPulse(
   contatoId: string,
   texto: string,
   botoes: { titulo: string; payload: string }[]
 ): Promise<void> {
+  const chaveDeApi = process.env.SENDPULSE_API_KEY;
   const toChainId = process.env.SENDPULSE_BOTAO_TO_CHAIN_ID;
+
+  if (!chaveDeApi) {
+    throw new Error("SENDPULSE_API_KEY não configurada.");
+  }
   if (!toChainId) {
     throw new Error("SENDPULSE_BOTAO_TO_CHAIN_ID não configurado.");
   }
-
-  const token = await obterTokenDeAcesso();
 
   const resposta = await fetch(`${SENDPULSE_API_BASE}/instagram/contacts/send`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${chaveDeApi}`,
     },
     body: JSON.stringify({
       contact_id: contatoId,
