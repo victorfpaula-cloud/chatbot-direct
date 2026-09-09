@@ -17,7 +17,11 @@ export function FormularioDeEdicaoDeReserva({
 
   return (
     <details ref={detalhesRef} className="relative">
-      <summary className="cursor-pointer list-none rounded-lg border border-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-400 [&::-webkit-details-marker]:hidden hover:border-neutral-600 hover:text-neutral-200">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-400 [&::-webkit-details-marker]:hidden hover:bg-neutral-900 hover:text-neutral-200">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+        </svg>
         Editar
       </summary>
 

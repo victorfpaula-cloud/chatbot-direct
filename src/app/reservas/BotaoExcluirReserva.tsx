@@ -24,8 +24,11 @@ export function BotaoExcluirReserva({
       <input type="hidden" name="redirect_to" value={redirectTo} />
       <button
         type="submit"
-        className="rounded-lg border border-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-400 hover:border-red-900 hover:text-red-400"
+        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-400 hover:bg-red-950/40 hover:text-red-400"
       >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" />
+        </svg>
         Excluir
       </button>
     </form>
