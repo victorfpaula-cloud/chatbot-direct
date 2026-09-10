@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { NOME_DO_COOKIE_DE_SESSAO } from "@/lib/funcionarios-cookie";
-import { buscarFotoDePerfilDoCliente } from "@/lib/metaMessaging";
+import { buscarFotoDePerfilDoCliente, buscarFotoDePerfilPorUsername } from "@/lib/metaMessaging";
 import { buscarFotoDePerfilPelaApiDaSendPulse } from "@/lib/sendpulseApi";
 import { hojeEmSaoPauloISO, somarDiasISO } from "@/lib/datas";
 import { BotaoSair } from "@/app/contas/BotaoSair";
@@ -202,7 +202,7 @@ export async function PainelDeReservas({
 
       const consultaToken = admin
         .from("chatbot_accounts")
-        .select("access_token")
+        .select("access_token, instagram_user_id")
         .eq("id", contaSelecionada.id)
         .maybeSingle();
 
@@ -226,13 +226,39 @@ export async function PainelDeReservas({
       // buscar). Cada um busca no lugar certo.
       if (reservas.length > 0) {
         const idsUnicos = Array.from(new Set(reservas.map((r) => r.instagram_scoped_id)));
+        // Pra fallback por @usuário (ver abaixo): pega o primeiro @usuário salvo pra cada id único.
+        const usernamePorId = new Map<string, string | null>();
+        for (const r of reservas) {
+          if (!usernamePorId.has(r.instagram_scoped_id)) {
+            usernamePorId.set(r.instagram_scoped_id, r.cliente_instagram_username ?? null);
+          }
+        }
+
         const fotosPorId = new Map<string, string | null>(
           await Promise.all(
             idsUnicos.map(async (id) => {
               if (id.startsWith("manual:")) return [id, null] as const;
               if (id.startsWith("sendpulse:")) {
                 const contatoId = id.slice("sendpulse:".length);
-                return [id, await buscarFotoDePerfilPelaApiDaSendPulse(contatoId)] as const;
+                const fotoPelaSendPulse = await buscarFotoDePerfilPelaApiDaSendPulse(contatoId);
+                if (fotoPelaSendPulse) return [id, fotoPelaSendPulse] as const;
+
+                // Contato pode ter sido apagado no painel da SendPulse (ex.: limpeza manual) — nesse
+                // caso a busca acima sempre falha, mesmo a reserva sendo antiga e válida. Com o
+                // @usuário já salvo na reserva, tenta achar a foto direto pela Graph API (Business
+                // Discovery), sem depender da SendPulse ter esse contato vivo.
+                const username = usernamePorId.get(id);
+                if (username && contaComToken?.access_token && contaComToken.instagram_user_id) {
+                  return [
+                    id,
+                    await buscarFotoDePerfilPorUsername(
+                      contaComToken.access_token,
+                      contaComToken.instagram_user_id,
+                      username
+                    ),
+                  ] as const;
+                }
+                return [id, null] as const;
               }
               if (!contaComToken?.access_token) return [id, null] as const;
               return [id, await buscarFotoDePerfilDoCliente(contaComToken.access_token, id)] as const;

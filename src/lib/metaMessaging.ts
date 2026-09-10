@@ -223,6 +223,39 @@ export async function buscarPerfilDoCliente(
 }
 
 /**
+ * Busca a foto de perfil de um cliente pelo @usuário (em vez do ID), usando a "Business Discovery"
+ * da própria Graph API — só precisa do token/ID da NOSSA conta, nunca depende da SendPulse. Serve
+ * de fallback pra reserva feita pela ponte cujo `sendpulse:<contato_id>` morreu (ex.: contato
+ * apagado no painel da SendPulse) mas o @usuário do cliente já estava salvo na reserva.
+ * Limitação real da Meta: só funciona se a conta do CLIENTE também for Business/Criador de
+ * conteúdo — pra conta pessoal comum, a Meta não expõe esse campo e a chamada falha normalmente
+ * (cai no null, mesmo comportamento de qualquer outra falha de busca de foto).
+ */
+export async function buscarFotoDePerfilPorUsername(
+  tokenDaConta: string,
+  instagramUserId: string,
+  username: string
+): Promise<string | null> {
+  try {
+    const resposta = await fetch(
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${instagramUserId}?fields=business_discovery.username(${encodeURIComponent(
+        username
+      )}){profile_picture_url}&access_token=${encodeURIComponent(tokenDaConta)}`,
+      { cache: "no-store" }
+    );
+
+    if (!resposta.ok) return null;
+
+    const dados = await resposta.json();
+    const foto = dados?.business_discovery?.profile_picture_url;
+    return typeof foto === "string" ? foto : null;
+  } catch (erro) {
+    console.error("Falha ao buscar foto de perfil por @usuário (business discovery):", erro);
+    return null;
+  }
+}
+
+/**
  * Busca a URL da foto de perfil da PRÓPRIA conta do Instagram conectada (não de um cliente) —
  * usada pra mostrar a foto de verdade na bolinha do avatar da tela de contas, em vez de só uma
  * letra. De propósito NUNCA é guardada no banco: esse link que a Meta devolve é temporário e
