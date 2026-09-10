@@ -358,7 +358,7 @@ export async function PainelDeReservas({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-neutral-100">
-            <Icone path={CAMINHO_TICKET} className="h-5 w-5 text-sky-400" />
+            <Icone path={CAMINHO_TICKET} className="h-5 w-5 text-indigo-400" />
             {TITULO_DA_PAGINA[modo]}
           </h1>
           {/* Conta + data de hoje juntas numa linha só — antes eram duas linhas separadas
@@ -369,7 +369,7 @@ export async function PainelDeReservas({
             {modo === "hoje" && contaSelecionada && (
               <span className="flex items-center gap-1.5">
                 <span className="text-neutral-700">·</span>
-                <Icone path={CAMINHO_CALENDARIO} className="h-3.5 w-3.5 text-sky-400" />
+                <Icone path={CAMINHO_CALENDARIO} className="h-3.5 w-3.5 text-indigo-400" />
                 <span className="text-neutral-300">{formatarDataExtensa(hoje)}</span>
               </span>
             )}
@@ -439,7 +439,7 @@ export async function PainelDeReservas({
               <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 [&::-webkit-details-marker]:hidden hover:border-neutral-500">
                 <Icone path={CAMINHO_FUNIL} className="h-3.5 w-3.5" />
                 Filtros
-                {filtroPersonalizadoAtivo && <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />}
+                {filtroPersonalizadoAtivo && <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />}
               </summary>
 
               <div className="absolute left-0 z-20 mt-2 w-72 rounded-2xl border border-neutral-700 bg-neutral-900 p-4 shadow-xl shadow-black/40">
@@ -457,7 +457,7 @@ export async function PainelDeReservas({
                       href={href({ periodo: filtro.valor })}
                       className={`rounded-lg border px-2.5 py-1 text-xs ${
                         filtro.valor === filtroDePeriodo
-                          ? "border-sky-700 bg-sky-950 text-sky-200"
+                          ? "border-indigo-700 bg-indigo-950 text-indigo-200"
                           : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
                       }`}
                     >
@@ -560,11 +560,11 @@ export async function PainelDeReservas({
                 </a>
               </div>
 
-              {/* As duas na mesma cor (azul), com um degradê bem mais suave que antes — eram um
+              {/* As duas na mesma cor (índigo), com um degradê bem mais suave que antes — eram um
                   azul e um roxo brigando entre si e com o resto da tela. */}
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-3 rounded-xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-neutral-900 px-4 py-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-500/10 text-sky-300">
+                <div className="flex items-center gap-3 rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300">
                     <Icone path={CAMINHO_TICKET} className="h-4 w-4" />
                   </div>
                   <div>
@@ -572,8 +572,8 @@ export async function PainelDeReservas({
                     <p className="text-2xl font-semibold text-neutral-50">{totalDeReservas}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-neutral-900 px-4 py-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-500/10 text-sky-300">
+                <div className="flex items-center gap-3 rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300">
                     <Icone path={CAMINHO_PESSOAS} className="h-4 w-4" />
                   </div>
                   <div>
@@ -622,7 +622,7 @@ export async function PainelDeReservas({
           // precisava desse espaço — `overflow-hidden` no cartão cortava ela fora da tela sem
           // deixar nem editar nem cancelar.
           // Neutro sempre (nem calendário nem o texto da data mudam de cor por ser "hoje") — o
-          // selo abaixo já avisa isso sozinho, não precisa pintar tudo em volta de azul também.
+          // selo abaixo já avisa isso sozinho, não precisa pintar tudo em volta de índigo também.
           const cabecalhoDoDia = (
             <div
               className={`flex items-center gap-2.5 rounded-t-2xl border-b border-neutral-800 bg-neutral-900/60 px-4 py-3 ${
@@ -632,7 +632,7 @@ export async function PainelDeReservas({
               <Icone path={CAMINHO_CALENDARIO} className="h-5 w-5 shrink-0 text-neutral-500" />
               <span className="text-lg font-semibold text-neutral-100">{formatarDataExtensa(data)}</span>
               {ehHoje && (
-                <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-300">
+                <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-300">
                   Hoje
                 </span>
               )}
@@ -692,7 +692,7 @@ export async function PainelDeReservas({
           // `rounded-t-2xl` pra combinar com os cantos do cartão), porque isso cortava a caixinha
           // de "Editar" quando ela precisava abrir pra baixo além da altura do cartão.
           const classeDoCartaoDoDia =
-            "rounded-2xl border border-neutral-800 bg-neutral-900 shadow-[0_16px_38px_-18px_rgba(56,150,229,0.14),0_6px_14px_-6px_rgba(0,0,0,0.5)]";
+            "rounded-2xl border border-neutral-800 bg-neutral-900 shadow-[0_16px_38px_-18px_rgba(67,56,202,0.14),0_6px_14px_-6px_rgba(0,0,0,0.5)]";
 
           return usarAcordeaoDeDatas ? (
             <details key={data} className={`group ${classeDoCartaoDoDia}`} open={abrirPorPadrao}>

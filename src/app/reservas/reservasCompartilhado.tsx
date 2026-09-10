@@ -48,12 +48,12 @@ const CAMINHO_SOL =
 const CAMINHO_LUA = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
 
 // Mesma família visual do selo "Hoje" do cabeçalho do dia (borda + fundo bem suaves na cor, texto
-// só um pouco mais claro) — antes cada período tinha um preenchimento sólido próprio (âmbar ou
-// índigo) competindo com o resto da tela, que hoje usa só azul (+ âmbar aqui, de propósito, pra
-// diferenciar almoço de jantar de relance).
+// só um pouco mais claro) — antes cada período tinha um preenchimento sólido próprio competindo
+// com o resto da tela, que hoje usa só índigo (+ âmbar aqui, de propósito, pra diferenciar almoço
+// de jantar de relance).
 const ESTILO_DO_PERIODO: Record<string, { rotulo: string; caminho: string; cor: string }> = {
   almoco: { rotulo: "Almoço", caminho: CAMINHO_SOL, cor: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
-  jantar: { rotulo: "Jantar", caminho: CAMINHO_LUA, cor: "bg-sky-500/10 text-sky-300 border-sky-500/30" },
+  jantar: { rotulo: "Jantar", caminho: CAMINHO_LUA, cor: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30" },
 };
 
 export function estiloDoPeriodo(periodo: string) {
@@ -84,7 +84,7 @@ export function linkDoWhatsapp(numero: string): string {
 
 export function CartaoDeReserva({ reserva, hrefAtualizar }: { reserva: Reserva; hrefAtualizar: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4 shadow-[0_14px_34px_-14px_rgba(56,150,229,0.16),0_6px_14px_-6px_rgba(0,0,0,0.55)]">
+    <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4 shadow-[0_14px_34px_-14px_rgba(67,56,202,0.16),0_6px_14px_-6px_rgba(0,0,0,0.55)]">
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
           pessoas, alinhados no centro — @usuário e WhatsApp uma embaixo da outra, em vez de
           WhatsApp lá embaixo brigando com as ações. */}
@@ -150,14 +150,14 @@ export function CartaoDeReserva({ reserva, hrefAtualizar }: { reserva: Reserva; 
           )}
         </div>
 
-        {/* Quadradinho discreto: só a borda azul (sem preenchimento forte) e o número no mesmo
+        {/* Quadradinho discreto: só a borda índigo (sem preenchimento forte) e o número no mesmo
             peso do resto do texto — o ícone de pessoas fica pequeno, do lado da palavra. */}
-        <div className="flex shrink-0 min-w-[62px] flex-col items-center justify-center gap-1 rounded-xl border border-sky-800/60 bg-white/[0.03] px-3 py-2">
+        <div className="flex shrink-0 min-w-[62px] flex-col items-center justify-center gap-1 rounded-xl border border-indigo-800/60 bg-white/[0.03] px-3 py-2">
           <span className="text-base font-semibold leading-none text-neutral-100">
             {reserva.quantidade_pessoas ?? "—"}
           </span>
           <span className="flex items-center gap-1 text-[10px] font-medium text-neutral-500">
-            <Icone path={CAMINHO_PESSOAS} className="h-3 w-3 text-sky-600/80" />
+            <Icone path={CAMINHO_PESSOAS} className="h-3 w-3 text-indigo-600/80" />
             pessoas
           </span>
         </div>
@@ -211,7 +211,7 @@ export function CartaoDePeriodo({
         ? { barra: "bg-red-500", texto: "text-red-400" }
         : percentual >= 70
           ? { barra: "bg-amber-500", texto: "text-amber-400" }
-          : { barra: "bg-sky-500", texto: "text-sky-400" };
+          : { barra: "bg-indigo-500", texto: "text-indigo-400" };
   const estiloPeriodo = estiloDoPeriodo(periodo);
 
   return (
