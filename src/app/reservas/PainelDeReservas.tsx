@@ -331,7 +331,10 @@ export async function PainelDeReservas({
       : null;
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    // Menos margem lateral no celular (16px, o mínimo razoável antes de colar na borda) — 24px de
+    // cada lado tirava muito espaço útil numa tela de ~390px. Só em telas maiores (tablet/desktop)
+    // volta pra 24px, onde sobra espaço de sobra.
+    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       {/* Antigas/Futuras voltam pra "Hoje"; na própria "Hoje", o Victor (não o funcionário, que
           não tem acesso a mais nada além de /reservas) volta pro painel de contas — sem isso não
           tinha como sair da tela de reservas de volta pra tela inicial. */}

@@ -56,7 +56,7 @@ export default async function LogDeReservasPage({
   const linhas: LinhaDoLog[] = log ?? [];
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <a href="/reservas" className="text-sm text-neutral-400 hover:text-neutral-300">
         &larr; Voltar pras reservas
       </a>
