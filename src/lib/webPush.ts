@@ -25,35 +25,32 @@ function garantirConfigurado(): boolean {
   return true;
 }
 
+async function contarReservasDeHoje(admin: Admin, accountId: string): Promise<number> {
+  const { count } = await admin
+    .from("chatbot_reservations")
+    .select("id", { count: "exact", head: true })
+    .eq("account_id", accountId)
+    .eq("data_reserva", hojeEmSaoPauloISO());
+
+  return count ?? 0;
+}
+
 /**
- * Manda uma notificação push pra todo mundo que ativou "Notificações" nessa conta, avisando de
- * uma reserva nova — e junto manda o total de reservas do dia, pra quem recebeu já poder atualizar
- * o numerozinho no ícone (ver public/sw.js) sem precisar abrir o app. Chamada só depois que a
- * reserva já está gravada no banco (finalizarReserva, em reservas.ts) — uma falha aqui nunca pode
- * impedir a reserva em si de ser confirmada, por isso nunca lança erro pra quem chama.
+ * Manda o mesmo payload pra todo mundo que ativou "Notificações" nessa conta. Nunca lança erro pra
+ * quem chama — uma falha aqui não pode impedir a reserva em si de ser confirmada.
  */
-export async function notificarNovaReserva(admin: Admin, accountId: string, resumo: string): Promise<void> {
+async function enviarPushParaConta(admin: Admin, accountId: string, payloadObjeto: Record<string, unknown>): Promise<void> {
   if (!garantirConfigurado()) return;
 
   try {
-    const hoje = hojeEmSaoPauloISO();
-    const [{ data: inscricoes }, { count: totalHoje }] = await Promise.all([
-      admin.from("chatbot_push_subscriptions").select("id, endpoint, p256dh, auth").eq("account_id", accountId),
-      admin
-        .from("chatbot_reservations")
-        .select("id", { count: "exact", head: true })
-        .eq("account_id", accountId)
-        .eq("data_reserva", hoje),
-    ]);
+    const { data: inscricoes } = await admin
+      .from("chatbot_push_subscriptions")
+      .select("id, endpoint, p256dh, auth")
+      .eq("account_id", accountId);
 
     if (!inscricoes || inscricoes.length === 0) return;
 
-    const payload = JSON.stringify({
-      titulo: "Nova reserva",
-      corpo: resumo,
-      badge: totalHoje ?? 0,
-      url: "/reservas",
-    });
+    const payload = JSON.stringify(payloadObjeto);
 
     await Promise.all(
       inscricoes.map(async (inscricao) => {
@@ -75,6 +72,39 @@ export async function notificarNovaReserva(admin: Admin, accountId: string, resu
       })
     );
   } catch (erro) {
-    console.error("Falha ao processar notificações push da reserva:", erro);
+    console.error("Falha ao processar notificações push:", erro);
   }
+}
+
+/**
+ * Chamada em toda reserva nova confirmada (finalizarReserva, em reservas.ts). Mensagem bem
+ * simples de propósito (sem nome/quantidade) — quem quiser o detalhe abre o app, que já reflete a
+ * reserva na hora; aqui só avisa que aconteceu, gastando o mínimo de dados possível.
+ */
+export async function notificarNovaReserva(admin: Admin, accountId: string): Promise<void> {
+  const totalHoje = await contarReservasDeHoje(admin, accountId);
+
+  await enviarPushParaConta(admin, accountId, {
+    titulo: "Nova reserva",
+    corpo: "Uma nova reserva acaba de ser feita.",
+    badge: totalHoje,
+    url: "/reservas",
+  });
+}
+
+/**
+ * Chamada quando uma reserva confirmada faz a soma de pessoas daquele dia+período bater (ou
+ * passar) o limite máximo configurado — ou seja, é a própria reserva que "lotou" a casa. Dispara
+ * uma vez só: as tentativas seguintes pra esse mesmo dia+período já são recusadas antes de chegar
+ * nesse ponto do código (ver finalizarReserva), então esse aviso nunca se repete à toa.
+ */
+export async function notificarLotacaoAtingida(admin: Admin, accountId: string, periodoTexto: string): Promise<void> {
+  const totalHoje = await contarReservasDeHoje(admin, accountId);
+
+  await enviarPushParaConta(admin, accountId, {
+    titulo: "Lotação atingida",
+    corpo: `${periodoTexto} de hoje encerrado por lotação.`,
+    badge: totalHoje,
+    url: "/reservas",
+  });
 }

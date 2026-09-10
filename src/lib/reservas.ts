@@ -5,7 +5,7 @@ import {
   enviarMensagemComBotoes,
 } from "@/lib/metaMessaging";
 import { adicionarLinhaNaPlanilha } from "@/lib/googleSheets";
-import { notificarNovaReserva } from "@/lib/webPush";
+import { notificarNovaReserva, notificarLotacaoAtingida } from "@/lib/webPush";
 
 // Etapa 6 — fluxo de reserva com estado: a conta responde normal (palavra-chave, Gemini) até
 // alguém escrever a palavra-chave configurada em `palavra_chave_reserva`. Daí em diante, cada
@@ -701,12 +701,13 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
   // uma reserva pro mesmo dia+período nesse meio tempo. Sem essa segunda checagem, dava pra
   // estourar o limite combinando duas reservas que passaram cada uma na checagem da etapa
   // "pessoas" só porque, na hora de cada uma, a outra ainda não tinha sido confirmada.
+  let jaReservado = 0;
   if (
     typeof config?.reserva_limite_maximo === "number" &&
     dados.data_reserva &&
     dados.periodo
   ) {
-    const jaReservado = await somaPessoasReservadas(admin, conta.id, dados.data_reserva, dados.periodo);
+    jaReservado = await somaPessoasReservadas(admin, conta.id, dados.data_reserva, dados.periodo);
 
     if (jaReservado + (dados.quantidade_pessoas ?? 0) > config.reserva_limite_maximo) {
       const mensagem =
@@ -745,9 +746,21 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
   }
 
   await ajustarTotalAcumulado(admin, conta.id, 1, dados.quantidade_pessoas ?? 0);
+  await notificarNovaReserva(admin, conta.id);
 
-  const resumoDaNotificacao = `${dados.nome ?? "Cliente"} — ${dados.quantidade_pessoas ?? "?"} pessoa(s)`;
-  await notificarNovaReserva(admin, conta.id, resumoDaNotificacao);
+  // Essa reserva foi exatamente a que fez a soma bater (ou passar) o limite — as próximas
+  // tentativas pra esse mesmo dia+período já são recusadas antes de chegar aqui (ver checagem
+  // acima), então esse aviso dispara uma vez só, na hora certa, sem repetir a cada nova tentativa
+  // recusada depois disso.
+  if (
+    typeof config?.reserva_limite_maximo === "number" &&
+    dados.data_reserva &&
+    dados.periodo &&
+    jaReservado + (dados.quantidade_pessoas ?? 0) >= config.reserva_limite_maximo
+  ) {
+    const periodoTexto = dados.periodo === "almoco" ? "Almoço" : dados.periodo === "jantar" ? "Jantar" : "Período";
+    await notificarLotacaoAtingida(admin, conta.id, periodoTexto);
+  }
 
   // Avisa o cliente ANTES de tentar escrever na planilha — a reserva já está garantida no banco
   // nesse ponto, então uma falha na planilha (rede, permissão) não pode virar um "não deu certo"
