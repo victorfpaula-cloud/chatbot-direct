@@ -361,18 +361,10 @@ export async function PainelDeReservas({
             <Icone path={CAMINHO_TICKET} className="h-5 w-5 text-indigo-400" />
             {TITULO_DA_PAGINA[modo]}
           </h1>
-          {/* Conta + data de hoje juntas numa linha só — antes eram duas linhas separadas
-              ("Único Sushi Bar" numa, "Hoje é terça-feira..." noutra) mais uma faixa inteira de
-              boas-vindas repetindo o nome da conta de novo pro funcionário. Ficava repetitivo. */}
+          {/* A data já aparece no cabeçalho do cartão do dia logo abaixo — repetir aqui também
+              (como era antes) só duplicava a mesma informação duas vezes na tela. */}
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-neutral-400">
             <span>{contaSelecionada ? contaSelecionada.page_name : "Nenhuma conta disponível"}</span>
-            {modo === "hoje" && contaSelecionada && (
-              <span className="flex items-center gap-1.5">
-                <span className="text-neutral-700">·</span>
-                <Icone path={CAMINHO_CALENDARIO} className="h-3.5 w-3.5 text-indigo-400" />
-                <span className="text-neutral-300">{formatarDataExtensa(hoje)}</span>
-              </span>
-            )}
             {/* Usuário logado — só pro funcionário (o Victor já sabe que é ele mesmo), bem
                 discreto, só pra saber "quem" tá vendo essa tela num aparelho compartilhado. */}
             {ehFuncionario && infoDoFuncionario && (
@@ -602,7 +594,6 @@ export async function PainelDeReservas({
 
       <div className="mt-6 flex flex-col gap-6">
         {datasOrdenadas.map((data) => {
-          const ehHoje = data === hoje;
           const totalDoDia =
             modo === "hoje"
               ? Array.from(porData.get(data)!.values()).reduce((soma, lista) => soma + lista.length, 0)
@@ -621,8 +612,9 @@ export async function PainelDeReservas({
           // com só 1 reserva o cartão fica baixo, e a caixinha de "Editar" (que abre pra baixo)
           // precisava desse espaço — `overflow-hidden` no cartão cortava ela fora da tela sem
           // deixar nem editar nem cancelar.
-          // Neutro sempre (nem calendário nem o texto da data mudam de cor por ser "hoje") — o
-          // selo abaixo já avisa isso sozinho, não precisa pintar tudo em volta de índigo também.
+          // Neutro sempre, sem selo "Hoje" — na tela inicial só existe UM dia mostrado por
+          // padrão (hoje mesmo), então marcar "hoje" de novo aqui só duplicava o que já estava
+          // óbvio pelo contexto.
           const cabecalhoDoDia = (
             <div
               className={`flex items-center gap-2.5 rounded-t-2xl border-b border-neutral-800 bg-neutral-900/60 px-4 py-3 ${
@@ -631,11 +623,6 @@ export async function PainelDeReservas({
             >
               <Icone path={CAMINHO_CALENDARIO} className="h-5 w-5 shrink-0 text-neutral-500" />
               <span className="text-lg font-semibold text-neutral-100">{formatarDataExtensa(data)}</span>
-              {ehHoje && (
-                <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-300">
-                  Hoje
-                </span>
-              )}
               {usarAcordeaoDeDatas && (
                 <>
                   <span className="ml-auto text-xs text-neutral-400">
