@@ -8,6 +8,7 @@ import { BotaoSair } from "@/app/contas/BotaoSair";
 import { SeletorDeConta } from "./SeletorDeConta";
 import { DiaComCarregamentoSobDemanda } from "./DiaComCarregamentoSobDemanda";
 import { HistoricoSobDemanda } from "./HistoricoSobDemanda";
+import { NotificacoesPush } from "./NotificacoesPush";
 import {
   type Reserva,
   Icone,
@@ -516,6 +517,9 @@ export async function PainelDeReservas({
               <Icone path={CAMINHO_ATUALIZAR} className="h-3.5 w-3.5" />
               Atualizar
             </a>
+
+            {/* Só faz sentido na tela "hoje" — o numerozinho do ícone é sempre "reservas de hoje". */}
+            {modo === "hoje" && <NotificacoesPush contaId={contaSelecionada?.id ?? null} />}
           </div>
 
           {/* O resto (área de navegação pra Antigas/Futuras, cards de estatística, histórico) só

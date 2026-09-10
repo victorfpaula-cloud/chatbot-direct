@@ -5,6 +5,7 @@ import {
   enviarMensagemComBotoes,
 } from "@/lib/metaMessaging";
 import { adicionarLinhaNaPlanilha } from "@/lib/googleSheets";
+import { notificarNovaReserva } from "@/lib/webPush";
 
 // Etapa 6 — fluxo de reserva com estado: a conta responde normal (palavra-chave, Gemini) até
 // alguém escrever a palavra-chave configurada em `palavra_chave_reserva`. Daí em diante, cada
@@ -744,6 +745,9 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
   }
 
   await ajustarTotalAcumulado(admin, conta.id, 1, dados.quantidade_pessoas ?? 0);
+
+  const resumoDaNotificacao = `${dados.nome ?? "Cliente"} — ${dados.quantidade_pessoas ?? "?"} pessoa(s)`;
+  await notificarNovaReserva(admin, conta.id, resumoDaNotificacao);
 
   // Avisa o cliente ANTES de tentar escrever na planilha — a reserva já está garantida no banco
   // nesse ponto, então uma falha na planilha (rede, permissão) não pode virar um "não deu certo"

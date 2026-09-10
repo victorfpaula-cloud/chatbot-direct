@@ -376,3 +376,24 @@ as $$
       total_pessoas = chatbot_reservas_totais_anuais.total_pessoas + excluded.total_pessoas,
       atualizado_em = excluded.atualizado_em;
 $$;
+
+-- ============================================================================
+-- Inscrições de notificação push (Web Push) — um dispositivo/navegador que ativou "Notificações"
+-- na tela de reservas guarda aqui o endereço que a Apple/Google usam pra entregar a notificação.
+-- Usada por notificarNovaReserva (src/lib/webPush.ts) toda vez que uma reserva é confirmada. Sem
+-- dono específico (funcionário x Victor) de propósito — é por CONTA: todo mundo que ativou nesse
+-- restaurante recebe o aviso daquele restaurante.
+-- ============================================================================
+create table if not exists chatbot_push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references chatbot_accounts(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  criado_em timestamptz not null default now()
+);
+
+create index if not exists chatbot_push_subscriptions_account_idx
+  on chatbot_push_subscriptions(account_id);
+
+alter table chatbot_push_subscriptions enable row level security;
