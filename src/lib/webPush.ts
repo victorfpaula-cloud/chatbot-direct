@@ -78,15 +78,20 @@ async function enviarPushParaConta(admin: Admin, accountId: string, payloadObjet
 
 /**
  * Chamada em toda reserva nova confirmada (finalizarReserva, em reservas.ts). Mensagem bem
- * simples de propósito (sem nome/quantidade) — quem quiser o detalhe abre o app, que já reflete a
- * reserva na hora; aqui só avisa que aconteceu, gastando o mínimo de dados possível.
+ * simples de propósito (sem nome/username) — quem quiser o detalhe abre o app, que já reflete a
+ * reserva na hora; aqui só avisa que aconteceu (com a quantidade de pessoas, que não pesa quase
+ * nada no payload), gastando o mínimo de dados possível.
  */
-export async function notificarNovaReserva(admin: Admin, accountId: string): Promise<void> {
+export async function notificarNovaReserva(admin: Admin, accountId: string, quantidadePessoas: number | null): Promise<void> {
   const totalHoje = await contarReservasDeHoje(admin, accountId);
+  const corpo =
+    typeof quantidadePessoas === "number"
+      ? `Nova reserva para ${quantidadePessoas} ${quantidadePessoas === 1 ? "pessoa" : "pessoas"}.`
+      : "Uma nova reserva acaba de ser feita.";
 
   await enviarPushParaConta(admin, accountId, {
     titulo: "Nova reserva",
-    corpo: "Uma nova reserva acaba de ser feita.",
+    corpo,
     badge: totalHoje,
     url: "/reservas",
   });

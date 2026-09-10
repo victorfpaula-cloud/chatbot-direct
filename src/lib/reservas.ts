@@ -746,7 +746,7 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
   }
 
   await ajustarTotalAcumulado(admin, conta.id, 1, dados.quantidade_pessoas ?? 0);
-  await notificarNovaReserva(admin, conta.id);
+  await notificarNovaReserva(admin, conta.id, dados.quantidade_pessoas ?? null);
 
   // Essa reserva foi exatamente a que fez a soma bater (ou passar) o limite — as próximas
   // tentativas pra esse mesmo dia+período já são recusadas antes de chegar aqui (ver checagem
