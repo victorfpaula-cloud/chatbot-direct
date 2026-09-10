@@ -84,7 +84,9 @@ export function linkDoWhatsapp(numero: string): string {
 
 export function CartaoDeReserva({ reserva, hrefAtualizar }: { reserva: Reserva; hrefAtualizar: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4 shadow-[0_14px_34px_-14px_rgba(67,56,202,0.16),0_6px_14px_-6px_rgba(0,0,0,0.55)]">
+    // Um degrau mais claro que o cartão do dia (bg-neutral-900) em vez de mais escuro
+    // (bg-neutral-950, quase preto) — antes o card "afundava" em vez de parecer elevado.
+    <div className="rounded-2xl border border-[#313138] bg-[#1e1e22] p-4 shadow-[0_14px_34px_-14px_rgba(67,56,202,0.16),0_6px_14px_-6px_rgba(0,0,0,0.55)]">
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
           pessoas, alinhados no centro — @usuário e WhatsApp uma embaixo da outra, em vez de
           WhatsApp lá embaixo brigando com as ações. */}
