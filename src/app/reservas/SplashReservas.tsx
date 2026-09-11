@@ -9,7 +9,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 // por não sobreviver de forma confiável entre esses recarregamentos completos num app instalado
 // (standalone) no iOS/WebKit. Cookie é lido/gravado no nível de rede, não depende dessa API de
 // armazenamento por aba — muito mais confiável exatamente nesse cenário.
-const NOME_DO_COOKIE_JA_MOSTRADA = "reservas_splash_ja_mostrada";
+export const NOME_DO_COOKIE_JA_MOSTRADA = "reservas_splash_ja_mostrada";
 
 function cookieJaMostrada(): boolean {
   try {
@@ -52,6 +52,15 @@ export function SplashReservas() {
     if (!instalado || jaMostrada) {
       setModoInstalado(false);
       setMontado(false);
+      // Defensivo: se por algum motivo o script síncrono do layout (reservas/layout.tsx) achou
+      // que a splash ia aparecer e pausou a animação de entrada, mas na prática ela não vai
+      // aparecer (chegamos aqui), libera a animação na hora — sem isso ela ficaria parada pra
+      // sempre, sem nada pra removê-la depois.
+      try {
+        document.documentElement.classList.remove("cd-aguardando-splash-reservas");
+      } catch {
+        // Sem acesso ao documentElement — não é grave.
+      }
       return;
     }
 

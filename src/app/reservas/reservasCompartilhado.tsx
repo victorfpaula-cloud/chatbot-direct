@@ -114,7 +114,7 @@ export function CartaoDeReserva({
     // custo de desempenho e, em alguns celulares/WebKit, artefato visual com vários desses
     // aninhados na tela ao mesmo tempo).
     <div
-      className="animate-entrada relative rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none"
+      className="animate-entrada relative rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none"
       style={{ animationDelay: `${Math.min(indice * 45, 300)}ms` }}
     >
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
@@ -183,9 +183,8 @@ export function CartaoDeReserva({
         </div>
 
         {/* Mesmo preenchimento em degradê índigo (+ brilho de topo) dos cards de estatística lá
-            em cima, em vez de só uma borda com fundo quase transparente. Mais alto (py maior) pra
-            ganhar destaque — só na vertical, a largura já tinha ficado boa. */}
-        <div className="relative flex shrink-0 min-w-[84px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-5 py-4 before:absolute before:inset-x-[15%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
+            em cima, em vez de só uma borda com fundo quase transparente. */}
+        <div className="relative flex shrink-0 min-w-[76px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 before:absolute before:inset-x-[15%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
           <span className="text-lg font-semibold leading-none text-neutral-100">
             {reserva.quantidade_pessoas ?? "—"}
           </span>
@@ -263,8 +262,10 @@ export function CartaoDePeriodo({
         </span>
       </div>
 
+      {/* Trilho um pouco mais alto e translúcido (branco, não cinza sólido) — contra o fundo de
+          vidro do card do dia, o cinza escuro de antes quase sumia de tão parecido com o fundo. */}
       {percentual !== null && (
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
           <div className={`h-full rounded-full ${status.barra}`} style={{ width: `${percentual}%` }} />
         </div>
       )}

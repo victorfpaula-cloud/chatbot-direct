@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { SplashReservas } from "./SplashReservas";
+import { cookies } from "next/headers";
+import { SplashReservas, NOME_DO_COOKIE_JA_MOSTRADA } from "./SplashReservas";
 
 // Só essa área (onde o funcionário vive — ele não acessa mais nada além de /reservas) ganha um
 // ícone e um manifest próprios, pra quando alguém adicionar essa tela à tela de início do
@@ -11,32 +12,41 @@ export const metadata: Metadata = {
 };
 
 export default function ReservasLayout({ children }: { children: React.ReactNode }) {
+  // Decidido no SERVIDOR, direto do cookie que já veio junto com essa requisição — nenhuma
+  // dependência de sessionStorage/cookie lido depois, no cliente, correndo contra a primeira
+  // pintura da tela. Se esse cookie já existe, a splash NEM É ENVIADA no HTML dessa vez: não tem
+  // como ela "aparecer de novo" numa navegação onde o próprio servidor já sabe que não precisa
+  // mandar ela. (O que o servidor não sabe é se o app está em modo instalado/standalone — isso só
+  // o cliente descobre, então essa parte continua sendo decidida lá dentro de SplashReservas.)
+  const jaMostrouSplash = cookies().get(NOME_DO_COOKIE_JA_MOSTRADA)?.value === "1";
+
   return (
     <>
-      {/* Roda antes de qualquer coisa aparecer: se a splash de vídeo vai mesmo aparecer agora
-          (mesma condição usada dentro dela — instalado + ainda não mostrada nessa aba), segura a
-          animação de entrada dos containers (ver globals.css) parada no primeiro quadro. Sem isso
-          ela já teria terminado de rodar, escondida atrás da splash, muito antes dela sumir. */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            (function () {
-              try {
-                var instalado =
-                  window.matchMedia("(display-mode: standalone)").matches ||
-                  navigator.standalone === true;
-                if (!instalado) return;
-                // Mesmo cookie de sessão que SplashReservas.tsx usa (não sessionStorage — ver
-                // comentário lá, não sobrevivia de forma confiável a esses recarregamentos de
-                // página inteira num app instalado no iOS).
-                if (document.cookie.split("; ").indexOf("reservas_splash_ja_mostrada=1") !== -1) return;
-                document.documentElement.classList.add("cd-aguardando-splash-reservas");
-              } catch (e) {}
-            })();
-          `,
-        }}
-      />
-      <SplashReservas />
+      {!jaMostrouSplash && (
+        <>
+          {/* Roda antes de qualquer coisa aparecer: se a splash de vídeo vai mesmo aparecer agora
+              (mesma condição usada dentro dela — instalado, e o cookie acima já garante que ainda
+              não foi mostrada), segura a animação de entrada dos containers (ver globals.css)
+              parada no primeiro quadro. Sem isso ela já teria terminado de rodar, escondida atrás
+              da splash, muito antes dela sumir. */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function () {
+                  try {
+                    var instalado =
+                      window.matchMedia("(display-mode: standalone)").matches ||
+                      navigator.standalone === true;
+                    if (!instalado) return;
+                    document.documentElement.classList.add("cd-aguardando-splash-reservas");
+                  } catch (e) {}
+                })();
+              `,
+            }}
+          />
+          <SplashReservas />
+        </>
+      )}
       {/* Fundo suave (Liquid Glass) da área toda de reservas — um degradê comum (background-image
           puro, sem filter/blur nem position:fixed) em vez das manchas desfocadas + fixed de
           antes: aquilo causava uma faixa/corte visível entre onde o brilho alcançava e o resto da
