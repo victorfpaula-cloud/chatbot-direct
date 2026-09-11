@@ -52,7 +52,9 @@ export function SplashReservas() {
         muted
         playsInline
         onEnded={esconder}
-        className="h-full w-full object-cover"
+        // Tamanho contido (não mais tela cheia) — media menor, comportada, sem cortar as bordas
+        // do vídeo (object-contain em vez de object-cover).
+        className="aspect-[480/854] w-40 object-contain sm:w-48"
       />
     </div>
   );
