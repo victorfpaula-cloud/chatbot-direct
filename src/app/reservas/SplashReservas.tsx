@@ -52,16 +52,12 @@ export function SplashReservas() {
         muted
         playsInline
         onEnded={esconder}
-        // Tamanho contido (não mais tela cheia) — nem gigante nem minúsculo — e sem cortar nada
-        // (object-contain). O vídeo em si tem um brilho que vai até a borda do quadro (nunca é um
-        // preto liso), então nenhuma cor de fundo bate perfeitamente com ele — em vez de tentar
-        // acertar a cor, a máscara abaixo esmaece as bordas do vídeo até ficarem transparentes,
-        // fundindo com o fundo escuro por trás sem nenhuma linha de corte visível.
-        className="aspect-[480/854] w-56 object-contain sm:w-64"
-        style={{
-          WebkitMaskImage: "radial-gradient(ellipse closest-side at center, black 80%, transparent 105%)",
-          maskImage: "radial-gradient(ellipse closest-side at center, black 80%, transparent 105%)",
-        }}
+        // Tela cheia de novo (como era antes), mas com object-contain em vez de object-cover: o
+        // vídeo inteiro sempre aparece por completo, sem cortar nada nas bordas (o "saindo pra
+        // fora" era o corte do cover, não o tamanho). Como a proporção do vídeo é um pouco
+        // diferente da tela do celular, pode sobrar uma tarjinha escura em cima/embaixo — mas
+        // como é a MESMA cor do fundo, não chama atenção como o retângulo da versão pequena.
+        className="h-full w-full object-contain"
       />
     </div>
   );
