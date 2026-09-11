@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SplashReservas } from "./SplashReservas";
 
 // Só essa área (onde o funcionário vive — ele não acessa mais nada além de /reservas) ganha um
 // ícone e um manifest próprios, pra quando alguém adicionar essa tela à tela de início do
@@ -10,5 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default function ReservasLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <SplashReservas />
+      {children}
+    </>
+  );
 }

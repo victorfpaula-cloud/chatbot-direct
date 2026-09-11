@@ -139,6 +139,8 @@ export const config = {
     // funcionário antes de ele logar — nenhum dos dois tem sessão de admin.
     // sw.js (service worker das notificações push) também precisa ficar público — o navegador
     // busca esse arquivo sozinho, sem sessão nenhuma, pra manter o registro atualizado.
-    "/((?!api/webhook/instagram|api/bridge/sendpulse|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png).*)",
+    // reservas-splash.mp4 (vídeo da tela de abertura) pelo mesmo motivo: a splash aparece até na
+    // tela de login do funcionário (a pessoa ainda nem tem sessão nesse momento).
+    "/((?!api/webhook/instagram|api/bridge/sendpulse|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4).*)",
   ],
 };
