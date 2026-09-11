@@ -1,4 +1,5 @@
 import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import {
   NOME_DO_COOKIE_DE_SESSAO,
@@ -139,6 +140,24 @@ export async function PainelDeReservas({
 
   const infoDoFuncionario = await resolverContaDoFuncionario(admin);
   const ehFuncionario = infoDoFuncionario !== null;
+
+  // "Pausar" numa conta (botão em /contas) é sempre por falta de pagamento — precisa cortar o
+  // acesso da equipe JUNTO, sem esperar. O carimbo de confiança (funcionarios-cookie.ts) só prova
+  // identidade por até 7 dias, sem reconferir "ativa" nesse meio-tempo de propósito — é essa
+  // conta AQUI, sempre fresca (nunca cacheada), que fecha essa brecha. Fica escondida atrás da
+  // splash/loading.tsx, então não atrasa a tela pra ninguém — só entra em ação bem na hora que a
+  // conta acabou de ser pausada.
+  if (ehFuncionario) {
+    const { data: contaAtual } = await admin
+      .from("chatbot_accounts")
+      .select("active")
+      .eq("id", infoDoFuncionario!.conta.id)
+      .maybeSingle();
+
+    if (!contaAtual?.active) {
+      redirect("/reservas/login?indisponivel=1");
+    }
+  }
 
   const { data: todasAsContasBrutas } = ehFuncionario
     ? { data: null }
