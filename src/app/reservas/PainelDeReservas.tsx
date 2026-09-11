@@ -607,7 +607,7 @@ export async function PainelDeReservas({
                   azul e um roxo brigando entre si e com o resto da tela. */}
               <div className="animate-entrada mt-4 grid grid-cols-2 gap-3 motion-reduce:animate-none" style={{ animationDelay: "80ms" }}>
                 <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 backdrop-blur-xl shadow-[0_10px_24px_-14px_rgba(99,102,241,0.18)] before:absolute before:inset-x-[10%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-200">
                     <Icone path={CAMINHO_TICKET} className="h-4 w-4" />
                   </div>
                   <div>
@@ -616,7 +616,7 @@ export async function PainelDeReservas({
                   </div>
                 </div>
                 <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 backdrop-blur-xl shadow-[0_10px_24px_-14px_rgba(99,102,241,0.18)] before:absolute before:inset-x-[10%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-200">
                     <Icone path={CAMINHO_PESSOAS} className="h-4 w-4" />
                   </div>
                   <div>
