@@ -82,11 +82,25 @@ export function linkDoWhatsapp(numero: string): string {
   return `https://wa.me/${comDDI}`;
 }
 
-export function CartaoDeReserva({ reserva, hrefAtualizar }: { reserva: Reserva; hrefAtualizar: string }) {
+export function CartaoDeReserva({
+  reserva,
+  hrefAtualizar,
+  indice = 0,
+}: {
+  reserva: Reserva;
+  hrefAtualizar: string;
+  /** Só pra escalonar a animação de entrada (cada reserva aparece um pouquinho depois da
+   * anterior) — não afeta nada visual além disso. */
+  indice?: number;
+}) {
   return (
-    // Um degrau mais claro que o cartão do dia (bg-neutral-900) em vez de mais escuro
-    // (bg-neutral-950, quase preto) — antes o card "afundava" em vez de parecer elevado.
-    <div className="rounded-2xl border border-[#313138] bg-[#1e1e22] p-4 shadow-[0_14px_34px_-14px_rgba(67,56,202,0.16),0_6px_14px_-6px_rgba(0,0,0,0.55)]">
+    // Vidro (Liquid Glass): desfoque do que está atrás + gradiente translúcido em vez de cor
+    // sólida, com o mesmo brilho azulado/roxo sutil de antes na sombra e um traço de luz fino no
+    // topo (before:) simulando o reflexo de uma superfície líquida.
+    <div
+      className="animate-entrada relative rounded-2xl border border-indigo-300/15 bg-gradient-to-br from-white/[0.07] to-[#1e1e22]/85 p-4 shadow-[0_16px_36px_-16px_rgba(99,102,241,0.18),0_8px_18px_-8px_rgba(0,0,0,0.55)] backdrop-blur-xl before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/50 before:to-transparent before:content-[''] motion-reduce:animate-none"
+      style={{ animationDelay: `${Math.min(indice * 45, 300)}ms` }}
+    >
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
           pessoas, alinhados no centro — @usuário e WhatsApp uma embaixo da outra, em vez de
           WhatsApp lá embaixo brigando com as ações. */}
@@ -237,8 +251,8 @@ export function CartaoDePeriodo({
       )}
 
       <div className="mt-4 flex flex-col gap-3">
-        {reservas.map((reserva) => (
-          <CartaoDeReserva key={reserva.id} reserva={reserva} hrefAtualizar={hrefAtualizar} />
+        {reservas.map((reserva, indice) => (
+          <CartaoDeReserva key={reserva.id} reserva={reserva} hrefAtualizar={hrefAtualizar} indice={indice} />
         ))}
       </div>
     </div>

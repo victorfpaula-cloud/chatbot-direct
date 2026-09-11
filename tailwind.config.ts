@@ -16,10 +16,17 @@ const config: Config = {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(300%)" },
         },
+        entrada: {
+          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "pop-in": "pop-in 0.45s ease-out",
         "cd-barra": "cd-barra 1s ease-in-out infinite",
+        // Entrada suave da tela de reservas (splash/liquid glass) — some sozinha com
+        // prefers-reduced-motion via motion-reduce:animate-none nas classes que a usam.
+        entrada: "entrada 0.42s cubic-bezier(0.16,1,0.3,1) both",
       },
     },
   },

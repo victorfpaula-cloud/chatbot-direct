@@ -43,8 +43,6 @@ const TITULO_DA_PAGINA: Record<ModoDaTelaDeReservas, string> = {
 
 const CAMINHO_CALENDARIO = "M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z";
 const CAMINHO_FUNIL = "M22 3H2l8 9.46V19l4 2v-8.54L22 3z";
-const CAMINHO_RELOGIO_HISTORICO = "M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8";
-const CAMINHO_SETA_DIREITA = "M5 12h14M12 5l7 7-7 7";
 const CAMINHO_SETA_ESQUERDA = "M19 12H5M12 19l-7-7 7-7";
 const CAMINHO_ATUALIZAR = "M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15";
 const CAMINHO_SETA_BAIXO = "M6 9l6 6 6-6";
@@ -399,31 +397,30 @@ export async function PainelDeReservas({
     // Menos margem lateral no celular (16px, o mínimo razoável antes de colar na borda) — 24px de
     // cada lado tirava muito espaço útil numa tela de ~390px. Só em telas maiores (tablet/desktop)
     // volta pra 24px, onde sobra espaço de sobra.
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      {/* Antigas/Futuras voltam pra "Hoje"; na própria "Hoje", o Victor (não o funcionário, que
-          não tem acesso a mais nada além de /reservas) volta pro painel de contas — sem isso não
-          tinha como sair da tela de reservas de volta pra tela inicial. */}
-      {modo !== "hoje" ? (
+    <main className="relative mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      {/* Liquid Glass: brilhos suaves e desfocados atrás de tudo, fixos na tela (não rolam com o
+          conteúdo) — é o que dá aos painéis translúcidos (backdrop-blur) algo pra refratar. Sem
+          eles, o desfoque não teria nenhum efeito visível contra um fundo liso. */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -left-32 -top-40 h-96 w-96 rounded-full bg-indigo-600 opacity-[0.14] blur-[100px]" />
+        <div className="absolute -right-40 top-40 h-80 w-80 rounded-full bg-violet-600 opacity-[0.14] blur-[100px]" />
+        <div className="absolute -left-32 bottom-16 h-72 w-72 rounded-full bg-amber-500 opacity-[0.10] blur-[100px]" />
+      </div>
+
+      {/* Só o Victor (não o funcionário, que não tem acesso a mais nada além de /reservas) volta
+          pro painel de contas a partir daqui — trocar entre Hoje/Antigas/Futuras agora é sempre
+          pelas abas logo abaixo, então não precisa mais de um link de "Voltar" separado pra isso. */}
+      {modo === "hoje" && !ehFuncionario && (
         <a
-          href={hrefDaTela("hoje")}
+          href="/contas"
           className="mb-4 flex w-fit items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-200"
         >
           <Icone path={CAMINHO_SETA_ESQUERDA} className="h-4 w-4" />
           Voltar
         </a>
-      ) : (
-        !ehFuncionario && (
-          <a
-            href="/contas"
-            className="mb-4 flex w-fit items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-200"
-          >
-            <Icone path={CAMINHO_SETA_ESQUERDA} className="h-4 w-4" />
-            Voltar
-          </a>
-        )
       )}
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="animate-entrada flex items-start justify-between gap-4 motion-reduce:animate-none">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-neutral-100">
             <Icone path={CAMINHO_TICKET} className="h-5 w-5 text-indigo-400" />
@@ -479,6 +476,29 @@ export async function PainelDeReservas({
         )}
       </div>
 
+      {/* Abas fixas Antigas/Hoje/Futuras — "Hoje" sempre no meio, é a tela de partida. Substitui
+          o antigo link "Voltar" (nas telas de Antigas/Futuras) e o quadro de navegação que ficava
+          mais abaixo, só na tela "hoje" — agora dá pra trocar de tela dali de qualquer uma das
+          três, sempre no mesmo lugar. */}
+      <div
+        className="animate-entrada relative mt-4 flex gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1 backdrop-blur-lg motion-reduce:animate-none"
+        style={{ animationDelay: "40ms" }}
+      >
+        {(["antigas", "hoje", "futuras"] as ModoDaTelaDeReservas[]).map((destino) => (
+          <a
+            key={destino}
+            href={hrefDaTela(destino)}
+            className={
+              destino === modo
+                ? "flex-1 rounded-xl bg-gradient-to-br from-white/15 to-white/5 px-3 py-2 text-center text-sm font-semibold text-neutral-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_14px_-6px_rgba(0,0,0,0.5)]"
+                : "flex-1 rounded-xl px-3 py-2 text-center text-sm font-medium text-neutral-400 hover:text-neutral-200"
+            }
+          >
+            {destino === "antigas" ? "Antigas" : destino === "hoje" ? "Hoje" : "Futuras"}
+          </a>
+        ))}
+      </div>
+
       {!ehFuncionario && (todasAsContas ?? []).length > 1 && contaSelecionada && (
         <div className="mt-4">
           <SeletorDeConta
@@ -496,10 +516,14 @@ export async function PainelDeReservas({
               na tela inicial) e pelo botão "Voltar" no topo das telas de Antigas/Futuras. */}
           <div className="relative mt-6 flex flex-wrap items-center gap-2">
             <details className="group relative">
-              <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 [&::-webkit-details-marker]:hidden hover:border-neutral-500">
+              <summary
+                title="Filtros"
+                className="relative flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-neutral-300 backdrop-blur-xl [&::-webkit-details-marker]:hidden hover:border-white/20 hover:text-neutral-100"
+              >
                 <Icone path={CAMINHO_FUNIL} className="h-3.5 w-3.5" />
-                Filtros
-                {filtroPersonalizadoAtivo && <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />}
+                {filtroPersonalizadoAtivo && (
+                  <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                )}
               </summary>
 
               <div className="absolute left-0 z-20 mt-2 w-72 rounded-2xl border border-neutral-700 bg-neutral-900 p-4 shadow-xl shadow-black/40">
@@ -576,57 +600,24 @@ export async function PainelDeReservas({
             <a
               href={hrefAtualizar}
               title="Recarregar com os dados mais recentes"
-              className="flex items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-neutral-300 backdrop-blur-xl hover:border-white/20 hover:text-neutral-100"
             >
               <Icone path={CAMINHO_ATUALIZAR} className="h-3.5 w-3.5" />
-              Atualizar
             </a>
 
             {/* Só faz sentido na tela "hoje" — o numerozinho do ícone é sempre "reservas de hoje". */}
             {modo === "hoje" && <NotificacoesPush contaId={contaSelecionada?.id ?? null} />}
           </div>
 
-          {/* O resto (área de navegação pra Antigas/Futuras, cards de estatística, histórico) só
-              existe na tela inicial — Antigas/Futuras agora são telas dedicadas só à lista. */}
+          {/* O resto (cards de estatística, histórico) só existe na tela inicial — Antigas/Futuras
+              agora são telas dedicadas só à lista (a troca entre as três já é feita pelas abas lá
+              em cima). */}
           {modo === "hoje" && (
             <>
-              {/* Área de navegação pra Antigas/Futuras — discreta e neutra de propósito (sem cor),
-                  bem mais baixa que os cards de estatística logo abaixo, que são o destaque de
-                  verdade da tela. */}
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <a
-                  href={hrefDaTela("antigas")}
-                  className="group flex items-center justify-between gap-2 rounded-xl border border-neutral-800 bg-neutral-900/60 px-3 py-2 hover:border-neutral-700"
-                >
-                  <span className="flex items-center gap-2 text-sm text-neutral-400">
-                    <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5" />
-                    Antigas
-                  </span>
-                  <Icone
-                    path={CAMINHO_SETA_DIREITA}
-                    className="h-3.5 w-3.5 shrink-0 text-neutral-600 group-hover:text-neutral-400"
-                  />
-                </a>
-
-                <a
-                  href={hrefDaTela("futuras")}
-                  className="group flex items-center justify-between gap-2 rounded-xl border border-neutral-800 bg-neutral-900/60 px-3 py-2 hover:border-neutral-700"
-                >
-                  <span className="flex items-center gap-2 text-sm text-neutral-400">
-                    <Icone path={CAMINHO_SETA_DIREITA} className="h-3.5 w-3.5" />
-                    Futuras
-                  </span>
-                  <Icone
-                    path={CAMINHO_SETA_DIREITA}
-                    className="h-3.5 w-3.5 shrink-0 text-neutral-600 group-hover:text-neutral-400"
-                  />
-                </a>
-              </div>
-
               {/* As duas na mesma cor (índigo), com um degradê bem mais suave que antes — eram um
                   azul e um roxo brigando entre si e com o resto da tela. */}
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-3 rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3">
+              <div className="animate-entrada mt-4 grid grid-cols-2 gap-3 motion-reduce:animate-none" style={{ animationDelay: "80ms" }}>
+                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 backdrop-blur-xl shadow-[0_10px_24px_-14px_rgba(99,102,241,0.35)] before:absolute before:inset-x-[10%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300">
                     <Icone path={CAMINHO_TICKET} className="h-4 w-4" />
                   </div>
@@ -635,7 +626,7 @@ export async function PainelDeReservas({
                     <p className="text-2xl font-semibold text-neutral-50">{totalDeReservas}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3">
+                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 backdrop-blur-xl shadow-[0_10px_24px_-14px_rgba(99,102,241,0.35)] before:absolute before:inset-x-[10%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300">
                     <Icone path={CAMINHO_PESSOAS} className="h-4 w-4" />
                   </div>
@@ -664,7 +655,7 @@ export async function PainelDeReservas({
       )}
 
       <div className="mt-6 flex flex-col gap-6">
-        {datasOrdenadas.map((data) => {
+        {datasOrdenadas.map((data, indiceDoDia) => {
           const totalDoDia =
             modo === "hoje"
               ? Array.from(porData.get(data)!.values()).reduce((soma, lista) => soma + lista.length, 0)
@@ -688,7 +679,7 @@ export async function PainelDeReservas({
           // óbvio pelo contexto.
           const cabecalhoDoDia = (
             <div
-              className={`flex items-center gap-2.5 rounded-t-2xl border-b border-neutral-800 bg-neutral-900/60 px-4 py-3 ${
+              className={`flex items-center gap-2.5 rounded-t-2xl border-b border-white/10 bg-white/[0.03] px-4 py-3 ${
                 usarAcordeaoDeDatas ? "cursor-pointer" : ""
               }`}
             >
@@ -750,15 +741,16 @@ export async function PainelDeReservas({
           // `rounded-t-2xl` pra combinar com os cantos do cartão), porque isso cortava a caixinha
           // de "Editar" quando ela precisava abrir pra baixo além da altura do cartão.
           const classeDoCartaoDoDia =
-            "rounded-2xl border border-neutral-800 bg-neutral-900 shadow-[0_16px_38px_-18px_rgba(67,56,202,0.14),0_6px_14px_-6px_rgba(0,0,0,0.5)]";
+            "animate-entrada relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl shadow-[0_16px_38px_-18px_rgba(99,102,241,0.28),0_6px_14px_-6px_rgba(0,0,0,0.5)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
+          const estiloDoCartaoDoDia = { animationDelay: `${Math.min(indiceDoDia * 60, 240)}ms` };
 
           return usarAcordeaoDeDatas ? (
-            <details key={data} className={`group ${classeDoCartaoDoDia}`} open={abrirPorPadrao}>
+            <details key={data} className={`group ${classeDoCartaoDoDia}`} style={estiloDoCartaoDoDia} open={abrirPorPadrao}>
               <summary className="list-none [&::-webkit-details-marker]:hidden">{cabecalhoDoDia}</summary>
               {corpoDoDia}
             </details>
           ) : (
-            <div key={data} className={classeDoCartaoDoDia}>
+            <div key={data} className={classeDoCartaoDoDia} style={estiloDoCartaoDoDia}>
               {cabecalhoDoDia}
               {corpoDoDia}
             </div>
