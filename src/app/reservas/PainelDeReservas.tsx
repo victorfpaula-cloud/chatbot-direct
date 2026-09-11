@@ -688,7 +688,7 @@ export async function PainelDeReservas({
           // óbvio pelo contexto.
           const cabecalhoDoDia = (
             <div
-              className={`flex items-center gap-2.5 rounded-t-2xl border-b border-white/10 bg-white/[0.03] px-4 py-3 ${
+              className={`flex items-center gap-2.5 rounded-t-2xl border-b border-indigo-500/15 bg-indigo-500/5 px-4 py-3 ${
                 usarAcordeaoDeDatas ? "cursor-pointer" : ""
               }`}
             >
@@ -750,7 +750,7 @@ export async function PainelDeReservas({
           // `rounded-t-2xl` pra combinar com os cantos do cartão), porque isso cortava a caixinha
           // de "Editar" quando ela precisava abrir pra baixo além da altura do cartão.
           const classeDoCartaoDoDia =
-            "animate-entrada relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl shadow-[0_16px_38px_-18px_rgba(99,102,241,0.28),0_6px_14px_-6px_rgba(0,0,0,0.5)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
+            "animate-entrada relative overflow-hidden rounded-2xl border border-indigo-500/25 bg-white/[0.04] backdrop-blur-xl shadow-[0_18px_42px_-16px_rgba(99,102,241,0.4),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
           const estiloDoCartaoDoDia = { animationDelay: `${Math.min(indiceDoDia * 60, 240)}ms` };
 
           return usarAcordeaoDeDatas ? (

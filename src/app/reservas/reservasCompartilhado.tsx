@@ -94,11 +94,11 @@ export function CartaoDeReserva({
   indice?: number;
 }) {
   return (
-    // Vidro (Liquid Glass): desfoque do que está atrás + gradiente translúcido em vez de cor
-    // sólida, com o mesmo brilho azulado/roxo sutil de antes na sombra e um traço de luz fino no
-    // topo (before:) simulando o reflexo de uma superfície líquida.
+    // Vidro (Liquid Glass): mais escuro/recuado que o card do dia que o envolve — em vez de
+    // competir em claridade com ele, fica como se estivesse "afundado" dentro, com só um traço de
+    // luz fino no topo (before:) simulando o reflexo de uma superfície líquida.
     <div
-      className="animate-entrada relative rounded-2xl border border-indigo-300/15 bg-gradient-to-br from-white/[0.07] to-[#1e1e22]/85 p-4 shadow-[0_16px_36px_-16px_rgba(99,102,241,0.18),0_8px_18px_-8px_rgba(0,0,0,0.55)] backdrop-blur-xl before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/50 before:to-transparent before:content-[''] motion-reduce:animate-none"
+      className="animate-entrada relative rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] backdrop-blur-xl before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none"
       style={{ animationDelay: `${Math.min(indice * 45, 300)}ms` }}
     >
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
