@@ -34,7 +34,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    // Cor de fundo direto no atributo style (não numa classe do Tailwind) de propósito: essa
+    // aplica na hora que o HTML chega, sem esperar a folha de estilos terminar de carregar — é o
+    // que fecha de vez qualquer chance de um flash branco antes da tela escurecer, mesmo numa
+    // conexão de celular mais lenta.
+    <html lang="pt-BR" style={{ backgroundColor: "#171717" }}>
       <body className="bg-neutral-900 text-neutral-100 antialiased">
         {/*
           Tela de abertura com o logo — aparece SÓ na primeira vez que o site é aberto numa aba
@@ -65,6 +69,13 @@ export default function RootLayout({
                 try {
                   var el = document.getElementById("cd-splash");
                   if (!el) return;
+                  // /reservas tem a própria splash (vídeo, ver SplashReservas.tsx) — essa aqui é
+                  // só pro painel administrativo. Sem esse corte, as duas empilhavam: a giratória
+                  // "CD" segurava a tela por pelo menos 1,2s ANTES do vídeo sequer começar.
+                  if (location.pathname.indexOf("/reservas") === 0) {
+                    el.style.display = "none";
+                    return;
+                  }
                   var jaAbriu = sessionStorage.getItem("cd_ja_abriu");
                   if (jaAbriu) {
                     el.style.display = "none";
