@@ -44,6 +44,7 @@ const TITULO_DA_PAGINA: Record<ModoDaTelaDeReservas, string> = {
 const CAMINHO_CALENDARIO = "M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z";
 const CAMINHO_FUNIL = "M22 3H2l8 9.46V19l4 2v-8.54L22 3z";
 const CAMINHO_SETA_ESQUERDA = "M19 12H5M12 19l-7-7 7-7";
+const CAMINHO_SETA_DIREITA = "M5 12h14M12 5l7 7-7 7";
 const CAMINHO_ATUALIZAR = "M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15";
 const CAMINHO_SETA_BAIXO = "M6 9l6 6 6-6";
 
@@ -454,26 +455,128 @@ export async function PainelDeReservas({
           </p>
         </div>
 
-        {ehFuncionario ? (
-          <form action="/api/reservas/logout" method="POST">
-            <button
-              type="submit"
-              className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
-            >
-              Sair
-            </button>
-          </form>
-        ) : (
-          <div className="flex items-center gap-2">
-            <a
-              href={contaSelecionada ? `/reservas/log?conta=${contaSelecionada.id}` : "/reservas/log"}
-              className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:border-neutral-500"
-            >
-              Log de alterações
-            </a>
-            <BotaoSair />
-          </div>
-        )}
+        {/* Filtros/Atualizar/Notificações moraram um tempo lá embaixo, meio soltos por cima da
+            barra de abas — subiram pra cá, perto do Sair, onde as ações da tela toda ficam num
+            lugar só. */}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {contaSelecionada && (
+            <>
+              <details className="group relative">
+                <summary
+                  title="Filtros"
+                  className="relative flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-neutral-300 backdrop-blur-xl [&::-webkit-details-marker]:hidden hover:border-white/20 hover:text-neutral-100"
+                >
+                  <Icone path={CAMINHO_FUNIL} className="h-3.5 w-3.5" />
+                  {filtroPersonalizadoAtivo && (
+                    <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                  )}
+                </summary>
+
+                <div className="absolute right-0 z-20 mt-2 w-72 rounded-2xl border border-neutral-700 bg-neutral-900 p-4 shadow-xl shadow-black/40">
+                  <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Período</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(
+                      [
+                        { valor: "todos", rotulo: "Almoço e jantar" },
+                        { valor: "almoco", rotulo: "Só almoço" },
+                        { valor: "jantar", rotulo: "Só jantar" },
+                      ] as { valor: FiltroDePeriodo; rotulo: string }[]
+                    ).map((filtro) => (
+                      <a
+                        key={filtro.valor}
+                        href={href({ periodo: filtro.valor })}
+                        className={`rounded-lg border px-2.5 py-1 text-xs ${
+                          filtro.valor === filtroDePeriodo
+                            ? "border-indigo-700 bg-indigo-950 text-indigo-200"
+                            : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
+                        }`}
+                      >
+                        {filtro.rotulo}
+                      </a>
+                    ))}
+                  </div>
+
+                  <form method="GET" className="mt-4 flex flex-col gap-3 border-t border-neutral-800 pt-4">
+                    {!ehFuncionario && <input type="hidden" name="conta" value={contaSelecionada.id} />}
+                    <input type="hidden" name="periodo" value={filtroDePeriodo} />
+
+                    <div>
+                      <label className="text-xs text-neutral-500">Buscar por nome</label>
+                      <input
+                        type="text"
+                        name="busca"
+                        defaultValue={busca}
+                        placeholder="Nome ou @usuário"
+                        className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs text-neutral-500">De</label>
+                        <input
+                          type="date"
+                          name="de"
+                          defaultValue={de}
+                          className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-xs text-neutral-500">Até</label>
+                        <input
+                          type="date"
+                          name="ate"
+                          placeholder="Sem limite"
+                          defaultValue={ate === SEM_LIMITE_FUTURO ? "" : ate}
+                          className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="rounded-lg border border-neutral-700 bg-neutral-100 px-4 py-1.5 text-sm font-medium text-neutral-950"
+                    >
+                      Aplicar filtros
+                    </button>
+                  </form>
+                </div>
+              </details>
+
+              <a
+                href={hrefAtualizar}
+                title="Recarregar com os dados mais recentes"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-neutral-300 backdrop-blur-xl hover:border-white/20 hover:text-neutral-100"
+              >
+                <Icone path={CAMINHO_ATUALIZAR} className="h-3.5 w-3.5" />
+              </a>
+
+              {/* Só faz sentido na tela "hoje" — o numerozinho do ícone é sempre "reservas de hoje". */}
+              {modo === "hoje" && <NotificacoesPush contaId={contaSelecionada.id} />}
+            </>
+          )}
+
+          {ehFuncionario ? (
+            <form action="/api/reservas/logout" method="POST">
+              <button
+                type="submit"
+                className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+              >
+                Sair
+              </button>
+            </form>
+          ) : (
+            <>
+              <a
+                href={contaSelecionada ? `/reservas/log?conta=${contaSelecionada.id}` : "/reservas/log"}
+                className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:border-neutral-500"
+              >
+                Log de alterações
+              </a>
+              <BotaoSair />
+            </>
+          )}
+        </div>
       </div>
 
       {/* Abas fixas Antigas/Hoje/Futuras — "Hoje" sempre no meio, é a tela de partida. Substitui
@@ -490,11 +593,15 @@ export async function PainelDeReservas({
             href={hrefDaTela(destino)}
             className={
               destino === modo
-                ? "flex-1 rounded-xl bg-gradient-to-br from-white/15 to-white/5 px-3 py-2 text-center text-sm font-semibold text-neutral-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_14px_-6px_rgba(0,0,0,0.5)]"
-                : "flex-1 rounded-xl px-3 py-2 text-center text-sm font-medium text-neutral-400 hover:text-neutral-200"
+                ? "flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-br from-white/15 to-white/5 px-3 py-2 text-sm font-semibold text-neutral-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_14px_-6px_rgba(0,0,0,0.5)]"
+                : "flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-medium text-neutral-400 hover:text-neutral-200"
             }
           >
+            {/* Setinhas bem discretas indicando o sentido do tempo — pra trás nas antigas, pra
+                frente nas futuras. "Hoje" no meio não precisa de nenhuma. */}
+            {destino === "antigas" && <Icone path={CAMINHO_SETA_ESQUERDA} className="h-3 w-3 opacity-50" />}
             {destino === "antigas" ? "Antigas" : destino === "hoje" ? "Hoje" : "Futuras"}
+            {destino === "futuras" && <Icone path={CAMINHO_SETA_DIREITA} className="h-3 w-3 opacity-50" />}
           </a>
         ))}
       </div>
@@ -511,104 +618,6 @@ export async function PainelDeReservas({
 
       {contaSelecionada && (
         <>
-          {/* Filtros (busca/período/intervalo customizado, discretos no dropdown) + Atualizar.
-              Navegar entre Hoje/Antigas/Futuras agora é feito pela área de navegação abaixo (só
-              na tela inicial) e pelo botão "Voltar" no topo das telas de Antigas/Futuras. */}
-          <div className="relative mt-6 flex flex-wrap items-center gap-2">
-            <details className="group relative">
-              <summary
-                title="Filtros"
-                className="relative flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-neutral-300 backdrop-blur-xl [&::-webkit-details-marker]:hidden hover:border-white/20 hover:text-neutral-100"
-              >
-                <Icone path={CAMINHO_FUNIL} className="h-3.5 w-3.5" />
-                {filtroPersonalizadoAtivo && (
-                  <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                )}
-              </summary>
-
-              <div className="absolute left-0 z-20 mt-2 w-72 rounded-2xl border border-neutral-700 bg-neutral-900 p-4 shadow-xl shadow-black/40">
-                <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Período</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(
-                    [
-                      { valor: "todos", rotulo: "Almoço e jantar" },
-                      { valor: "almoco", rotulo: "Só almoço" },
-                      { valor: "jantar", rotulo: "Só jantar" },
-                    ] as { valor: FiltroDePeriodo; rotulo: string }[]
-                  ).map((filtro) => (
-                    <a
-                      key={filtro.valor}
-                      href={href({ periodo: filtro.valor })}
-                      className={`rounded-lg border px-2.5 py-1 text-xs ${
-                        filtro.valor === filtroDePeriodo
-                          ? "border-indigo-700 bg-indigo-950 text-indigo-200"
-                          : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
-                      }`}
-                    >
-                      {filtro.rotulo}
-                    </a>
-                  ))}
-                </div>
-
-                <form method="GET" className="mt-4 flex flex-col gap-3 border-t border-neutral-800 pt-4">
-                  {!ehFuncionario && <input type="hidden" name="conta" value={contaSelecionada.id} />}
-                  <input type="hidden" name="periodo" value={filtroDePeriodo} />
-
-                  <div>
-                    <label className="text-xs text-neutral-500">Buscar por nome</label>
-                    <input
-                      type="text"
-                      name="busca"
-                      defaultValue={busca}
-                      placeholder="Nome ou @usuário"
-                      className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm"
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="text-xs text-neutral-500">De</label>
-                      <input
-                        type="date"
-                        name="de"
-                        defaultValue={de}
-                        className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-xs text-neutral-500">Até</label>
-                      <input
-                        type="date"
-                        name="ate"
-                        placeholder="Sem limite"
-                        defaultValue={ate === SEM_LIMITE_FUTURO ? "" : ate}
-                        className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="rounded-lg border border-neutral-700 bg-neutral-100 px-4 py-1.5 text-sm font-medium text-neutral-950"
-                  >
-                    Aplicar filtros
-                  </button>
-                </form>
-              </div>
-            </details>
-
-            <a
-              href={hrefAtualizar}
-              title="Recarregar com os dados mais recentes"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-neutral-300 backdrop-blur-xl hover:border-white/20 hover:text-neutral-100"
-            >
-              <Icone path={CAMINHO_ATUALIZAR} className="h-3.5 w-3.5" />
-            </a>
-
-            {/* Só faz sentido na tela "hoje" — o numerozinho do ícone é sempre "reservas de hoje". */}
-            {modo === "hoje" && <NotificacoesPush contaId={contaSelecionada?.id ?? null} />}
-          </div>
-
           {/* O resto (cards de estatística, histórico) só existe na tela inicial — Antigas/Futuras
               agora são telas dedicadas só à lista (a troca entre as três já é feita pelas abas lá
               em cima). */}
