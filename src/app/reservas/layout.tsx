@@ -47,9 +47,9 @@ export default function ReservasLayout({ children }: { children: React.ReactNode
         className="min-h-dvh"
         style={{
           backgroundImage:
-            "radial-gradient(640px circle at 8% 0%, rgba(79,70,229,0.16), transparent 70%)," +
-            "radial-gradient(600px circle at 100% 28%, rgba(139,92,246,0.15), transparent 70%)," +
-            "radial-gradient(560px circle at 4% 100%, rgba(245,158,11,0.11), transparent 70%)",
+            "radial-gradient(640px circle at 8% 0%, rgba(79,70,229,0.10), transparent 70%)," +
+            "radial-gradient(600px circle at 100% 28%, rgba(139,92,246,0.09), transparent 70%)," +
+            "radial-gradient(560px circle at 4% 100%, rgba(245,158,11,0.08), transparent 70%)",
         }}
       >
         {children}

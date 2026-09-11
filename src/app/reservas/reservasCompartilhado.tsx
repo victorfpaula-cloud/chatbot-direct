@@ -66,7 +66,7 @@ const ESTILO_DO_PERIODO: Record<string, { rotulo: string; caminho: string; cor: 
 // rounded-2xl num `<details>` que muda de altura (abre/fecha) é conhecido por dar rendering
 // errado no Safari/WebKit — provavelmente a causa da "faixa cortada" relatada em Antigas/Futuras.
 export const CLASSE_CARTAO_DO_DIA =
-  "animate-entrada relative rounded-2xl border border-indigo-500/25 bg-white/[0.04] backdrop-blur-xl shadow-[0_18px_42px_-16px_rgba(99,102,241,0.4),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
+  "animate-entrada relative rounded-2xl border border-indigo-500/15 bg-white/[0.04] backdrop-blur-xl shadow-[0_18px_42px_-16px_rgba(99,102,241,0.2),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
 
 export function estiloDoPeriodo(periodo: string) {
   return (
