@@ -2,11 +2,18 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 
+// Guardado na aba (sessionStorage): dura enquanto a aba/o app ficar aberto, some sozinho se
+// fechar e abrir de novo — mesmo padrão já usado na splash "CD" do painel administrativo
+// (ver src/app/layout.tsx).
+const CHAVE_JA_MOSTRADA = "reservas_splash_ja_mostrada";
+
 /**
- * Tela de abertura animada — só aparece quando o app foi aberto pela tela de início do celular
- * (modo instalado/standalone). Quem visita a URL num navegador normal nunca vê isso.
- * `useLayoutEffect` decide isso ANTES da primeira pintura da tela, pra ninguém no navegador
- * normal chegar a ver um flash da splash por trás.
+ * Tela de abertura animada — só aparece UMA VEZ, na primeira vez que o app é aberto (modo
+ * instalado/standalone) naquela sessão. Sem esse controle, ela tocava de novo em toda navegação
+ * que remonta o layout (trocar de tela, editar/excluir reserva, etc.) — virou uma animação toda
+ * hora, exatamente o que não devia. Quem visita a URL num navegador normal nunca vê isso.
+ * `useLayoutEffect` decide tudo isso ANTES da primeira pintura da tela, pra ninguém chegar a ver
+ * um flash da splash por trás.
  */
 export function SplashReservas() {
   const [modoInstalado, setModoInstalado] = useState(true);
@@ -18,9 +25,25 @@ export function SplashReservas() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
-    if (!instalado) {
+    let jaMostrada = false;
+    try {
+      jaMostrada = sessionStorage.getItem(CHAVE_JA_MOSTRADA) === "1";
+    } catch {
+      // Sem acesso ao sessionStorage (aba anônima restrita, etc.) — melhor não travar a splash
+      // repetindo à toa, então trata como "já mostrada" e simplesmente não exibe.
+      jaMostrada = true;
+    }
+
+    if (!instalado || jaMostrada) {
       setModoInstalado(false);
       setMontado(false);
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(CHAVE_JA_MOSTRADA, "1");
+    } catch {
+      // Ignora — pior caso é ela aparecer de novo numa próxima navegação, não é grave.
     }
   }, []);
 
