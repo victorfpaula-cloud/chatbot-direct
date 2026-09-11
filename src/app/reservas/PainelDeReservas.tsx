@@ -1,5 +1,4 @@
 import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import {
   NOME_DO_COOKIE_DE_SESSAO,
@@ -20,6 +19,7 @@ import {
   CAMINHO_PESSOAS,
   CAMINHO_TICKET,
   CartaoDePeriodo,
+  CLASSE_CARTAO_DO_DIA,
 } from "./reservasCompartilhado";
 
 type FiltroDePeriodo = "todos" | "almoco" | "jantar";
@@ -140,24 +140,13 @@ export async function PainelDeReservas({
   const infoDoFuncionario = await resolverContaDoFuncionario(admin);
   const ehFuncionario = infoDoFuncionario !== null;
 
-  // "Pausar" numa conta (botão em /contas) é sempre por falta de pagamento — precisa cortar o
-  // acesso da equipe JUNTO, sem esperar. O carimbo de confiança (funcionarios-cookie.ts) só prova
-  // identidade por até 7 dias, sem reconferir "ativa" nesse meio-tempo de propósito — é essa
-  // conta AQUI, sempre fresca (nunca cacheada), que fecha essa brecha. Fica escondida atrás da
-  // splash/loading.tsx, então não atrasa a tela pra ninguém — só entra em ação bem na hora que a
-  // conta acabou de ser pausada.
-  if (ehFuncionario) {
-    const { data: contaAtual } = await admin
-      .from("chatbot_accounts")
-      .select("active")
-      .eq("id", infoDoFuncionario!.conta.id)
-      .maybeSingle();
-
-    if (!contaAtual?.active) {
-      redirect("/reservas/login?indisponivel=1");
-    }
-  }
-
+  // "Conta pausada corta o acesso da equipe" é conferido no middleware agora (carimbo curto de
+  // ~45s + consulta leve só de "active" quando ele vence — ver src/middleware.ts e
+  // funcionarios-cookie.ts), não mais aqui. Achamos um bug sério nessa versão anterior: ela
+  // consultava o banco de NOVO em toda navegação (lenta) e, pior, qualquer falha passageira nessa
+  // consulta (rede, timeout) derrubava a pessoa pro login na hora — parecia estar "deslogando
+  // sozinho" sem motivo. O middleware falha aberto (deixa continuar) numa falha assim, em vez de
+  // barrar por engano.
   const { data: todasAsContasBrutas } = ehFuncionario
     ? { data: null }
     : await admin
@@ -591,6 +580,12 @@ export async function PainelDeReservas({
           <a
             key={destino}
             href={hrefDaTela(destino)}
+            // Nome estável só na aba ativa: nas duas páginas (a de antes e a de depois do clique)
+            // sempre existe exatamente uma aba com esse nome — o navegador usa isso pra "morfar"
+            // sozinho da posição antiga pra nova em vez de só cortar, dando a sensação de
+            // escorregar pro lado (ver @view-transition em globals.css). Sem suporte no
+            // navegador/WebView, isso é ignorado de graça — a navegação continua normal.
+            style={destino === modo ? { viewTransitionName: "reservas-tab-ativa" } : undefined}
             className={
               destino === modo
                 ? "flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-br from-white/15 to-white/5 px-3 py-2 text-sm font-semibold text-neutral-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_14px_-6px_rgba(0,0,0,0.5)]"
@@ -746,20 +741,17 @@ export async function PainelDeReservas({
           );
 
           // Cabeçalho e períodos moram dentro de UM cartão só (borda+cantos arredondados aqui,
-          // não em cada pedaço interno) — sem `overflow-hidden` (o cabeçalho já nasce com
-          // `rounded-t-2xl` pra combinar com os cantos do cartão), porque isso cortava a caixinha
-          // de "Editar" quando ela precisava abrir pra baixo além da altura do cartão.
-          const classeDoCartaoDoDia =
-            "animate-entrada relative overflow-hidden rounded-2xl border border-indigo-500/25 bg-white/[0.04] backdrop-blur-xl shadow-[0_18px_42px_-16px_rgba(99,102,241,0.4),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
+          // não em cada pedaço interno) — classe compartilhada com Antigas/Futuras, ver
+          // CLASSE_CARTAO_DO_DIA em reservasCompartilhado.tsx.
           const estiloDoCartaoDoDia = { animationDelay: `${Math.min(indiceDoDia * 60, 240)}ms` };
 
           return usarAcordeaoDeDatas ? (
-            <details key={data} className={`group ${classeDoCartaoDoDia}`} style={estiloDoCartaoDoDia} open={abrirPorPadrao}>
+            <details key={data} className={`group ${CLASSE_CARTAO_DO_DIA}`} style={estiloDoCartaoDoDia} open={abrirPorPadrao}>
               <summary className="list-none [&::-webkit-details-marker]:hidden">{cabecalhoDoDia}</summary>
               {corpoDoDia}
             </details>
           ) : (
-            <div key={data} className={classeDoCartaoDoDia} style={estiloDoCartaoDoDia}>
+            <div key={data} className={CLASSE_CARTAO_DO_DIA} style={estiloDoCartaoDoDia}>
               {cabecalhoDoDia}
               {corpoDoDia}
             </div>

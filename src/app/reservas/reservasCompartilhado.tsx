@@ -56,6 +56,18 @@ const ESTILO_DO_PERIODO: Record<string, { rotulo: string; caminho: string; cor: 
   jantar: { rotulo: "Jantar", caminho: CAMINHO_LUA, cor: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30" },
 };
 
+// Cartão do dia inteiro (cabeçalho + períodos), compartilhado entre a tela "Hoje"
+// (PainelDeReservas.tsx, dados já prontos) e Antigas/Futuras (DiaComCarregamentoSobDemanda.tsx,
+// dados sob demanda) — exportado daqui pra NUNCA mais os dois ficarem com aparência diferente por
+// engano (foi exatamente isso que aconteceu: o vidro do Liquid Glass só tinha ido pra um dos dois).
+// SEM `overflow-hidden` de propósito (regressão encontrada e corrigida: tinha voltado escondido
+// no meio do resto do Liquid Glass) — com ele, a caixinha de "Editar" (que abre pra baixo, às
+// vezes além da altura do cartão) ficava cortada, e o combo overflow-hidden + backdrop-blur +
+// rounded-2xl num `<details>` que muda de altura (abre/fecha) é conhecido por dar rendering
+// errado no Safari/WebKit — provavelmente a causa da "faixa cortada" relatada em Antigas/Futuras.
+export const CLASSE_CARTAO_DO_DIA =
+  "animate-entrada relative rounded-2xl border border-indigo-500/25 bg-white/[0.04] backdrop-blur-xl shadow-[0_18px_42px_-16px_rgba(99,102,241,0.4),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
+
 export function estiloDoPeriodo(periodo: string) {
   return (
     ESTILO_DO_PERIODO[periodo] ?? {
@@ -96,9 +108,13 @@ export function CartaoDeReserva({
   return (
     // Vidro (Liquid Glass): mais escuro/recuado que o card do dia que o envolve — em vez de
     // competir em claridade com ele, fica como se estivesse "afundado" dentro, com só um traço de
-    // luz fino no topo (before:) simulando o reflexo de uma superfície líquida.
+    // luz fino no topo (before:) simulando o reflexo de uma superfície líquida. Sem
+    // `backdrop-blur` própria (o card do dia por fora já borra o fundo de verdade — desfocar de
+    // novo aqui só borraria a superfície quase lisa do próprio card do dia, sem ganho visual, só
+    // custo de desempenho e, em alguns celulares/WebKit, artefato visual com vários desses
+    // aninhados na tela ao mesmo tempo).
     <div
-      className="animate-entrada relative rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] backdrop-blur-xl before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none"
+      className="animate-entrada relative rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none"
       style={{ animationDelay: `${Math.min(indice * 45, 300)}ms` }}
     >
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
@@ -167,9 +183,10 @@ export function CartaoDeReserva({
         </div>
 
         {/* Mesmo preenchimento em degradê índigo (+ brilho de topo) dos cards de estatística lá
-            em cima, em vez de só uma borda com fundo quase transparente. */}
-        <div className="relative flex shrink-0 min-w-[84px] flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-5 py-2 backdrop-blur-xl before:absolute before:inset-x-[15%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
-          <span className="text-base font-semibold leading-none text-neutral-100">
+            em cima, em vez de só uma borda com fundo quase transparente. Mais alto (py maior) pra
+            ganhar destaque — só na vertical, a largura já tinha ficado boa. */}
+        <div className="relative flex shrink-0 min-w-[84px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-5 py-4 before:absolute before:inset-x-[15%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
+          <span className="text-lg font-semibold leading-none text-neutral-100">
             {reserva.quantidade_pessoas ?? "—"}
           </span>
           <span className="flex items-center gap-1 text-[10px] font-medium text-neutral-500">

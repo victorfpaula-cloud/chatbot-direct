@@ -4,8 +4,11 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import {
   NOME_DO_COOKIE_DE_SESSAO,
   NOME_DO_COOKIE_DE_VERIFICACAO,
+  NOME_DO_COOKIE_DE_CONTA_ATIVA,
   NOME_DO_HEADER_DE_CARIMBO,
+  criarCarimboDeContaAtiva,
   criarCarimboDeVerificacao,
+  lerCarimboDeContaAtiva,
   lerCarimboDeVerificacao,
   validarSessaoDeFuncionario,
 } from "@/lib/funcionarios-cookie";
@@ -115,11 +118,12 @@ export async function middleware(request: NextRequest) {
   if (ehRotaDeReservas) {
     const tokenDeSessao = request.cookies.get(NOME_DO_COOKIE_DE_SESSAO)?.value;
     const segredoDoCarimbo = process.env.FUNCIONARIO_SESSAO_SECRET;
+    const admin = criarClienteAdmin();
 
-    // Caminho rápido: já tem um carimbo válido (confirmado no banco há menos de 7 dias, ver
-    // JANELA_DE_CONFIANCA_MS em funcionarios-cookie.ts) — segue sem consultar o banco de novo.
-    // Combinado com o Victor (10/09): não precisa reconferir a cada abertura do app, só de vez em
-    // quando é suficiente. Sem FUNCIONARIO_SESSAO_SECRET configurada, isso nunca bate (fica
+    // Caminho rápido: já tem um carimbo de IDENTIDADE válido (confirmado no banco há menos de 7
+    // dias, ver JANELA_DE_CONFIANCA_MS em funcionarios-cookie.ts) — segue sem reconsultar quem é a
+    // pessoa. Combinado com o Victor (10/09): não precisa reconferir a cada abertura do app, só de
+    // vez em quando é suficiente. Sem FUNCIONARIO_SESSAO_SECRET configurada, isso nunca bate (fica
     // sempre no caminho de baixo, idêntico ao comportamento de antes — nada quebra).
     const carimboExistente = await lerCarimboDeVerificacao(
       request.cookies.get(NOME_DO_COOKIE_DE_VERIFICACAO)?.value,
@@ -130,20 +134,74 @@ export async function middleware(request: NextRequest) {
     if (carimboExistente) {
       const headersComCarimbo = new Headers(request.headers);
       headersComCarimbo.set(NOME_DO_HEADER_DE_CARIMBO, request.cookies.get(NOME_DO_COOKIE_DE_VERIFICACAO)!.value);
-      return NextResponse.next({ request: { headers: headersComCarimbo } });
+
+      // Identidade OK — falta só saber se a conta continua ativa "recente o bastante" (até ~45s,
+      // bem dentro do "até 1 minuto" combinado com o Victor pra cortar acesso de quem foi pausado
+      // por falta de pagamento). Isso ANTES rodava em toda página, sem cache nenhum (lento) — e uma
+      // falha passageira nessa consulta derrubava a pessoa pro login na hora, parecendo um bug de
+      // "desloga sozinho". Agora só consulta de novo quando esse carimbo curto vence, e uma falha
+      // aqui FALHA ABERTO (não desloga ninguém) em vez de barrar por engano.
+      const contaAindaConfirmadaAtiva = await lerCarimboDeContaAtiva(
+        request.cookies.get(NOME_DO_COOKIE_DE_CONTA_ATIVA)?.value,
+        carimboExistente.contaId,
+        segredoDoCarimbo
+      );
+      if (contaAindaConfirmadaAtiva) {
+        return NextResponse.next({ request: { headers: headersComCarimbo } });
+      }
+
+      const { data: contaAtual, error: erroAoConferirAtiva } = await admin
+        .from("chatbot_accounts")
+        .select("active")
+        .eq("id", carimboExistente.contaId)
+        .maybeSingle();
+
+      if (contaAtual && !contaAtual.active) {
+        const destino = request.nextUrl.clone();
+        destino.pathname = "/reservas/login";
+        destino.searchParams.set("indisponivel", "1");
+        const respostaDePausa = NextResponse.redirect(destino);
+        respostaDePausa.cookies.delete(NOME_DO_COOKIE_DE_VERIFICACAO);
+        respostaDePausa.cookies.delete(NOME_DO_COOKIE_DE_CONTA_ATIVA);
+        return respostaDePausa;
+      }
+
+      if (erroAoConferirAtiva) {
+        console.error("Falha ao conferir se a conta segue ativa — deixando passar (falha aberta).", erroAoConferirAtiva);
+      }
+
+      // Ativa de verdade (ou não deu pra confirmar — mesmo raciocínio de falha aberta acima):
+      // renova o carimbo curto por mais ~45s, evitando bater no banco de novo no próximo clique.
+      const respostaOk = NextResponse.next({ request: { headers: headersComCarimbo } });
+      if (segredoDoCarimbo) {
+        const novoCarimboDeAtiva = await criarCarimboDeContaAtiva(carimboExistente.contaId, segredoDoCarimbo);
+        respostaOk.cookies.set(NOME_DO_COOKIE_DE_CONTA_ATIVA, novoCarimboDeAtiva, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60,
+        });
+      }
+      return respostaOk;
     }
 
-    // Caminho lento: consulta de verdade no banco — acontece na primeira vez, quando o carimbo
-    // vence, ou se a máquina/config não tiver o segredo configurado.
-    const resultado = await validarSessaoDeFuncionario(criarClienteAdmin(), tokenDeSessao);
+    // Caminho lento: consulta de verdade no banco (já confere identidade E "active" nesse mesmo
+    // instante) — acontece na primeira vez, quando o carimbo de identidade vence, ou se a
+    // máquina/config não tiver o segredo configurado.
+    const resultado = await validarSessaoDeFuncionario(admin, tokenDeSessao);
 
     if (resultado.valida) {
       const headersComCarimbo = new Headers(request.headers);
       let novoCarimbo: string | null = null;
+      let novoCarimboDeAtiva: string | null = null;
 
       if (segredoDoCarimbo && tokenDeSessao) {
         novoCarimbo = await criarCarimboDeVerificacao(tokenDeSessao, resultado.dados, segredoDoCarimbo);
         headersComCarimbo.set(NOME_DO_HEADER_DE_CARIMBO, novoCarimbo);
+        // Acabou de confirmar "active" no banco agora mesmo — aproveita e já gera o carimbo curto
+        // também, evitando uma consulta extra logo no próximo clique.
+        novoCarimboDeAtiva = await criarCarimboDeContaAtiva(resultado.dados.contaId, segredoDoCarimbo);
       }
 
       const respostaValida = NextResponse.next({ request: { headers: headersComCarimbo } });
@@ -155,6 +213,15 @@ export async function middleware(request: NextRequest) {
           path: "/",
           maxAge: 60 * 60 * 24 * 30, // mesma validade do cookie de sessão — o carimbo em si já
           // tem sua própria janela de confiança mais curta checada em lerCarimboDeVerificacao.
+        });
+      }
+      if (novoCarimboDeAtiva) {
+        respostaValida.cookies.set(NOME_DO_COOKIE_DE_CONTA_ATIVA, novoCarimboDeAtiva, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60,
         });
       }
       return respostaValida;
@@ -171,6 +238,7 @@ export async function middleware(request: NextRequest) {
     // Carimbo de uma sessão que acabou de se provar inválida/pausada não serve mais — limpa pra
     // não ficar tentando de novo no próximo request com o mesmo resultado.
     respostaDeRedirecionamento.cookies.delete(NOME_DO_COOKIE_DE_VERIFICACAO);
+    respostaDeRedirecionamento.cookies.delete(NOME_DO_COOKIE_DE_CONTA_ATIVA);
     return respostaDeRedirecionamento;
   }
 

@@ -11,3 +11,26 @@
 html.cd-aguardando-splash-reservas .animate-entrada {
   animation-play-state: paused;
 }
+
+/* Transição nativa do navegador entre as telas Hoje/Antigas/Futuras (são navegações de página
+   inteira de verdade, não uma SPA — ver PainelDeReservas.tsx) — em vez do corte seco de sempre,
+   o Safari/Chrome recentes fazem um cross-fade sozinhos com só isso aqui. Onde não tem suporte
+   (WebKit mais antigo), essa regra é simplesmente ignorada e a navegação continua exatamente como
+   sempre foi — não quebra nada. */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+}
+
+/* A "pílula" da aba ativa (ver PainelDeReservas.tsx, view-transition-name inline) ganha uma
+   animação própria — o navegador já morfa sozinho da posição antiga pra nova, criando o efeito de
+   "escorregar" pro lado pedido, em vez de simplesmente cross-fade que o resto da tela usa. */
+::view-transition-old(reservas-tab-ativa),
+::view-transition-new(reservas-tab-ativa) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}

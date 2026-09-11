@@ -22,6 +22,17 @@ export const NOME_DO_COOKIE_DE_VERIFICACAO = "chatbot_funcionario_verificado";
 export const NOME_DO_HEADER_DE_CARIMBO = "x-funcionario-carimbo";
 const JANELA_DE_CONFIANCA_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
 
+// Carimbo SEPARADO (mais curto) só pra "a conta ainda está ativa" — combinado com o Victor:
+// pausar por falta de pagamento precisa cortar o acesso da equipe em até 1 minuto, bem mais cedo
+// que os 7 dias do carimbo de identidade acima. Antes essa checagem rodava direto na página
+// (PainelDeReservas.tsx) a CADA navegação, sem cache — lento (uma consulta a mais no banco em
+// todo clique) e, pior, uma falha passageira nessa consulta (rede/timeout) derrubava a pessoa pro
+// login na hora, parecendo um bug de "desloga sozinho". Com esse carimbo curto, a consulta de
+// verdade só acontece de novo quando ele vence (no máximo a cada 45s), e uma falha na consulta não
+// desloga ninguém (ver middleware.ts) — só adia a próxima checagem.
+export const NOME_DO_COOKIE_DE_CONTA_ATIVA = "chatbot_funcionario_conta_ativa";
+const JANELA_DE_CONTA_ATIVA_MS = 45 * 1000; // 45s — dentro do "até 1 minuto" combinado.
+
 export type ContaDoFuncionario = {
   contaId: string;
   pageName: string;
@@ -169,4 +180,43 @@ export async function lerCarimboDeVerificacao(
   if (!payload.c || !payload.p || !payload.n) return null;
 
   return { contaId: payload.c, pageName: payload.p, username: payload.u ?? null, usuario: payload.n };
+}
+
+/** Gera o carimbo curto de "conta ativa" (ver NOME_DO_COOKIE_DE_CONTA_ATIVA acima), logo depois de
+ * confirmar `active = true` no banco. */
+export async function criarCarimboDeContaAtiva(contaId: string, segredo: string): Promise<string> {
+  const payloadTexto = paraBase64Url(
+    codificadorDeTexto.encode(JSON.stringify({ c: contaId, v: Date.now() })).buffer
+  );
+  const assinatura = await assinar(payloadTexto, segredo);
+  return `${payloadTexto}.${assinatura}`;
+}
+
+/** Confere o carimbo curto de "conta ativa" sem tocar no banco: assinatura bate, é pra MESMA
+ * conta e ainda está dentro da janela de ~45s. Fora disso, `false` — quem chamou decide se vale a
+ * pena consultar o banco de novo (ver middleware.ts). */
+export async function lerCarimboDeContaAtiva(
+  carimbo: string | undefined,
+  contaIdEsperada: string,
+  segredo: string | undefined
+): Promise<boolean> {
+  if (!carimbo || !segredo) return false;
+
+  const partes = carimbo.split(".");
+  if (partes.length !== 2) return false;
+  const [payloadTexto, assinaturaRecebida] = partes;
+
+  const assinaturaEsperada = await assinar(payloadTexto, segredo);
+  if (!assinaturasIguais(assinaturaEsperada, assinaturaRecebida)) return false;
+
+  let payload: { c?: string; v?: number };
+  try {
+    payload = JSON.parse(new TextDecoder().decode(deBase64Url(payloadTexto)));
+  } catch {
+    return false;
+  }
+
+  if (payload.c !== contaIdEsperada) return false;
+  if (typeof payload.v !== "number" || Date.now() - payload.v > JANELA_DE_CONTA_ATIVA_MS) return false;
+  return true;
 }

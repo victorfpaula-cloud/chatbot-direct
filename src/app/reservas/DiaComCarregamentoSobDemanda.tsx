@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { CartaoDePeriodo, type Reserva } from "./reservasCompartilhado";
+import { CartaoDePeriodo, CLASSE_CARTAO_DO_DIA, type Reserva } from "./reservasCompartilhado";
 
 type Estado = "fechado" | "carregando" | "carregado" | "erro";
 
@@ -64,12 +64,10 @@ export function DiaComCarregamentoSobDemanda({
   }
 
   return (
-    // Cabeçalho + períodos dentro de UM cartão só (mesmo espírito da tela Hoje) — a borda e os
-    // cantos arredondados ficam aqui no `<details>`; sem `overflow-hidden` (o cabeçalho, recebido
-    // via prop, já nasce com `rounded-t-2xl`), porque isso cortava a caixinha de "Editar" quando
-    // ela precisava abrir pra baixo além da altura do cartão.
+    // Mesmo cartão de vidro (Liquid Glass) da tela "Hoje" — antes essa tela tinha ficado pra trás
+    // com a aparência antiga (cinza chapado), sem querer, quando o resto ganhou o vidro.
     <details
-      className="group rounded-2xl border border-neutral-800 bg-neutral-900"
+      className={`group ${CLASSE_CARTAO_DO_DIA}`}
       onToggle={(evento) => {
         const abriu = (evento.target as HTMLDetailsElement).open;
         // "erro" também dispara uma nova tentativa — sem isso, fechar e reabrir o dropdown depois

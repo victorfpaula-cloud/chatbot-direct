@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { NOME_DO_COOKIE_DE_SESSAO } from "@/lib/funcionarios";
-import { NOME_DO_COOKIE_DE_VERIFICACAO } from "@/lib/funcionarios-cookie";
+import { NOME_DO_COOKIE_DE_VERIFICACAO, NOME_DO_COOKIE_DE_CONTA_ATIVA } from "@/lib/funcionarios-cookie";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get(NOME_DO_COOKIE_DE_SESSAO)?.value;
@@ -18,5 +18,6 @@ export async function POST(request: NextRequest) {
   // middleware só reconfere lá quando o carimbo vence. Limpando os dois juntos, o logout corta o
   // acesso na hora, como sempre foi.
   resposta.cookies.delete(NOME_DO_COOKIE_DE_VERIFICACAO);
+  resposta.cookies.delete(NOME_DO_COOKIE_DE_CONTA_ATIVA);
   return resposta;
 }
