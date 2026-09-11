@@ -196,8 +196,10 @@ export function CartaoDeReserva({
         </div>
       </div>
 
-      {/* Editar/Excluir à esquerda (discretos, sem caixa) e o horário de confirmação à direita. */}
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-neutral-900 pt-3">
+      {/* Editar/Excluir à esquerda (discretos, sem caixa) e o horário de confirmação à direita.
+          Linha no mesmo tom (branco bem suave) dos botõezinhos de ícone (Filtros/Atualizar) —
+          border-neutral-900 de antes praticamente sumia contra o fundo quase preto do card. */}
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/10 pt-3">
         <div className="flex items-center gap-1">
           <FormularioDeEdicaoDeReserva
             action={`/api/reservas/${reserva.id}/editar`}

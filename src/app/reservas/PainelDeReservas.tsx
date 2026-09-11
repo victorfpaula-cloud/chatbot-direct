@@ -388,15 +388,6 @@ export async function PainelDeReservas({
     // cada lado tirava muito espaço útil numa tela de ~390px. Só em telas maiores (tablet/desktop)
     // volta pra 24px, onde sobra espaço de sobra.
     <main className="relative mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      {/* Liquid Glass: brilhos suaves e desfocados atrás de tudo, fixos na tela (não rolam com o
-          conteúdo) — é o que dá aos painéis translúcidos (backdrop-blur) algo pra refratar. Sem
-          eles, o desfoque não teria nenhum efeito visível contra um fundo liso. */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -left-32 -top-40 h-96 w-96 rounded-full bg-indigo-600 opacity-[0.14] blur-[100px]" />
-        <div className="absolute -right-40 top-40 h-80 w-80 rounded-full bg-violet-600 opacity-[0.14] blur-[100px]" />
-        <div className="absolute -left-32 bottom-16 h-72 w-72 rounded-full bg-amber-500 opacity-[0.10] blur-[100px]" />
-      </div>
-
       {/* Só o Victor (não o funcionário, que não tem acesso a mais nada além de /reservas) volta
           pro painel de contas a partir daqui — trocar entre Hoje/Antigas/Futuras agora é sempre
           pelas abas logo abaixo, então não precisa mais de um link de "Voltar" separado pra isso. */}

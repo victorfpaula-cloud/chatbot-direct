@@ -26,7 +26,10 @@ export default function ReservasLayout({ children }: { children: React.ReactNode
                   window.matchMedia("(display-mode: standalone)").matches ||
                   navigator.standalone === true;
                 if (!instalado) return;
-                if (sessionStorage.getItem("reservas_splash_ja_mostrada") === "1") return;
+                // Mesmo cookie de sessão que SplashReservas.tsx usa (não sessionStorage — ver
+                // comentário lá, não sobrevivia de forma confiável a esses recarregamentos de
+                // página inteira num app instalado no iOS).
+                if (document.cookie.split("; ").indexOf("reservas_splash_ja_mostrada=1") !== -1) return;
                 document.documentElement.classList.add("cd-aguardando-splash-reservas");
               } catch (e) {}
             })();
@@ -34,7 +37,23 @@ export default function ReservasLayout({ children }: { children: React.ReactNode
         }}
       />
       <SplashReservas />
-      {children}
+      {/* Fundo suave (Liquid Glass) da área toda de reservas — um degradê comum (background-image
+          puro, sem filter/blur nem position:fixed) em vez das manchas desfocadas + fixed de
+          antes: aquilo causava uma faixa/corte visível entre onde o brilho alcançava e o resto da
+          tela ficando liso, em Antigas/Futuras (telas curtas, com bastante espaço vazio embaixo).
+          Um gradiente é matematicamente suave do centro até "transparent", sem parada abrupta em
+          lugar nenhum — não tem como sobrar uma borda visível como acontecia antes. */}
+      <div
+        className="min-h-dvh"
+        style={{
+          backgroundImage:
+            "radial-gradient(640px circle at 8% 0%, rgba(79,70,229,0.16), transparent 70%)," +
+            "radial-gradient(600px circle at 100% 28%, rgba(139,92,246,0.15), transparent 70%)," +
+            "radial-gradient(560px circle at 4% 100%, rgba(245,158,11,0.11), transparent 70%)",
+        }}
+      >
+        {children}
+      </div>
     </>
   );
 }

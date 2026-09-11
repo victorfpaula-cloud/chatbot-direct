@@ -2,10 +2,32 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 
-// Guardado na aba (sessionStorage): dura enquanto a aba/o app ficar aberto, some sozinho se
-// fechar e abrir de novo — mesmo padrão já usado na splash "CD" do painel administrativo
-// (ver src/app/layout.tsx).
-const CHAVE_JA_MOSTRADA = "reservas_splash_ja_mostrada";
+// Guardado num COOKIE de sessão (sem Max-Age/Expires — dura enquanto o navegador/app ficar
+// aberto, some sozinho se fechar e abrir de novo), não em sessionStorage. Tentamos sessionStorage
+// primeiro e a splash voltou a aparecer em toda navegação mesmo assim — cada tela aqui é uma
+// navegação de página INTEIRA de verdade (`<a href>`, não uma SPA), e sessionStorage é conhecido
+// por não sobreviver de forma confiável entre esses recarregamentos completos num app instalado
+// (standalone) no iOS/WebKit. Cookie é lido/gravado no nível de rede, não depende dessa API de
+// armazenamento por aba — muito mais confiável exatamente nesse cenário.
+const NOME_DO_COOKIE_JA_MOSTRADA = "reservas_splash_ja_mostrada";
+
+function cookieJaMostrada(): boolean {
+  try {
+    return document.cookie.split("; ").includes(`${NOME_DO_COOKIE_JA_MOSTRADA}=1`);
+  } catch {
+    // Sem acesso a document.cookie por algum motivo — melhor não travar a splash repetindo à
+    // toa, então trata como "já mostrada" e simplesmente não exibe.
+    return true;
+  }
+}
+
+function marcarComoMostrada(): void {
+  try {
+    document.cookie = `${NOME_DO_COOKIE_JA_MOSTRADA}=1; path=/`;
+  } catch {
+    // Ignora — pior caso é ela aparecer de novo numa próxima navegação, não é grave.
+  }
+}
 
 /**
  * Tela de abertura animada — só aparece UMA VEZ, na primeira vez que o app é aberto (modo
@@ -25,14 +47,7 @@ export function SplashReservas() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
-    let jaMostrada = false;
-    try {
-      jaMostrada = sessionStorage.getItem(CHAVE_JA_MOSTRADA) === "1";
-    } catch {
-      // Sem acesso ao sessionStorage (aba anônima restrita, etc.) — melhor não travar a splash
-      // repetindo à toa, então trata como "já mostrada" e simplesmente não exibe.
-      jaMostrada = true;
-    }
+    const jaMostrada = cookieJaMostrada();
 
     if (!instalado || jaMostrada) {
       setModoInstalado(false);
@@ -40,11 +55,7 @@ export function SplashReservas() {
       return;
     }
 
-    try {
-      sessionStorage.setItem(CHAVE_JA_MOSTRADA, "1");
-    } catch {
-      // Ignora — pior caso é ela aparecer de novo numa próxima navegação, não é grave.
-    }
+    marcarComoMostrada();
   }, []);
 
   useEffect(() => {
