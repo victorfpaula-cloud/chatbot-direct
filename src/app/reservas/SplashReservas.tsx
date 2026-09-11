@@ -59,6 +59,15 @@ export function SplashReservas() {
 
   function esconder() {
     setSaindo(true);
+    // Libera a animação de entrada dos containers por baixo (ver globals.css +
+    // reservas/layout.tsx) bem na hora que a splash começa a sumir, pra ela rodar por baixo do
+    // fade-out em vez de já ter acontecido escondida, sem ninguém ver.
+    try {
+      document.documentElement.classList.remove("cd-aguardando-splash-reservas");
+    } catch {
+      // Sem acesso ao documentElement por algum motivo — pior caso a animação já rodou escondida,
+      // não trava nada.
+    }
     setTimeout(() => setMontado(false), 400);
   }
 

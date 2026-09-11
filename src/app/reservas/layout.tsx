@@ -13,6 +13,26 @@ export const metadata: Metadata = {
 export default function ReservasLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      {/* Roda antes de qualquer coisa aparecer: se a splash de vídeo vai mesmo aparecer agora
+          (mesma condição usada dentro dela — instalado + ainda não mostrada nessa aba), segura a
+          animação de entrada dos containers (ver globals.css) parada no primeiro quadro. Sem isso
+          ela já teria terminado de rodar, escondida atrás da splash, muito antes dela sumir. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function () {
+              try {
+                var instalado =
+                  window.matchMedia("(display-mode: standalone)").matches ||
+                  navigator.standalone === true;
+                if (!instalado) return;
+                if (sessionStorage.getItem("reservas_splash_ja_mostrada") === "1") return;
+                document.documentElement.classList.add("cd-aguardando-splash-reservas");
+              } catch (e) {}
+            })();
+          `,
+        }}
+      />
       <SplashReservas />
       {children}
     </>

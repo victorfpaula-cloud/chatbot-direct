@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Painel de reservas (modo instalado/PWA): a splash de vídeo (SplashReservas.tsx) cobre a tela
+   por alguns segundos, mas a animação de entrada (animate-entrada) dos containers por baixo dela
+   é bem mais rápida — sem isso, ela terminava (e "sumia") antes da splash sair do caminho, dando
+   a impressão de que a animação nunca aconteceu. Essa classe (aplicada bem cedo por um script
+   síncrono em reservas/layout.tsx, e removida pelo SplashReservas assim que ele começa a sumir)
+   segura a animação parada no primeiro quadro até a splash já estar saindo. */
+html.cd-aguardando-splash-reservas .animate-entrada {
+  animation-play-state: paused;
+}

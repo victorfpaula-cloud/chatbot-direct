@@ -168,7 +168,7 @@ export function CartaoDeReserva({
 
         {/* Mesmo preenchimento em degradê índigo (+ brilho de topo) dos cards de estatística lá
             em cima, em vez de só uma borda com fundo quase transparente. */}
-        <div className="relative flex shrink-0 min-w-[62px] flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-3 py-2 backdrop-blur-xl before:absolute before:inset-x-[15%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
+        <div className="relative flex shrink-0 min-w-[84px] flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-5 py-2 backdrop-blur-xl before:absolute before:inset-x-[15%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
           <span className="text-base font-semibold leading-none text-neutral-100">
             {reserva.quantidade_pessoas ?? "—"}
           </span>
