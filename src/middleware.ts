@@ -1,7 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { NOME_DO_COOKIE_DE_SESSAO, validarSessaoDeFuncionario } from "@/lib/funcionarios-cookie";
+import {
+  NOME_DO_COOKIE_DE_SESSAO,
+  NOME_DO_COOKIE_DE_VERIFICACAO,
+  NOME_DO_HEADER_DE_CARIMBO,
+  criarCarimboDeVerificacao,
+  lerCarimboDeVerificacao,
+  validarSessaoDeFuncionario,
+} from "@/lib/funcionarios-cookie";
 
 /**
  * Exige login em todo o painel (/contas e tudo dentro dele — configuração do Gemini, palavras-
@@ -106,13 +113,51 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/reservas/");
 
   if (ehRotaDeReservas) {
-    const resultado = await validarSessaoDeFuncionario(
-      criarClienteAdmin(),
-      request.cookies.get(NOME_DO_COOKIE_DE_SESSAO)?.value
+    const tokenDeSessao = request.cookies.get(NOME_DO_COOKIE_DE_SESSAO)?.value;
+    const segredoDoCarimbo = process.env.FUNCIONARIO_SESSAO_SECRET;
+
+    // Caminho rápido: já tem um carimbo válido (confirmado no banco há menos de 7 dias, ver
+    // JANELA_DE_CONFIANCA_MS em funcionarios-cookie.ts) — segue sem consultar o banco de novo.
+    // Combinado com o Victor (10/09): não precisa reconferir a cada abertura do app, só de vez em
+    // quando é suficiente. Sem FUNCIONARIO_SESSAO_SECRET configurada, isso nunca bate (fica
+    // sempre no caminho de baixo, idêntico ao comportamento de antes — nada quebra).
+    const carimboExistente = await lerCarimboDeVerificacao(
+      request.cookies.get(NOME_DO_COOKIE_DE_VERIFICACAO)?.value,
+      tokenDeSessao,
+      segredoDoCarimbo
     );
 
+    if (carimboExistente) {
+      const headersComCarimbo = new Headers(request.headers);
+      headersComCarimbo.set(NOME_DO_HEADER_DE_CARIMBO, request.cookies.get(NOME_DO_COOKIE_DE_VERIFICACAO)!.value);
+      return NextResponse.next({ request: { headers: headersComCarimbo } });
+    }
+
+    // Caminho lento: consulta de verdade no banco — acontece na primeira vez, quando o carimbo
+    // vence, ou se a máquina/config não tiver o segredo configurado.
+    const resultado = await validarSessaoDeFuncionario(criarClienteAdmin(), tokenDeSessao);
+
     if (resultado.valida) {
-      return response;
+      const headersComCarimbo = new Headers(request.headers);
+      let novoCarimbo: string | null = null;
+
+      if (segredoDoCarimbo && tokenDeSessao) {
+        novoCarimbo = await criarCarimboDeVerificacao(tokenDeSessao, resultado.dados, segredoDoCarimbo);
+        headersComCarimbo.set(NOME_DO_HEADER_DE_CARIMBO, novoCarimbo);
+      }
+
+      const respostaValida = NextResponse.next({ request: { headers: headersComCarimbo } });
+      if (novoCarimbo) {
+        respostaValida.cookies.set(NOME_DO_COOKIE_DE_VERIFICACAO, novoCarimbo, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 30, // mesma validade do cookie de sessão — o carimbo em si já
+          // tem sua própria janela de confiança mais curta checada em lerCarimboDeVerificacao.
+        });
+      }
+      return respostaValida;
     }
 
     const destino = request.nextUrl.clone();
@@ -122,7 +167,11 @@ export async function middleware(request: NextRequest) {
     if (resultado.motivo === "conta_pausada") {
       destino.searchParams.set("indisponivel", "1");
     }
-    return NextResponse.redirect(destino);
+    const respostaDeRedirecionamento = NextResponse.redirect(destino);
+    // Carimbo de uma sessão que acabou de se provar inválida/pausada não serve mais — limpa pra
+    // não ficar tentando de novo no próximo request com o mesmo resultado.
+    respostaDeRedirecionamento.cookies.delete(NOME_DO_COOKIE_DE_VERIFICACAO);
+    return respostaDeRedirecionamento;
   }
 
   const destino = request.nextUrl.clone();

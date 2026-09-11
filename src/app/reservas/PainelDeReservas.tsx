@@ -1,6 +1,10 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { NOME_DO_COOKIE_DE_SESSAO } from "@/lib/funcionarios-cookie";
+import {
+  NOME_DO_COOKIE_DE_SESSAO,
+  NOME_DO_HEADER_DE_CARIMBO,
+  lerCarimboDeVerificacao,
+} from "@/lib/funcionarios-cookie";
 import { buscarFotoDePerfilDoCliente, buscarFotoDePerfilPorUsername } from "@/lib/metaMessaging";
 import { buscarFotoDePerfilPelaApiDaSendPulse } from "@/lib/sendpulseApi";
 import { hojeEmSaoPauloISO, somarDiasISO } from "@/lib/datas";
@@ -79,6 +83,21 @@ async function resolverContaDoFuncionario(
 } | null> {
   const token = cookies().get(NOME_DO_COOKIE_DE_SESSAO)?.value;
   if (!token) return null;
+
+  // Caminho rápido: o middleware já validou a sessão (de verdade, no banco, ou via carimbo de
+  // confiança — ver funcionarios-cookie.ts) e repassou o resultado por header. Evita essa página
+  // consultar o banco de NOVO só pra saber a mesma coisa que o middleware acabou de descobrir.
+  const carimbo = await lerCarimboDeVerificacao(
+    headers().get(NOME_DO_HEADER_DE_CARIMBO) ?? undefined,
+    token,
+    process.env.FUNCIONARIO_SESSAO_SECRET
+  );
+  if (carimbo) {
+    return {
+      conta: { id: carimbo.contaId, page_name: carimbo.pageName, instagram_username: carimbo.username },
+      usuario: carimbo.usuario,
+    };
+  }
 
   const { data: sessao } = await admin
     .from("chatbot_funcionario_sessoes")
