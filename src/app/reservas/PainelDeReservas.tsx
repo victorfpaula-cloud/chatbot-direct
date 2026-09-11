@@ -580,12 +580,6 @@ export async function PainelDeReservas({
           <a
             key={destino}
             href={hrefDaTela(destino)}
-            // Nome estável só na aba ativa: nas duas páginas (a de antes e a de depois do clique)
-            // sempre existe exatamente uma aba com esse nome — o navegador usa isso pra "morfar"
-            // sozinho da posição antiga pra nova em vez de só cortar, dando a sensação de
-            // escorregar pro lado (ver @view-transition em globals.css). Sem suporte no
-            // navegador/WebView, isso é ignorado de graça — a navegação continua normal.
-            style={destino === modo ? { viewTransitionName: "reservas-tab-ativa" } : undefined}
             className={
               destino === modo
                 ? "flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-br from-white/15 to-white/5 px-3 py-2 text-sm font-semibold text-neutral-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_14px_-6px_rgba(0,0,0,0.5)]"
