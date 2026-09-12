@@ -480,8 +480,12 @@ export async function PainelDeReservas({
                     />
                   </div>
 
-                  <div className="flex gap-2">
-                    <div className="flex-1">
+                  {/* Um embaixo do outro (não lado a lado) — o texto que o próprio iOS desenha
+                      dentro do campo de data (formato por extenso, ex.: "11 de set. de 2026") é
+                      largo demais pra caber na metade da largura do painel, e ficava vazando pra
+                      fora da caixinha. Cada um sozinho na linha tem o painel inteiro pra usar. */}
+                  <div className="flex flex-col gap-3">
+                    <div>
                       <label className="text-xs text-neutral-500">De</label>
                       <input
                         type="date"
@@ -490,7 +494,7 @@ export async function PainelDeReservas({
                         className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
                       />
                     </div>
-                    <div className="flex-1">
+                    <div>
                       <label className="text-xs text-neutral-500">Até</label>
                       <input
                         type="date"
