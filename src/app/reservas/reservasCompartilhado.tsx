@@ -256,16 +256,15 @@ export function CartaoDePeriodo({
   // Azul (mesmo tom dos botões/destaques da tela) pra ocupação tranquila; amber e vermelho
   // continuam de aviso mesmo, pra não perder o sinal de "atenção" quando a capacidade aperta. Sem
   // caixa/borda própria (isso virou uma seção dentro do cartão do dia, não um cartão à parte) — o
-  // sinal de status agora é a cor da barra + do texto de "X/Y pessoas" + uma frase curta de
-  // contexto (bate o olho sem precisar fazer conta pra saber se a casa está enchendo ou não).
+  // sinal de status agora é só a cor da barra + do texto de "X/Y pessoas".
   const status =
     percentual === null
-      ? { barra: "bg-neutral-600", texto: "text-neutral-400", frase: null }
+      ? { barra: "bg-neutral-600", texto: "text-neutral-400" }
       : percentual >= 100
-        ? { barra: "bg-red-500", texto: "text-red-400", frase: "Lotado, capacidade máxima" }
+        ? { barra: "bg-red-500", texto: "text-red-400" }
         : percentual >= 70
-          ? { barra: "bg-amber-500", texto: "text-amber-400", frase: "Enchendo, de olho na capacidade" }
-          : { barra: "bg-indigo-500", texto: "text-indigo-400", frase: "Tranquilo, ainda começando" };
+          ? { barra: "bg-amber-500", texto: "text-amber-400" }
+          : { barra: "bg-indigo-500", texto: "text-indigo-400" };
   const estiloPeriodo = estiloDoPeriodo(periodo);
 
   return (
@@ -282,21 +281,17 @@ export function CartaoDePeriodo({
         </span>
       </div>
 
-      {/* Trilho um pouco mais alto e translúcido (branco, não cinza sólido) — contra o fundo de
-          vidro do card do dia, o cinza escuro de antes quase sumia de tão parecido com o fundo. */}
+      {/* Trilho translúcido (branco, não cinza sólido) — contra o fundo de vidro do card do dia,
+          o cinza escuro de antes quase sumia de tão parecido com o fundo. Mais alto que antes só
+          pra caber o texto da lotação centralizado dentro dele, bem discreto (fonte pequena, sem
+          gritar) em vez de escrito solto do lado de fora. */}
       {percentual !== null && (
-        <>
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
-            <div className={`h-full rounded-full ${status.barra}`} style={{ width: `${percentual}%` }} />
-          </div>
-          {/* "2/60 pessoas" sozinho não dizia nada de cara — com o percentual + uma frase curta,
-              dá pra bater o olho e saber na hora se está enchendo, sem fazer conta de cabeça. A
-              frase muda de tom conforme a ocupação sobe (ver status acima). */}
-          <div className="mt-1.5 flex items-center justify-between text-[11px]">
-            <span className="font-semibold text-neutral-300">{percentual}% ocupado</span>
-            <span className={`font-medium ${status.texto}`}>{status.frase}</span>
-          </div>
-        </>
+        <div className="relative mt-3 h-5 w-full overflow-hidden rounded-full bg-white/10">
+          <div className={`h-full rounded-full ${status.barra}`} style={{ width: `${percentual}%` }} />
+          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-neutral-300">
+            Lotação em {percentual}%
+          </span>
+        </div>
       )}
 
       <div className="mt-4 flex flex-col gap-3">

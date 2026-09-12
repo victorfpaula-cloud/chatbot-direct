@@ -42,15 +42,17 @@ export function HistoricoSobDemanda({ contaId }: { contaId: string | null }) {
     // consulta a mais em toda abertura, mesmo pra quem nunca olha isso). Só busca quando a pessoa
     // realmente abre (onToggle abaixo), igual ao resto dos acordeões da tela.
     <details
-      className="mt-10 overflow-hidden rounded-2xl border border-indigo-900/50 bg-neutral-900"
+      // Mesmo tom neutro e discreto da barra de abas (Antigas/Hoje/Futuras) — o border-indigo de
+      // antes chamava atenção demais pra um bloco que é só um detalhe a mais no rodapé da tela.
+      className="mt-10 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-lg"
       onToggle={(evento) => {
         const abriu = (evento.target as HTMLDetailsElement).open;
         if (abriu && (estado === "fechado" || estado === "erro")) carregar();
       }}
     >
       {/* Sentence case (era caixa alta) — mais fácil de ler rápido numa tela que a equipe olha o
-          dia inteiro; caixa alta grita sem necessidade aqui. */}
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-4 text-sm font-medium text-neutral-400 [&::-webkit-details-marker]:hidden">
+          dia inteiro; caixa alta grita sem necessidade aqui. Um pouco mais alto ainda (py-5). */}
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-5 text-sm font-medium text-neutral-400 [&::-webkit-details-marker]:hidden">
         <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5 text-indigo-400" />
         Histórico e total de reservas
         <Icone path={CAMINHO_SETA_BAIXO} className="ml-auto h-4 w-4 text-neutral-600" />
