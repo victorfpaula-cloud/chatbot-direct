@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
-import { SplashReservas, NOME_DO_COOKIE_JA_MOSTRADA } from "./SplashReservas";
+import { headers } from "next/headers";
+import { SplashReservas } from "./SplashReservas";
 
 // Só essa área (onde o funcionário vive — ele não acessa mais nada além de /reservas) ganha um
 // ícone e um manifest próprios, pra quando alguém adicionar essa tela à tela de início do
@@ -11,24 +11,43 @@ export const metadata: Metadata = {
   manifest: "/reservas-manifest.webmanifest",
 };
 
+/** Abrir o app de verdade pelo ícone da tela de início chega SEM cabeçalho Referer (não existe
+ * "página anterior" na mesma aba/processo) — bem diferente de trocar de tela clicando em
+ * Antigas/Hoje/Futuras, editar uma reserva, etc., que sempre chega com o Referer apontando pra
+ * uma página nossa. Decidido aqui, no servidor, direto desse cabeçalho da própria requisição.
+ * Tentamos sessionStorage e depois um cookie lido no cliente antes disso — nenhum dos dois se
+ * mostrou confiável pra esse fim num app instalado (standalone) no iOS/WebKit, a splash
+ * continuava reaparecendo em navegações internas. Sem depender de nenhuma API de armazenamento do
+ * navegador, essa checagem não tem como "esquecer" nada entre uma tela e outra. */
+function pareceAberturaDoApp(): boolean {
+  const cabecalhos = headers();
+  const referer = cabecalhos.get("referer");
+  if (!referer) return true;
+
+  try {
+    const urlDoReferer = new URL(referer);
+    const mesmaOrigem = urlDoReferer.host === cabecalhos.get("host");
+    // Veio de uma página nossa de /reservas — é troca de tela dentro do app, não abertura.
+    return !(mesmaOrigem && urlDoReferer.pathname.startsWith("/reservas"));
+  } catch {
+    // Referer mal-formado — mais seguro deixar a splash aparecer à toa uma vez do que nunca
+    // aparecer quando devia.
+    return true;
+  }
+}
+
 export default function ReservasLayout({ children }: { children: React.ReactNode }) {
-  // Decidido no SERVIDOR, direto do cookie que já veio junto com essa requisição — nenhuma
-  // dependência de sessionStorage/cookie lido depois, no cliente, correndo contra a primeira
-  // pintura da tela. Se esse cookie já existe, a splash NEM É ENVIADA no HTML dessa vez: não tem
-  // como ela "aparecer de novo" numa navegação onde o próprio servidor já sabe que não precisa
-  // mandar ela. (O que o servidor não sabe é se o app está em modo instalado/standalone — isso só
-  // o cliente descobre, então essa parte continua sendo decidida lá dentro de SplashReservas.)
-  const jaMostrouSplash = cookies().get(NOME_DO_COOKIE_JA_MOSTRADA)?.value === "1";
+  const mostrarSplash = pareceAberturaDoApp();
 
   return (
     <>
-      {!jaMostrouSplash && (
+      {mostrarSplash && (
         <>
           {/* Roda antes de qualquer coisa aparecer: se a splash de vídeo vai mesmo aparecer agora
-              (mesma condição usada dentro dela — instalado, e o cookie acima já garante que ainda
-              não foi mostrada), segura a animação de entrada dos containers (ver globals.css)
-              parada no primeiro quadro. Sem isso ela já teria terminado de rodar, escondida atrás
-              da splash, muito antes dela sumir. */}
+              (mesma condição usada dentro dela — instalado; já sabemos por `mostrarSplash` que
+              parece uma abertura de verdade), segura a animação de entrada dos containers (ver
+              globals.css) parada no primeiro quadro. Sem isso ela já teria terminado de rodar,
+              escondida atrás da splash, muito antes dela sumir. */}
           <script
             dangerouslySetInnerHTML={{
               __html: `
@@ -47,6 +66,9 @@ export default function ReservasLayout({ children }: { children: React.ReactNode
           <SplashReservas />
         </>
       )}
+      {/* Trocas de tela (Referer de uma página nossa) caem só na barrinha simples de sempre — ver
+          reservas/loading.tsx — em vez da splash em vídeo, que fica reservada pra abertura de
+          verdade do app. */}
       {/* Fundo suave (Liquid Glass) da área toda de reservas — um degradê comum (background-image
           puro, sem filter/blur nem position:fixed) em vez das manchas desfocadas + fixed de
           antes: aquilo causava uma faixa/corte visível entre onde o brilho alcançava e o resto da

@@ -2,40 +2,23 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 
-// Guardado num COOKIE de sessão (sem Max-Age/Expires — dura enquanto o navegador/app ficar
-// aberto, some sozinho se fechar e abrir de novo), não em sessionStorage. Tentamos sessionStorage
-// primeiro e a splash voltou a aparecer em toda navegação mesmo assim — cada tela aqui é uma
-// navegação de página INTEIRA de verdade (`<a href>`, não uma SPA), e sessionStorage é conhecido
-// por não sobreviver de forma confiável entre esses recarregamentos completos num app instalado
-// (standalone) no iOS/WebKit. Cookie é lido/gravado no nível de rede, não depende dessa API de
-// armazenamento por aba — muito mais confiável exatamente nesse cenário.
-export const NOME_DO_COOKIE_JA_MOSTRADA = "reservas_splash_ja_mostrada";
-
-function cookieJaMostrada(): boolean {
-  try {
-    return document.cookie.split("; ").includes(`${NOME_DO_COOKIE_JA_MOSTRADA}=1`);
-  } catch {
-    // Sem acesso a document.cookie por algum motivo — melhor não travar a splash repetindo à
-    // toa, então trata como "já mostrada" e simplesmente não exibe.
-    return true;
-  }
-}
-
-function marcarComoMostrada(): void {
-  try {
-    document.cookie = `${NOME_DO_COOKIE_JA_MOSTRADA}=1; path=/`;
-  } catch {
-    // Ignora — pior caso é ela aparecer de novo numa próxima navegação, não é grave.
-  }
-}
-
 /**
- * Tela de abertura animada — só aparece UMA VEZ, na primeira vez que o app é aberto (modo
- * instalado/standalone) naquela sessão. Sem esse controle, ela tocava de novo em toda navegação
- * que remonta o layout (trocar de tela, editar/excluir reserva, etc.) — virou uma animação toda
- * hora, exatamente o que não devia. Quem visita a URL num navegador normal nunca vê isso.
- * `useLayoutEffect` decide tudo isso ANTES da primeira pintura da tela, pra ninguém chegar a ver
- * um flash da splash por trás.
+ * Tela de abertura animada (vídeo em tela cheia) — só quando o app é REALMENTE aberto (ícone na
+ * tela de início), nunca ao trocar de tela dentro dele. Essa decisão já vem pronta do servidor:
+ * `reservas/layout.tsx` só manda esse componente pro HTML quando a requisição parece uma abertura
+ * de verdade (sem Referer de uma página nossa) — troca de tela (clicar em Antigas/Hoje/Futuras,
+ * editar uma reserva, etc.) sempre chega com Referer e nem chega a montar esse componente, caindo
+ * só na barrinha simples de sempre (reservas/loading.tsx) enquanto a próxima tela carrega.
+ *
+ * Tentamos primeiro guardar "já mostrei" em sessionStorage, depois num cookie lido no cliente —
+ * nenhum dos dois se mostrou confiável pra esse fim num app instalado (standalone) no iOS/WebKit,
+ * a splash continuava reaparecendo em navegações internas. Resolvido decidindo isso no servidor
+ * (Referer), sem depender de nenhuma API de armazenamento do navegador.
+ *
+ * O que só o CLIENTE sabe (e por isso ainda é conferido aqui dentro) é se o app está mesmo em modo
+ * instalado/standalone — sem essa checagem, alguém abrindo a URL direto num navegador comum
+ * também veria o vídeo. `useLayoutEffect` decide isso ANTES da primeira pintura da tela, pra
+ * ninguém chegar a ver um flash da splash por trás quando não é instalado.
  */
 export function SplashReservas() {
   const [modoInstalado, setModoInstalado] = useState(true);
@@ -47,24 +30,18 @@ export function SplashReservas() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
-    const jaMostrada = cookieJaMostrada();
-
-    if (!instalado || jaMostrada) {
+    if (!instalado) {
       setModoInstalado(false);
       setMontado(false);
-      // Defensivo: se por algum motivo o script síncrono do layout (reservas/layout.tsx) achou
-      // que a splash ia aparecer e pausou a animação de entrada, mas na prática ela não vai
-      // aparecer (chegamos aqui), libera a animação na hora — sem isso ela ficaria parada pra
-      // sempre, sem nada pra removê-la depois.
+      // Defensivo: se o script síncrono do layout pausou a animação de entrada esperando a
+      // splash, mas ela não vai aparecer (não é modo instalado), libera na hora — sem isso ela
+      // ficaria parada pra sempre, sem nada pra removê-la depois.
       try {
         document.documentElement.classList.remove("cd-aguardando-splash-reservas");
       } catch {
         // Sem acesso ao documentElement — não é grave.
       }
-      return;
     }
-
-    marcarComoMostrada();
   }, []);
 
   useEffect(() => {
