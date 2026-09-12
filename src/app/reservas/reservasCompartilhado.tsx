@@ -114,7 +114,7 @@ export function CartaoDeReserva({
     // custo de desempenho e, em alguns celulares/WebKit, artefato visual com vários desses
     // aninhados na tela ao mesmo tempo).
     <div
-      className="animate-entrada relative rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none"
+      className="animate-entrada relative rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none"
       style={{ animationDelay: `${Math.min(indice * 45, 300)}ms` }}
     >
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
@@ -249,7 +249,7 @@ export function CartaoDePeriodo({
   const estiloPeriodo = estiloDoPeriodo(periodo);
 
   return (
-    <div className="p-4">
+    <div className="px-3 py-4">
       <div className="flex items-center justify-between gap-3">
         <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${estiloPeriodo.cor}`}>
           <Icone path={estiloPeriodo.caminho} className="h-3.5 w-3.5" />
