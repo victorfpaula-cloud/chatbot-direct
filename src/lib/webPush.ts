@@ -77,20 +77,24 @@ async function enviarPushParaConta(admin: Admin, accountId: string, payloadObjet
 }
 
 /**
- * Chamada em toda reserva nova confirmada (finalizarReserva, em reservas.ts). Mensagem bem
- * simples de propósito (sem nome/username) — quem quiser o detalhe abre o app, que já reflete a
- * reserva na hora; aqui só avisa que aconteceu (com a quantidade de pessoas, que não pesa quase
- * nada no payload), gastando o mínimo de dados possível.
+ * Chamada em toda reserva nova confirmada (finalizarReserva, em reservas.ts). Primeiro nome +
+ * data (não a quantidade de pessoas nem o @usuário) — o suficiente pra reconhecer de cara "quem"
+ * e "quando" na tela de bloqueio, sem virar um textão; quem quiser o resto abre o app.
  */
-export async function notificarNovaReserva(admin: Admin, accountId: string, quantidadePessoas: number | null): Promise<void> {
+export async function notificarNovaReserva(
+  admin: Admin,
+  accountId: string,
+  nomeCliente: string | null,
+  dataReservaBR: string | null
+): Promise<void> {
   const totalHoje = await contarReservasDeHoje(admin, accountId);
-  const corpo =
-    typeof quantidadePessoas === "number"
-      ? `Nova reserva para ${quantidadePessoas} ${quantidadePessoas === 1 ? "pessoa" : "pessoas"}.`
-      : "Uma nova reserva acaba de ser feita.";
+  const primeiroNome = nomeCliente?.trim().split(/\s+/)[0] || "Cliente";
+  // dataReservaBR vem como "DD/MM/AAAA" (formatarDataBR, em reservas.ts) — só dia/mês aqui.
+  const dataCurta = dataReservaBR?.slice(0, 5);
+  const corpo = dataCurta ? `${primeiroNome} / para: ${dataCurta}` : primeiroNome;
 
   await enviarPushParaConta(admin, accountId, {
-    titulo: "Nova reserva",
+    titulo: "Nova Reserva! ☑️",
     corpo,
     badge: totalHoje,
     url: "/reservas",
