@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { SplashReservas } from "./SplashReservas";
 import { IndicadorDeCarregamento } from "./IndicadorDeCarregamento";
+import { BannerInstalarApp } from "./BannerInstalarApp";
 
 // Só essa área (onde o funcionário vive — ele não acessa mais nada além de /reservas) ganha um
 // ícone e um manifest próprios, pra quando alguém adicionar essa tela à tela de início do
@@ -88,6 +89,7 @@ export default function ReservasLayout({ children }: { children: React.ReactNode
       >
         {children}
       </div>
+      <BannerInstalarApp />
     </>
   );
 }
