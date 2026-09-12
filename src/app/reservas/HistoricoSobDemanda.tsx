@@ -48,9 +48,9 @@ export function HistoricoSobDemanda({ contaId }: { contaId: string | null }) {
         if (abriu && (estado === "fechado" || estado === "erro")) carregar();
       }}
     >
-      {/* Um pouco mais alto fechado (py-4 em vez de py-3) — ficava meio espremido perto dos
-          cartões de estatística, bem mais altos, logo acima. */}
-      <summary className="flex cursor-pointer list-none items-center gap-1.5 px-4 py-4 text-xs font-medium uppercase tracking-wide text-neutral-500 [&::-webkit-details-marker]:hidden">
+      {/* Sentence case (era caixa alta) — mais fácil de ler rápido numa tela que a equipe olha o
+          dia inteiro; caixa alta grita sem necessidade aqui. */}
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-4 text-sm font-medium text-neutral-400 [&::-webkit-details-marker]:hidden">
         <Icone path={CAMINHO_RELOGIO_HISTORICO} className="h-3.5 w-3.5 text-indigo-400" />
         Histórico e total de reservas
         <Icone path={CAMINHO_SETA_BAIXO} className="ml-auto h-4 w-4 text-neutral-600" />

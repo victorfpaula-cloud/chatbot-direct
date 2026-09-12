@@ -67,7 +67,7 @@ const ESTILO_DO_PERIODO: Record<string, { rotulo: string; caminho: string; cor: 
 // rounded-2xl num `<details>` que muda de altura (abre/fecha) é conhecido por dar rendering
 // errado no Safari/WebKit — provavelmente a causa da "faixa cortada" relatada em Antigas/Futuras.
 export const CLASSE_CARTAO_DO_DIA =
-  "animate-entrada relative rounded-2xl border border-indigo-500/15 bg-white/[0.04] backdrop-blur-xl shadow-[0_18px_42px_-16px_rgba(99,102,241,0.2),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
+  "animate-entrada relative rounded-2xl border border-indigo-500/15 bg-white/[0.04] backdrop-blur-xl shadow-[0_18px_42px_-16px_rgba(99,102,241,0.2),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
 
 export function estiloDoPeriodo(periodo: string) {
   return (
@@ -256,15 +256,16 @@ export function CartaoDePeriodo({
   // Azul (mesmo tom dos botões/destaques da tela) pra ocupação tranquila; amber e vermelho
   // continuam de aviso mesmo, pra não perder o sinal de "atenção" quando a capacidade aperta. Sem
   // caixa/borda própria (isso virou uma seção dentro do cartão do dia, não um cartão à parte) — o
-  // sinal de status agora é só a cor da barra + do texto de "X/Y pessoas".
+  // sinal de status agora é a cor da barra + do texto de "X/Y pessoas" + uma frase curta de
+  // contexto (bate o olho sem precisar fazer conta pra saber se a casa está enchendo ou não).
   const status =
     percentual === null
-      ? { barra: "bg-neutral-600", texto: "text-neutral-400" }
+      ? { barra: "bg-neutral-600", texto: "text-neutral-400", frase: null }
       : percentual >= 100
-        ? { barra: "bg-red-500", texto: "text-red-400" }
+        ? { barra: "bg-red-500", texto: "text-red-400", frase: "Lotado, capacidade máxima" }
         : percentual >= 70
-          ? { barra: "bg-amber-500", texto: "text-amber-400" }
-          : { barra: "bg-indigo-500", texto: "text-indigo-400" };
+          ? { barra: "bg-amber-500", texto: "text-amber-400", frase: "Enchendo, de olho na capacidade" }
+          : { barra: "bg-indigo-500", texto: "text-indigo-400", frase: "Tranquilo, ainda começando" };
   const estiloPeriodo = estiloDoPeriodo(periodo);
 
   return (
@@ -284,9 +285,18 @@ export function CartaoDePeriodo({
       {/* Trilho um pouco mais alto e translúcido (branco, não cinza sólido) — contra o fundo de
           vidro do card do dia, o cinza escuro de antes quase sumia de tão parecido com o fundo. */}
       {percentual !== null && (
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
-          <div className={`h-full rounded-full ${status.barra}`} style={{ width: `${percentual}%` }} />
-        </div>
+        <>
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div className={`h-full rounded-full ${status.barra}`} style={{ width: `${percentual}%` }} />
+          </div>
+          {/* "2/60 pessoas" sozinho não dizia nada de cara — com o percentual + uma frase curta,
+              dá pra bater o olho e saber na hora se está enchendo, sem fazer conta de cabeça. A
+              frase muda de tom conforme a ocupação sobe (ver status acima). */}
+          <div className="mt-1.5 flex items-center justify-between text-[11px]">
+            <span className="font-semibold text-neutral-300">{percentual}% ocupado</span>
+            <span className={`font-medium ${status.texto}`}>{status.frase}</span>
+          </div>
+        </>
       )}
 
       <div className="mt-4 flex flex-col gap-3">

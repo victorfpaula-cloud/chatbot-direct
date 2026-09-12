@@ -47,6 +47,7 @@ const CAMINHO_CALENDARIO = "M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0
 const CAMINHO_SETA_ESQUERDA = "M19 12H5M12 19l-7-7 7-7";
 const CAMINHO_SETA_DIREITA = "M5 12h14M12 5l7 7-7 7";
 const CAMINHO_ATUALIZAR = "M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15";
+const CAMINHO_LOGOUT = "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9";
 const CAMINHO_SETA_BAIXO = "M6 9l6 6 6-6";
 
 // --- Datas ---
@@ -541,9 +542,10 @@ export async function PainelDeReservas({
             <form action="/api/reservas/logout" method="POST">
               <button
                 type="submit"
-                className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+                title="Sair"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-neutral-300 backdrop-blur-xl hover:border-white/20 hover:text-neutral-100"
               >
-                Sair
+                <Icone path={CAMINHO_LOGOUT} className="h-3.5 w-3.5" />
               </button>
             </form>
           ) : (
@@ -607,8 +609,8 @@ export async function PainelDeReservas({
               {/* As duas na mesma cor (índigo), com um degradê bem mais suave que antes — eram um
                   azul e um roxo brigando entre si e com o resto da tela. */}
               <div className="animate-entrada mt-4 grid grid-cols-2 gap-3 motion-reduce:animate-none" style={{ animationDelay: "80ms" }}>
-                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 backdrop-blur-xl shadow-[0_10px_24px_-14px_rgba(99,102,241,0.18)] before:absolute before:inset-x-[10%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-200">
+                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 backdrop-blur-xl shadow-[0_10px_24px_-14px_rgba(99,102,241,0.18)] before:absolute before:inset-x-[10%] before:top-0 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/30 text-indigo-100">
                     <Icone path={CAMINHO_TICKET} className="h-4 w-4" />
                   </div>
                   <div>
@@ -616,8 +618,8 @@ export async function PainelDeReservas({
                     <p className="text-2xl font-semibold text-neutral-50">{totalDeReservas}</p>
                   </div>
                 </div>
-                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 backdrop-blur-xl shadow-[0_10px_24px_-14px_rgba(99,102,241,0.18)] before:absolute before:inset-x-[10%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-200">
+                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 backdrop-blur-xl shadow-[0_10px_24px_-14px_rgba(99,102,241,0.18)] before:absolute before:inset-x-[10%] before:top-0 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/30 text-indigo-100">
                     <Icone path={CAMINHO_PESSOAS} className="h-4 w-4" />
                   </div>
                   <div>
