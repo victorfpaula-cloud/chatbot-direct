@@ -91,7 +91,7 @@ export async function notificarNovaReserva(
   const primeiroNome = nomeCliente?.trim().split(/\s+/)[0] || "Cliente";
   // dataReservaBR vem como "DD/MM/AAAA" (formatarDataBR, em reservas.ts) — só dia/mês aqui.
   const dataCurta = dataReservaBR?.slice(0, 5);
-  const corpo = dataCurta ? `${primeiroNome} / para: ${dataCurta}` : primeiroNome;
+  const corpo = dataCurta ? `${primeiroNome} - ${dataCurta}` : primeiroNome;
 
   await enviarPushParaConta(admin, accountId, {
     titulo: "Nova Reserva! ☑️",
