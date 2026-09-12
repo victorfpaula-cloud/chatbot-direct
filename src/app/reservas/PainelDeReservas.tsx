@@ -16,6 +16,7 @@ import { NotificacoesPush } from "./NotificacoesPush";
 import { FiltrosDropdown } from "./FiltrosDropdown";
 import {
   type Reserva,
+  type LimitesPorPeriodo,
   Icone,
   CAMINHO_PESSOAS,
   CAMINHO_TICKET,
@@ -187,7 +188,7 @@ export async function PainelDeReservas({
 
   let reservas: Reserva[] = [];
   const contagemPorDia = new Map<string, number>();
-  let limiteMaximo: number | null = null;
+  let limites: LimitesPorPeriodo = { almoco: null, jantar: null };
   if (contaSelecionada) {
     // A busca de reservas (pesada em "hoje", leve nas outras telas) e o limite de capacidade não
     // dependem uma da outra — rodam ao mesmo tempo em vez de uma esperar a outra terminar. O
@@ -195,7 +196,7 @@ export async function PainelDeReservas({
     // abre aquele bloco (ver HistoricoSobDemanda.tsx + /api/reservas/historico).
     const consultaLimite = admin
       .from("chatbot_account_settings")
-      .select("reserva_limite_maximo")
+      .select("reserva_limite_maximo, reserva_limite_maximo_jantar")
       .eq("account_id", contaSelecionada.id)
       .maybeSingle();
 
@@ -240,7 +241,10 @@ export async function PainelDeReservas({
         consultaToken,
       ]);
       reservas = data ?? [];
-      limiteMaximo = config?.reserva_limite_maximo ?? null;
+      limites = {
+        almoco: config?.reserva_limite_maximo ?? null,
+        jantar: config?.reserva_limite_maximo_jantar ?? config?.reserva_limite_maximo ?? null,
+      };
 
       // Só nessa tela ("hoje", volume baixo — em média 3 a 5 reservas por dia, no máximo umas 20):
       // busca a foto de perfil de verdade de cada cliente, ao vivo, sem guardar no banco. Uma
@@ -324,7 +328,10 @@ export async function PainelDeReservas({
       for (const linha of leve ?? []) {
         contagemPorDia.set(linha.data_reserva, (contagemPorDia.get(linha.data_reserva) ?? 0) + 1);
       }
-      limiteMaximo = config?.reserva_limite_maximo ?? null;
+      limites = {
+        almoco: config?.reserva_limite_maximo ?? null,
+        jantar: config?.reserva_limite_maximo_jantar ?? config?.reserva_limite_maximo ?? null,
+      };
     }
   }
 
@@ -695,7 +702,7 @@ export async function PainelDeReservas({
                 contaId={ehFuncionario ? null : contaSelecionada!.id}
                 periodo={filtroDePeriodo}
                 busca={busca}
-                limiteMaximo={limiteMaximo}
+                limites={limites}
                 hrefAtualizar={hrefAtualizar}
               />
             );
@@ -712,7 +719,7 @@ export async function PainelDeReservas({
                   key={periodo}
                   periodo={periodo}
                   reservas={grupoDeData.get(periodo)!}
-                  limiteMaximo={limiteMaximo}
+                  limites={limites}
                   hrefAtualizar={hrefAtualizar}
                 />
               ))}

@@ -231,17 +231,23 @@ export function CartaoDeReserva({
   );
 }
 
+/** Capacidade máxima configurável separada por período (ver /contas/[id]/reserva) — "jantar" cai
+ * de volta pro valor de "almoco" quando a conta ainda não configurou um específico pra ele, pra
+ * ninguém perder a capacidade que já tinha antes dessa separação existir. */
+export type LimitesPorPeriodo = { almoco: number | null; jantar: number | null };
+
 export function CartaoDePeriodo({
   periodo,
   reservas,
-  limiteMaximo,
+  limites,
   hrefAtualizar,
 }: {
   periodo: string;
   reservas: Reserva[];
-  limiteMaximo: number | null;
+  limites: LimitesPorPeriodo;
   hrefAtualizar: string;
 }) {
+  const limiteMaximo = periodo === "jantar" ? limites.jantar : limites.almoco;
   const totalDePessoasDoGrupo = reservas.reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
   const percentual =
     typeof limiteMaximo === "number" && limiteMaximo > 0

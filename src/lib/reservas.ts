@@ -587,13 +587,14 @@ async function continuarFluxo(
       }
 
       const { data: config } = await buscarConfig(admin, conta.id);
-      const limiteMaximo = config?.reserva_limite_maximo;
+      const limiteMaximo = limiteMaximoDoPeriodo(config, dados.periodo);
 
       if (typeof limiteMaximo === "number") {
-        // Capacidade é por dia+período (almoço e jantar contam separado, cada um com o mesmo
-        // limite) — soma quem já está confirmado em chatbot_reservations pra essa data+período
-        // MAIS a quantidade que essa pessoa está pedindo agora. Recusa mesmo que ninguém tenha
-        // reservado ainda, se só o pedido dela já estourar o limite sozinho.
+        // Capacidade é por dia+período, cada período com o próprio limite configurável (almoço e
+        // jantar podem ter números diferentes agora — ver limiteMaximoDoPeriodo) — soma quem já
+        // está confirmado em chatbot_reservations pra essa data+período MAIS a quantidade que essa
+        // pessoa está pedindo agora. Recusa mesmo que ninguém tenha reservado ainda, se só o
+        // pedido dela já estourar o limite sozinho.
         const jaReservado = await somaPessoasReservadas(admin, conta.id, dados.data_reserva, dados.periodo);
 
         if (jaReservado + quantidade > limiteMaximo) {
@@ -701,15 +702,12 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
   // uma reserva pro mesmo dia+período nesse meio tempo. Sem essa segunda checagem, dava pra
   // estourar o limite combinando duas reservas que passaram cada uma na checagem da etapa
   // "pessoas" só porque, na hora de cada uma, a outra ainda não tinha sido confirmada.
+  const limiteMaximo = limiteMaximoDoPeriodo(config, dados.periodo);
   let jaReservado = 0;
-  if (
-    typeof config?.reserva_limite_maximo === "number" &&
-    dados.data_reserva &&
-    dados.periodo
-  ) {
+  if (typeof limiteMaximo === "number" && dados.data_reserva && dados.periodo) {
     jaReservado = await somaPessoasReservadas(admin, conta.id, dados.data_reserva, dados.periodo);
 
-    if (jaReservado + (dados.quantidade_pessoas ?? 0) > config.reserva_limite_maximo) {
+    if (jaReservado + (dados.quantidade_pessoas ?? 0) > limiteMaximo) {
       const mensagem =
         config?.reserva_mensagem_limite_maximo?.trim() ||
         "Nossas reservas do dia já estão encerradas porque todas as mesas já foram preenchidas. Nosso atendimento será apenas por ordem de chegada.";
@@ -753,10 +751,10 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
   // acima), então esse aviso dispara uma vez só, na hora certa, sem repetir a cada nova tentativa
   // recusada depois disso.
   if (
-    typeof config?.reserva_limite_maximo === "number" &&
+    typeof limiteMaximo === "number" &&
     dados.data_reserva &&
     dados.periodo &&
-    jaReservado + (dados.quantidade_pessoas ?? 0) >= config.reserva_limite_maximo
+    jaReservado + (dados.quantidade_pessoas ?? 0) >= limiteMaximo
   ) {
     const periodoTexto = dados.periodo === "almoco" ? "Almoço" : dados.periodo === "jantar" ? "Jantar" : "Período";
     await notificarLotacaoAtingida(admin, conta.id, periodoTexto);
@@ -817,11 +815,25 @@ async function somaPessoasReservadas(
   return (data ?? []).reduce((soma, linha) => soma + (linha.quantidade_pessoas ?? 0), 0);
 }
 
+/** Capacidade máxima pro período pedido — `reserva_limite_maximo` é o valor do Almoço (e também o
+ * de fallback pro Jantar, se a conta ainda não configurou um valor separado pra ele em
+ * `reserva_limite_maximo_jantar` — assim ninguém perde a capacidade que já tinha antes dessa
+ * separação existir, só de não ter mexido na configuração ainda). */
+function limiteMaximoDoPeriodo(
+  config: { reserva_limite_maximo?: number | null; reserva_limite_maximo_jantar?: number | null } | null | undefined,
+  periodo: string | undefined
+): number | undefined {
+  if (periodo === "jantar") {
+    return config?.reserva_limite_maximo_jantar ?? config?.reserva_limite_maximo ?? undefined;
+  }
+  return config?.reserva_limite_maximo ?? undefined;
+}
+
 async function buscarConfig(admin: Admin, accountId: string) {
   const resultado = await admin
     .from("chatbot_account_settings")
     .select(
-      "reserva_regras_texto, reserva_mensagem_limite_maximo, reserva_limite_maximo, reserva_cutoff_horario, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas"
+      "reserva_regras_texto, reserva_mensagem_limite_maximo, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_cutoff_horario, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas"
     )
     .eq("account_id", accountId)
     .maybeSingle();

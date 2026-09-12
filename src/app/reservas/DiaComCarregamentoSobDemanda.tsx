@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { CartaoDePeriodo, CLASSE_CARTAO_DO_DIA, type Reserva } from "./reservasCompartilhado";
+import { CartaoDePeriodo, CLASSE_CARTAO_DO_DIA, type LimitesPorPeriodo, type Reserva } from "./reservasCompartilhado";
 
 type Estado = "fechado" | "carregando" | "carregado" | "erro";
 
@@ -17,7 +17,7 @@ export function DiaComCarregamentoSobDemanda({
   contaId,
   periodo,
   busca,
-  limiteMaximo,
+  limites,
   hrefAtualizar,
 }: {
   cabecalho: ReactNode;
@@ -25,7 +25,7 @@ export function DiaComCarregamentoSobDemanda({
   contaId: string | null;
   periodo: string;
   busca: string;
-  limiteMaximo: number | null;
+  limites: LimitesPorPeriodo;
   hrefAtualizar: string;
 }) {
   const [estado, setEstado] = useState<Estado>("fechado");
@@ -102,7 +102,7 @@ export function DiaComCarregamentoSobDemanda({
                 key={chavePeriodo}
                 periodo={chavePeriodo}
                 reservas={gruposPorPeriodo[chavePeriodo]}
-                limiteMaximo={limiteMaximo}
+                limites={limites}
                 hrefAtualizar={hrefAtualizar}
               />
             ))}

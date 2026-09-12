@@ -32,11 +32,18 @@ export async function POST(request: NextRequest) {
 
   const limiteNormalBruto = formData.get("reserva_limite_normal")?.toString().trim();
   const limiteMaximoBruto = formData.get("reserva_limite_maximo")?.toString().trim();
+  const limiteMaximoJantarBruto = formData.get("reserva_limite_maximo_jantar")?.toString().trim();
 
   const reservaLimiteNormal =
     limiteNormalBruto && !Number.isNaN(Number(limiteNormalBruto)) ? Number(limiteNormalBruto) : null;
   const reservaLimiteMaximo =
     limiteMaximoBruto && !Number.isNaN(Number(limiteMaximoBruto)) ? Number(limiteMaximoBruto) : null;
+  // Em branco = usa o mesmo número do Almoço (ver limiteMaximoDoPeriodo em src/lib/reservas.ts) —
+  // aqui só grava exatamente o que a pessoa digitou, sem null vs. explicitamente igual ao almoço.
+  const reservaLimiteMaximoJantar =
+    limiteMaximoJantarBruto && !Number.isNaN(Number(limiteMaximoJantarBruto))
+      ? Number(limiteMaximoJantarBruto)
+      : null;
 
   const admin = criarClienteAdmin();
   const { error } = await admin.from("chatbot_account_settings").upsert(
@@ -46,6 +53,7 @@ export async function POST(request: NextRequest) {
       reserva_regras_texto: reservaRegrasTexto || null,
       reserva_limite_normal: reservaLimiteNormal,
       reserva_limite_maximo: reservaLimiteMaximo,
+      reserva_limite_maximo_jantar: reservaLimiteMaximoJantar,
       reserva_mensagem_limite_maximo: reservaMensagemLimiteMaximo || null,
       reserva_cutoff_horario: reservaCutoffHorario || null,
       reserva_pausa_ativa: reservaPausaAtiva,

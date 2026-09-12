@@ -18,7 +18,7 @@ export default async function ReservaConfigPage({
   const { data: config } = await admin
     .from("chatbot_account_settings")
     .select(
-      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario"
+      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario"
     )
     .eq("account_id", params.id)
     .maybeSingle();
@@ -233,36 +233,52 @@ export default async function ReservaConfigPage({
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="text-xs text-neutral-400">
-              Limite normal de pessoas (só informativo)
-            </label>
-            <input
-              type="number"
-              min={0}
-              name="reserva_limite_normal"
-              defaultValue={config?.reserva_limite_normal ?? ""}
-              className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-            />
-          </div>
+        <div>
+          <label className="text-xs text-neutral-400">
+            Limite normal de pessoas (só informativo)
+          </label>
+          <input
+            type="number"
+            min={0}
+            name="reserva_limite_normal"
+            defaultValue={config?.reserva_limite_normal ?? ""}
+            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+          />
+        </div>
 
-          <div>
-            <label className="text-xs text-neutral-400">
-              Capacidade máxima de pessoas por período (almoço e jantar contam separado)
-            </label>
-            <p className="mt-1 text-xs text-neutral-500">
-              É a SOMA de todas as reservas já confirmadas pra aquele dia+período. Assim que bater
-              nesse número, ninguém mais consegue reservar pra esse período — nem uma reserva
-              pequena que ainda caberia, se pedir mais do que o que sobrou.
-            </p>
-            <input
-              type="number"
-              min={0}
-              name="reserva_limite_maximo"
-              defaultValue={config?.reserva_limite_maximo ?? ""}
-              className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-            />
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/30">
+          <p className="text-sm font-medium text-neutral-200">Capacidade máxima de pessoas</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Um número pra cada período — é a SOMA de todas as reservas já confirmadas pra aquele
+            dia+período. Assim que bater nesse número, ninguém mais consegue reservar pra esse
+            período — nem uma reserva pequena que ainda caberia, se pedir mais do que o que sobrou.
+          </p>
+
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-xs text-neutral-400">Almoço</label>
+              <input
+                type="number"
+                min={0}
+                name="reserva_limite_maximo"
+                defaultValue={config?.reserva_limite_maximo ?? ""}
+                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-neutral-400">Jantar</label>
+              <p className="mt-1 text-xs text-neutral-500">
+                Em branco usa o mesmo número do Almoço.
+              </p>
+              <input
+                type="number"
+                min={0}
+                name="reserva_limite_maximo_jantar"
+                defaultValue={config?.reserva_limite_maximo_jantar ?? ""}
+                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              />
+            </div>
           </div>
         </div>
 
