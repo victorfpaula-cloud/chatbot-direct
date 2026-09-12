@@ -87,6 +87,16 @@ export function formatarHora(iso: string): string {
   }).format(new Date(iso));
 }
 
+/** Só dia/mês (ex.: "11/09") — a data de confirmação de uma reserva feita há mais tempo (Antigas)
+ * não necessariamente é a mesma data reservada, então só a hora sozinha não bastava. */
+export function formatarDataCurta(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+  }).format(new Date(iso));
+}
+
 /** Link de WhatsApp a partir do que o cliente digitou — assume DDI 55 (Brasil) quando o número
  * já não vem com um (10-11 dígitos é DDD+número, sem DDI). */
 export function linkDoWhatsapp(numero: string): string {
@@ -213,7 +223,9 @@ export function CartaoDeReserva({
             nomeCliente={reserva.cliente_nome ?? "esse cliente"}
           />
         </div>
-        <span className="text-xs text-neutral-600">confirmada às {formatarHora(reserva.confirmado_em)}</span>
+        <span className="text-xs text-neutral-600">
+          confirmada {formatarDataCurta(reserva.confirmado_em)} às {formatarHora(reserva.confirmado_em)}
+        </span>
       </div>
     </div>
   );

@@ -69,7 +69,9 @@ function formatarDataExtensa(dataISO: string): string {
     day: "2-digit",
     month: "long",
   }).format(new Date(Date.UTC(ano, mes - 1, dia)));
-  return primeiraLetraMaiuscula(formatado);
+  // Sem o "-feira" (sábado/domingo não têm mesmo) — nas telas de Antigas/Futuras, com a
+  // contagem de reservas do lado, "Segunda-feira" empurrava tudo pra fora da linha.
+  return primeiraLetraMaiuscula(formatado).replace("-feira", "");
 }
 
 /** Além da conta, devolve o usuário do funcionário logado — usado no cabeçalho da tela pra
