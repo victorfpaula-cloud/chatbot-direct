@@ -1,12 +1,14 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { enviarMensagemDirect } from "@/lib/metaMessaging";
-import { gerarRespostaComGemini } from "@/lib/gemini";
+import { enviarMensagemDirect, buscarPerfilDoCliente } from "@/lib/metaMessaging";
+import { gerarRespostaComGemini, detectarReclamacao } from "@/lib/gemini";
+import { enviarEmailDeReclamacao } from "@/lib/email";
+import { agoraFormatadoEmSaoPaulo } from "@/lib/datas";
 import { processarMensagemDeReserva } from "@/lib/reservas";
 import { agruparMensagensRapidas } from "@/lib/debounce";
 import type { TipoRespostaAtendimento } from "@/lib/atendimentos";
 
 type Admin = ReturnType<typeof criarClienteAdmin>;
-type Conta = { id: string; access_token: string };
+type Conta = { id: string; access_token: string; instagram_username: string | null; page_name: string | null };
 type Mensagem = { text?: string; quick_reply?: { payload: string } };
 
 /**
@@ -166,6 +168,22 @@ async function responderComGemini(
   }
 
   await enviarMensagemDirect(conta.access_token, idDoCliente, respostaGerada);
+
+  // Checagem extra, DEPOIS da resposta de verdade já ter sido enviada na linha acima — nunca
+  // atrasa nem arrisca a resposta ao cliente. Aguarda aqui (em vez de disparar "solto") porque em
+  // ambiente serverless (Vercel) o processo pode ser encerrado assim que a função devolver a
+  // resposta HTTP pra Meta — sem aguardar, o envio do e-mail arriscaria nunca completar.
+  if (await detectarReclamacao(textoDaMensagem)) {
+    const perfil = await buscarPerfilDoCliente(conta.access_token, idDoCliente);
+    await enviarEmailDeReclamacao({
+      contaNome: conta.instagram_username ? `@${conta.instagram_username}` : conta.page_name ?? "conta sem nome",
+      clienteNome: perfil.nome,
+      clienteUsername: perfil.username,
+      mensagemDoCliente: textoDaMensagem,
+      respostaEnviada: respostaGerada,
+      horario: agoraFormatadoEmSaoPaulo(),
+    });
+  }
 
   return respostaGerada;
 }

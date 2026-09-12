@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
   const { data: conta } = await admin
     .from("chatbot_accounts")
-    .select("id, access_token")
+    .select("id, access_token, instagram_username, page_name")
     .ilike("instagram_username", contaUsername)
     .eq("active", true)
     .maybeSingle();

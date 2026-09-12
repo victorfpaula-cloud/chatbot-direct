@@ -95,7 +95,7 @@ async function processarEventoDeMensagem(admin: ReturnType<typeof criarClienteAd
 
   const { data: conta, error: erroAoBuscarConta } = await admin
     .from("chatbot_accounts")
-    .select("id, access_token")
+    .select("id, access_token, instagram_username, page_name")
     .eq("instagram_user_id", idDaContaRecebendo)
     .eq("active", true)
     .maybeSingle();
