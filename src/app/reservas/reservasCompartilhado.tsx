@@ -16,6 +16,11 @@ export type Reserva = {
   quantidade_pessoas: number | null;
   whatsapp: string | null;
   confirmado_em: string;
+  // Foto cadastrada à mão direto no banco (chatbot_reservations.foto_manual_url) — cobre reservas
+  // cuja foto nunca vai dar pra buscar ao vivo (ex.: "manual:...", ou contato apagado da
+  // SendPulse depois). Só relevante na tela "Hoje" (ver PainelDeReservas.tsx), igual
+  // fotoDePerfilUrl abaixo.
+  foto_manual_url?: string | null;
   // Só vem preenchida na tela "Hoje" (busca ao vivo na Meta, ver PainelDeReservas.tsx) — nas
   // outras telas (Antigas/Futuras) fica undefined de propósito, pra não pesar com reservas em
   // volume bem maior.

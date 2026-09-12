@@ -207,7 +207,7 @@ export async function PainelDeReservas({
       let consulta = admin
         .from("chatbot_reservations")
         .select(
-          "id, instagram_scoped_id, cliente_nome, cliente_instagram_username, data_reserva, periodo, quantidade_pessoas, whatsapp, confirmado_em"
+          "id, instagram_scoped_id, cliente_nome, cliente_instagram_username, data_reserva, periodo, quantidade_pessoas, whatsapp, confirmado_em, foto_manual_url"
         )
         .eq("account_id", contaSelecionada.id)
         .gte("data_reserva", de)
@@ -298,7 +298,13 @@ export async function PainelDeReservas({
             })
           )
         );
-        reservas = reservas.map((r) => ({ ...r, fotoDePerfilUrl: fotosPorId.get(r.instagram_scoped_id) ?? null }));
+        // foto_manual_url (cadastrada à mão direto no banco) sempre vence a busca ao vivo — é
+        // exatamente pra cobrir os casos em que essa busca nunca vai funcionar (reserva
+        // "manual:...", ou contato apagado da SendPulse depois).
+        reservas = reservas.map((r) => ({
+          ...r,
+          fotoDePerfilUrl: r.foto_manual_url ?? fotosPorId.get(r.instagram_scoped_id) ?? null,
+        }));
       }
     } else {
       // Antigas/Futuras: intervalo pode ser grande (30 dias pra trás, ou todas as reservas
