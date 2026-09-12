@@ -18,7 +18,15 @@ const config: Config = {
         },
         entrada: {
           "0%": { opacity: "0", transform: "translateY(14px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+          // "none" (não "translateY(0)") de propósito: qualquer transform diferente de "none",
+          // mesmo um que não mude nada visualmente, deixa o elemento marcado como "tem
+          // transform" pro CSS pra sempre (a animação usa fill-mode "both", que mantém o valor do
+          // último quadro) — e isso cria um novo contexto de empilhamento (stacking context) que
+          // PRENDE qualquer z-index de dentro dele, sem deixar escapar pra cima de irmãos que
+          // vêm depois no HTML (foi exatamente isso que escondia o dropdown de Filtros atrás da
+          // barra de abas/cards: o cabeçalho virou um contexto à parte por causa dessa animação).
+          // "none" de verdade não cria contexto nenhum, resolvendo o problema pra sempre.
+          "100%": { opacity: "1", transform: "none" },
         },
       },
       animation: {
