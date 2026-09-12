@@ -223,7 +223,7 @@ export function CartaoDeReserva({
             nomeCliente={reserva.cliente_nome ?? "esse cliente"}
           />
         </div>
-        <span className="text-xs text-neutral-600">
+        <span className="text-[10px] text-neutral-700">
           confirmada {formatarDataCurta(reserva.confirmado_em)} às {formatarHora(reserva.confirmado_em)}
         </span>
       </div>
