@@ -115,10 +115,18 @@ function CartaoDeAtendimento({ atendimento }: { atendimento: Atendimento }) {
         {RESPOSTA_POR_TIPO[atendimento.tipo_resposta] ?? atendimento.tipo_resposta}
       </p>
 
-      {atendimento.resposta_enviada && (
+      {atendimento.status === "respondido" && (
         <p className="mt-1 break-words text-neutral-400">
           <span className="text-neutral-500">Resposta enviada: </span>
-          {atendimento.resposta_enviada}
+          {atendimento.resposta_enviada || (
+            // Atendimento de antes da migração pra API oficial (26/08–12/09/2026): quem mandava a
+            // mensagem de verdade era a própria SendPulse, e o texto exato só era salvo aqui se o
+            // envio por ela falhasse — no caminho normal (sucesso), esse texto nunca chegou a ser
+            // guardado. Só afeta atendimento antigo; todo atendimento novo já grava o texto certo.
+            <span className="italic text-neutral-600">
+              — texto não registrado (atendimento de antes da migração pra API oficial)
+            </span>
+          )}
         </p>
       )}
 
