@@ -294,7 +294,21 @@ export async function PainelDeReservas({
                 return [id, null] as const;
               }
               if (!contaComToken?.access_token) return [id, null] as const;
-              return [id, await buscarFotoDePerfilDoCliente(contaComToken.access_token, id)] as const;
+              const fotoPeloIGSID = await buscarFotoDePerfilDoCliente(contaComToken.access_token, id);
+              if (fotoPeloIGSID) return [id, fotoPeloIGSID] as const;
+
+              // O campo profile_picture_url pela conversa (IGSID) costuma vir vazio pra conta
+              // pessoal comum — tenta achar pelo @usuário via Business Discovery, que às vezes
+              // funciona mesmo quando o outro não funcionou (perfil privado continua sem solução:
+              // nenhum dos dois caminhos expõe foto de conta privada, é limitação da própria Meta).
+              const username = usernamePorId.get(id);
+              if (username && contaComToken.instagram_user_id) {
+                return [
+                  id,
+                  await buscarFotoDePerfilPorUsername(contaComToken.access_token, contaComToken.instagram_user_id, username),
+                ] as const;
+              }
+              return [id, null] as const;
             })
           )
         );

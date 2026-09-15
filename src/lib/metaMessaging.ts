@@ -334,12 +334,23 @@ export async function buscarFotoDePerfilDoCliente(
       { cache: "no-store" }
     );
 
-    if (!resposta.ok) return null;
+    if (!resposta.ok) {
+      // Sem log nenhum antes — não dava pra saber se a Meta tá recusando por permissão/token, ou
+      // se é só o campo vindo vazio (perfil privado, ver comentário da função acima). São causas
+      // bem diferentes: uma dá pra corrigir do nosso lado, a outra é limitação de privacidade da
+      // própria Meta que nenhum código nosso contorna.
+      const corpoDoErro = await resposta.text().catch(() => "");
+      console.error(
+        `Falha ao buscar foto de perfil do cliente (status ${resposta.status}) para IGSID ${instagramScopedId}:`,
+        corpoDoErro
+      );
+      return null;
+    }
 
     const dados = await resposta.json();
     return typeof dados?.profile_picture_url === "string" ? dados.profile_picture_url : null;
   } catch (erro) {
-    console.error("Falha ao buscar foto de perfil do cliente:", erro);
+    console.error(`Falha ao buscar foto de perfil do cliente para IGSID ${instagramScopedId}:`, erro);
     return null;
   }
 }
