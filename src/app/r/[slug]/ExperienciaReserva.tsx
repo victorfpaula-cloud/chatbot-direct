@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import styles from "./experiencia.module.css";
 import type { ConfigPublica } from "@/lib/reservaExterna";
+import { DefinicoesDoVidroLiquidoExterno } from "./VidroLiquido";
 
 // Reserva externa (link público /r/[slug], fora do Instagram) — mesma lógica de perguntas e as
 // MESMAS regras de horário/capacidade do fluxo do Direct (ver src/lib/reservas.ts e
@@ -458,12 +459,31 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       gsap.to(`.${styles.ctaHalo}`, { scale: 1.4, opacity: 0, duration: 1.5, repeat: -1, ease: "power1.out" });
       gsap.to(`.${styles.ctaSeta}`, { x: 5, duration: 0.8, yoyo: true, repeat: -1, ease: "sine.inOut" });
 
+      // Inclinação sutil do cartão de vidro seguindo o mouse — só em ponteiro fino (mouse/trackpad),
+      // nunca no toque, pra não brigar com o gesto de rolar/tocar no celular (a grande maioria de
+      // quem reserva por aqui).
+      const ponteiroFino = window.matchMedia("(pointer: fine)").matches;
+
       aoMoverPonteiro = (e: PointerEvent) => {
         const nx = (e.clientX / window.innerWidth - 0.5) * 2;
         const ny = (e.clientY / window.innerHeight - 0.5) * 2;
         gsap.to("#bw1", { x: nx * -26, y: ny * -18, duration: 1.3, ease: "power2.out", overwrite: "auto" });
         gsap.to("#bw2", { x: nx * 32, y: ny * 22, duration: 1.3, ease: "power2.out", overwrite: "auto" });
         gsap.to("#bw3", { x: nx * -40, y: ny * 26, duration: 1.3, ease: "power2.out", overwrite: "auto" });
+
+        if (ponteiroFino) {
+          const cartaoAtivo = q(`.${styles.cena}.${styles.ativa} .${styles.cartaoVidro}`);
+          if (cartaoAtivo) {
+            gsap.to(cartaoAtivo, {
+              rotateX: ny * -4,
+              rotateY: nx * 5,
+              transformPerspective: 800,
+              duration: 0.7,
+              ease: "power2.out",
+              overwrite: "auto",
+            });
+          }
+        }
       };
       window.addEventListener("pointermove", aoMoverPonteiro);
     }
@@ -473,7 +493,9 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
     return () => {
       document.removeEventListener("keydown", aoTeclarNavegacao);
       if (aoMoverPonteiro) window.removeEventListener("pointermove", aoMoverPonteiro);
-      gsap.killTweensOf(`.${styles.brilhoOrbe}, .${styles.brilhoWrap}, .${styles.ctaHalo}, .${styles.ctaSeta}, #bw1, #bw2, #bw3`);
+      gsap.killTweensOf(
+        `.${styles.brilhoOrbe}, .${styles.brilhoWrap}, .${styles.ctaHalo}, .${styles.ctaSeta}, .${styles.cartaoVidro}, #bw1, #bw2, #bw3`
+      );
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -481,6 +503,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
   if (!config.aceitaReservas) {
     return (
       <div ref={raizRef} className={styles.pagina}>
+        <DefinicoesDoVidroLiquidoExterno />
         <div className={styles.atmosfera}>
           <div className={styles.brilhoWrap} id="bw1">
             <div className={`${styles.brilhoOrbe} ${styles.o1}`} />
@@ -504,6 +527,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
 
   return (
     <div ref={raizRef} className={styles.pagina}>
+      <DefinicoesDoVidroLiquidoExterno />
       <div className={styles.atmosfera}>
         <div className={styles.brilhoWrap} id="bw1">
           <div className={`${styles.brilhoOrbe} ${styles.o1}`} />
