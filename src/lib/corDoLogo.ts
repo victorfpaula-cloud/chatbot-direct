@@ -105,16 +105,29 @@ export type PaletaDoLogo = {
   glow3: string;
 };
 
+function normalizarHue(h: number): number {
+  return ((h % 1) + 1) % 1;
+}
+
 function construirPaleta(h: number, s: number, l: number, acentoExato?: string): PaletaDoLogo {
   const lHi = Math.min(0.9, l + 0.18);
   const lDeep = Math.max(0.28, l - 0.2);
+
+  // --acento/hi/deep (botões, texto, brilho das cadeiras...) ficam sempre no matiz EXATO da marca —
+  // só os 3 brilhos de fundo (puramente atmosféricos, não presos a nenhum elemento) recebem um
+  // pequeno desvio de matiz cada um, pra dar uma variação sutil de cor no fundo (alguns "spots" com
+  // tons vizinhos) em vez de uma mancha monocromática só, sem perder a harmonia com a cor principal.
+  const hGlow2 = normalizarHue(h + 30 / 360);
+  const hGlow3 = normalizarHue(h - 25 / 360);
+  const sGlowSecundario = s * 0.85;
+
   return {
     acento: acentoExato ?? hslParaHex(h, s, l),
     acentoHi: hslParaHex(h, s, lHi),
     acentoDeep: hslParaHex(h, s, lDeep),
     glow1: hslParaRgba(h, s, l, 0.5),
-    glow2: hslParaRgba(h, s, l, 0.4),
-    glow3: hslParaRgba(h, s, l, 0.32),
+    glow2: hslParaRgba(hGlow2, sGlowSecundario, l, 0.38),
+    glow3: hslParaRgba(hGlow3, sGlowSecundario, l, 0.3),
   };
 }
 

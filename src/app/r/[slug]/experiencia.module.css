@@ -6,7 +6,7 @@
   --ink-mid: rgba(242, 242, 247, 0.62);
   --ink-low: rgba(242, 242, 247, 0.36);
   --glass: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(199, 207, 251, 0.14);
+  --glass-border: color-mix(in srgb, var(--acento-hi) 14%, transparent);
   --bg-1: #050509;
   --bg-2: #0d0c1c;
 
@@ -315,7 +315,7 @@
   cursor: pointer;
   font-family: inherit;
   align-self: center;
-  box-shadow: 0 16px 32px -14px rgba(99, 102, 241, 0.55);
+  box-shadow: 0 16px 32px -14px color-mix(in srgb, var(--acento) 55%, transparent);
   overflow: visible;
   display: inline-flex;
   align-items: center;
@@ -353,7 +353,7 @@
 .iconeHero svg {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 0 14px rgba(129, 140, 248, 0.45));
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--acento-hi) 45%, transparent));
 }
 
 .opcoes {
@@ -400,7 +400,7 @@
 }
 .opcao.escolhida {
   border-color: var(--acento);
-  background: rgba(99, 102, 241, 0.14);
+  background: color-mix(in srgb, var(--acento) 14%, transparent);
 }
 .opcao.escolhida .tecla {
   background: var(--acento);
@@ -556,7 +556,7 @@
 }
 .cadeira.acesa {
   color: var(--acento);
-  filter: drop-shadow(0 0 7px rgba(99, 102, 241, 0.75));
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--acento) 75%, transparent));
 }
 
 .contadorLinha {
@@ -641,7 +641,7 @@
   cursor: pointer;
   font-family: inherit;
   overflow: hidden;
-  box-shadow: 0 14px 28px -14px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 14px 28px -14px color-mix(in srgb, var(--acento) 50%, transparent);
 }
 .botaoPrincipal:disabled {
   opacity: 0.35;
@@ -685,8 +685,8 @@
   width: 96px;
   height: 96px;
   border-radius: 999px;
-  background: rgba(99, 102, 241, 0.14);
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: color-mix(in srgb, var(--acento) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--acento) 40%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
