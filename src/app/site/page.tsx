@@ -286,9 +286,9 @@ export default function PaginaSite() {
           <span className={styles.eyebrow}>03 · A diferença</span>
           <h2 className={styles.tituloSecao}>Não é um chatbot genérico com um nome diferente</h2>
           <p className={styles.dekSecao}>
-            A maioria dos sistemas de automação de Instagram foi pensada pra responder perguntas simples — não pra
-            tocar a operação de reservas de um restaurante de verdade, com lotação, horário de virada e uma equipe
-            acompanhando tudo em tempo real. A diferença fica clara lado a lado:
+            Automação de Instagram pronta responde &quot;qual o horário?&quot; e para por aí. Administrar a
+            lotação de um restaurante — almoço e jantar, mesa por mesa, sem deixar passar nem faltar — é outro
+            nível de sistema. É esse o nível em que o AutoMesa foi construído:
           </p>
           <div className={styles.tabelaWrap}>
             <table className={styles.tabela}>
@@ -301,33 +301,68 @@ export default function PaginaSite() {
               </thead>
               <tbody>
                 <tr>
+                  <td className={styles.rotulo}>Como entende o cliente</td>
+                  <td><span className={styles.x}>✕</span> menu de botões fixos — trava se a frase sai do script</td>
+                  <td className={styles.destaque}>
+                    <span className={styles.check}>✓</span> entende frase corrida: data, período, quantas pessoas e
+                    WhatsApp numa mensagem só
+                  </td>
+                </tr>
+                <tr>
                   <td className={styles.rotulo}>Controle de lotação</td>
-                  <td><span className={styles.x}>✕</span> manual, por sua conta — risco de overbooking</td>
-                  <td className={styles.destaque}><span className={styles.check}>✓</span> automático, por período</td>
+                  <td><span className={styles.x}>✕</span> manual, por sua conta — risco real de overbooking</td>
+                  <td className={styles.destaque}>
+                    <span className={styles.check}>✓</span> automático, separado por almoço e jantar, com folga
+                    configurável só quando já está quase no limite
+                  </td>
                 </tr>
                 <tr>
-                  <td className={styles.rotulo}>Entende texto livre</td>
-                  <td><span className={styles.x}>✕</span> só botões e menus fixos — trava com frase natural</td>
-                  <td className={styles.destaque}><span className={styles.check}>✓</span> conversa natural</td>
+                  <td className={styles.rotulo}>Link fora do Instagram</td>
+                  <td><span className={styles.x}>✕</span> tela genérica da plataforma, sem identidade nenhuma</td>
+                  <td className={styles.destaque}>
+                    <span className={styles.check}>✓</span> com seu logo e a cor da sua marca extraídos
+                    automaticamente — parece um app feito sob medida
+                  </td>
                 </tr>
                 <tr>
-                  <td className={styles.rotulo}>Onde fica a operação</td>
-                  <td><span className={styles.x}>✕</span> presa dentro do próprio chat</td>
-                  <td className={styles.destaque}><span className={styles.check}>✓</span> painel próprio, com aviso a cada reserva</td>
+                  <td className={styles.rotulo}>Onde a equipe acompanha</td>
+                  <td><span className={styles.x}>✕</span> presa dentro do próprio chat, sem visão do dia inteiro</td>
+                  <td className={styles.destaque}>
+                    <span className={styles.check}>✓</span> painel próprio, com aviso a cada reserva confirmada e
+                    ocupação por período em tempo real
+                  </td>
                 </tr>
                 <tr>
-                  <td className={styles.rotulo}>Acesso restrito pra equipe</td>
+                  <td className={styles.rotulo}>Acesso da equipe</td>
                   <td><span className={styles.x}>✕</span> tudo ou nada</td>
-                  <td className={styles.destaque}><span className={styles.check}>✓</span> login próprio, só reservas</td>
+                  <td className={styles.destaque}>
+                    <span className={styles.check}>✓</span> login próprio, restrito só à tela de reservas — sem
+                    acesso ao resto do negócio
+                  </td>
                 </tr>
                 <tr>
-                  <td className={styles.rotulo}>Link com a cara do seu negócio</td>
-                  <td><span className={styles.x}>✕</span> tela genérica da plataforma</td>
-                  <td className={styles.destaque}><span className={styles.check}>✓</span> seu logo, suas cores</td>
+                  <td className={styles.rotulo}>Regras do seu jeito</td>
+                  <td><span className={styles.x}>✕</span> fixas de fábrica — mudar pede chamado técnico</td>
+                  <td className={styles.destaque}>
+                    <span className={styles.check}>✓</span> horário de corte, datas bloqueadas e o texto de cada
+                    etapa: você mesmo ajusta, na hora
+                  </td>
+                </tr>
+                <tr>
+                  <td className={styles.rotulo}>Fora do assunto reserva</td>
+                  <td><span className={styles.x}>✕</span> não entende, ou devolve uma resposta genérica</td>
+                  <td className={styles.destaque}>
+                    <span className={styles.check}>✓</span> uma IA treinada no tom e no conhecimento da sua casa
+                    cuida do resto — cardápio, horário, endereço
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
+          <p className={styles.dekSecao} style={{ marginTop: 28 }}>
+            Cada linha dessa tabela é uma decisão que só quem já rodou a reserva de um restaurante de verdade sabe
+            que faz diferença. Ferramenta genérica não pensa nelas porque nunca precisou.
+          </p>
         </section>
 
         {/* ---------- cta final ---------- */}
