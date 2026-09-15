@@ -110,36 +110,6 @@ export function linkDoWhatsapp(numero: string): string {
   return `https://wa.me/${comDDI}`;
 }
 
-// Foto de verdade nem sempre dá: a Meta simplesmente não expõe a foto de perfil de conta privada
-// pra nenhum app de terceiro (limitação de privacidade da própria plataforma, não é algo que dê
-// pra contornar por código) — e mesmo conta pública às vezes falha na busca ao vivo. Em vez de uma
-// bolinha genérica igual pra todo mundo, cada pessoa ganha uma bolinha colorida (cor fixa, tirada
-// do próprio nome/@usuário) com a inicial — sempre com uma cara diferente, sem depender da Meta.
-const PALETA_DE_AVATAR = [
-  "bg-violet-950 text-violet-300",
-  "bg-indigo-950 text-indigo-300",
-  "bg-sky-950 text-sky-300",
-  "bg-teal-950 text-teal-300",
-  "bg-emerald-950 text-emerald-300",
-  "bg-amber-950 text-amber-300",
-  "bg-rose-950 text-rose-300",
-  "bg-fuchsia-950 text-fuchsia-300",
-];
-
-function corDoAvatar(chave: string): string {
-  let hash = 0;
-  for (let i = 0; i < chave.length; i++) hash = (hash * 31 + chave.charCodeAt(i)) >>> 0;
-  return PALETA_DE_AVATAR[hash % PALETA_DE_AVATAR.length];
-}
-
-function inicialDoAvatar(nome: string | null, username: string | null): string {
-  const base = nome?.trim() || username?.trim() || "?";
-  // Emoji/símbolos decorativos no nome (comuns no Instagram, ver "𝐌𝐀𝐑𝐈 𝐆☯𝐍Ç𝐀𝐋𝐕𝐄𝐒") não têm
-  // maiúscula/minúscula de verdade — melhor mostrar a letra como veio do que arriscar um símbolo
-  // estranho sozinho na bolinha.
-  return base.charAt(0).toUpperCase();
-}
-
 export function CartaoDeReserva({
   reserva,
   hrefAtualizar,
@@ -181,13 +151,20 @@ export function CartaoDeReserva({
             className="h-12 w-12 shrink-0 self-start rounded-full object-cover"
           />
         ) : (
-          <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full text-base font-semibold ${corDoAvatar(
-              reserva.cliente_instagram_username ?? reserva.cliente_nome ?? reserva.id
-            )}`}
-            aria-hidden="true"
-          >
-            {inicialDoAvatar(reserva.cliente_nome, reserva.cliente_instagram_username)}
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full bg-violet-950 text-violet-300">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" />
+            </svg>
           </div>
         )}
 
