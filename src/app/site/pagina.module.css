@@ -479,9 +479,6 @@
   box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
-.featureCard.destaque {
-  grid-column: span 2;
-}
 .featureIcone {
   width: 42px;
   height: 42px;
@@ -620,9 +617,6 @@
   .operacaoGrid,
   .featureGrid {
     grid-template-columns: 1fr;
-  }
-  .featureCard.destaque {
-    grid-column: span 1;
   }
   .navLinks {
     display: none;

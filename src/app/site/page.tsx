@@ -170,61 +170,60 @@ export default function PaginaSite() {
               <span className={styles.featureIcone}>
                 <IconeChat />
               </span>
-              <h3>Atendimento natural, sem menu robótico</h3>
+              <h3>Conversa de verdade, não menu de robô</h3>
               <p>
-                O cliente escreve do jeito que já escreveria pra um humano — o sistema entende data, período,
-                quantidade de pessoas e WhatsApp direto na conversa.
+                Seu cliente escreve como escreveria pra um garçom — &quot;quero reservar sábado pra 6&quot; já
+                basta. O sistema entende data, horário, quantas pessoas e pega o WhatsApp na mesma conversa.
               </p>
             </div>
             <div className={styles.featureCard}>
               <span className={styles.featureIcone}>
                 <IconeMedidor />
               </span>
-              <h3>Controle automático de lotação</h3>
+              <h3>Nunca mais estoure a lotação</h3>
               <p>
-                Cada reserva confirmada soma na capacidade do período. Ao chegar perto do limite, o sistema ainda
-                dá uma pequena folga configurável antes de recusar — sem overbooking, sem mesa faltando.
+                Cada reserva confirmada entra na conta certinha, por almoço e por jantar. Perto do limite, ainda
+                cabe uma folga pequena e configurável — sem virar overbooking, sem mesa faltando na hora.
               </p>
             </div>
-            <div className={`${styles.featureCard} ${styles.destaque}`}>
+            <div className={styles.featureCard}>
               <span className={styles.featureIcone}>
                 <IconeLink />
               </span>
-              <h3>Link externo com a cara do seu restaurante</h3>
+              <h3>Um link com a cara do seu restaurante</h3>
               <p>
-                Além do Instagram, seus clientes reservam por um link só seu — com o seu logo e até o brilho de
-                fundo adaptado automaticamente às cores da sua marca. Nada de tela genérica: parece um aplicativo
-                feito sob medida, porque foi.
+                Seu cliente também reserva fora do Instagram, num endereço só seu — com o seu logo e as cores da
+                sua marca no brilho de fundo. Ele nunca vê uma tela genérica de plataforma.
               </p>
             </div>
             <div className={styles.featureCard}>
               <span className={styles.featureIcone}>
                 <IconePainel />
               </span>
-              <h3>Painel em tempo real para a equipe</h3>
+              <h3>Sua equipe vê tudo, na hora</h3>
               <p>
-                Reservas do dia, ocupação por período e WhatsApp a um toque — com login próprio da equipe, restrito
-                só à tela de reservas.
+                Reservas do dia, ocupação por período, WhatsApp a um toque — num painel com login próprio pra
+                equipe, sem acesso a mais nada do negócio.
               </p>
             </div>
             <div className={styles.featureCard}>
               <span className={styles.featureIcone}>
                 <IconeAjustes />
               </span>
-              <h3>Regras 100% configuráveis</h3>
+              <h3>As regras são todas suas</h3>
               <p>
-                Horário de corte, datas bloqueadas, mensagens de cada etapa — tudo ajustável por você, sem depender
-                de suporte técnico externo.
+                Horário de corte, datas bloqueadas, o texto de cada etapa da conversa — tudo ajustável por você,
+                na hora, sem abrir chamado com ninguém.
               </p>
             </div>
             <div className={styles.featureCard}>
               <span className={styles.featureIcone}>
                 <IconeSparkle />
               </span>
-              <h3>Também responde o resto</h3>
+              <h3>E ainda resolve o resto sozinho</h3>
               <p>
-                Perguntas que não são sobre reserva — cardápio, horário, endereço — ficam por conta de uma
-                inteligência artificial configurada com o tom e o conhecimento da sua casa.
+                Cardápio, horário, endereço — o que não é reserva vai pra uma IA que já sabe o tom e os detalhes
+                da sua casa, sem misturar com o fluxo de reservar.
               </p>
             </div>
           </div>
