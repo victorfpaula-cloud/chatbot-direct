@@ -151,7 +151,7 @@ export function CartaoDeReserva({
             className="h-12 w-12 shrink-0 self-start rounded-full object-cover"
           />
         ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full bg-violet-950 text-violet-300">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full border border-indigo-400/25 bg-indigo-500/30 text-indigo-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
             <svg
               viewBox="0 0 24 24"
               fill="none"
