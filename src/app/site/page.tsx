@@ -114,8 +114,9 @@ export default function PaginaSite() {
             <span className={styles.eyebrow}>Sistema de reservas para restaurantes</span>
             <h1 className={styles.heroTitulo}>Um sistema de reservas que trabalha sozinho, a noite toda.</h1>
             <p className={styles.heroSub}>
-              Atende no Instagram Direct e por um link com a cara do seu restaurante, controla a lotação da casa em
-              tempo real e dá pra sua equipe um painel que nenhum aplicativo pronto do mercado oferece.
+              Atende no Instagram Direct e por um link com a cara do seu restaurante — só que os dois dividem o
+              mesmo cérebro. Mesma lotação, mesmas regras, mesma reserva registrada. Não interessa por onde o
+              cliente entrou: o controle nunca se divide.
             </p>
             <div className={styles.heroCtas}>
               <a href={`mailto:${EMAIL_DE_CONTATO}`} className={styles.ctaPrimario}>
