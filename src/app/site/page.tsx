@@ -1,6 +1,7 @@
 import { Fraunces, Outfit } from "next/font/google";
 import styles from "./pagina.module.css";
 import { DefinicoesDoVidroLiquidoSite } from "./VidroLiquido";
+import { EfeitosDeRolagem } from "./EfeitosDeRolagem";
 
 // Home de vendas do produto (automesa.com.br — ver a reescrita "/" -> "/site" em src/middleware.ts
 // pro domínio próprio). Sem nenhuma leitura de banco: é conteúdo institucional, igual pra todo
@@ -83,6 +84,7 @@ export default function PaginaSite() {
   return (
     <div className={`${styles.pagina} ${fraunces.variable} ${outfit.variable}`}>
       <DefinicoesDoVidroLiquidoSite />
+      <EfeitosDeRolagem />
       <div className={styles.atmosfera}>
         <div className={`${styles.brilho} ${styles.o1}`} />
         <div className={`${styles.brilho} ${styles.o2}`} />
@@ -150,53 +152,9 @@ export default function PaginaSite() {
           </div>
         </section>
 
-        {/* ---------- problema ---------- */}
-        <section className={styles.secao} id="problema">
-          <span className={styles.eyebrow}>01 · O ponto de partida</span>
-          <h2 className={styles.tituloSecao}>
-            Por que ferramentas de automação prontas não resolvem um restaurante de verdade
-          </h2>
-          <p className={styles.dekSecao}>
-            A maioria dos sistemas de automação de Instagram do mercado foi pensada para responder perguntas simples
-            — não para tocar a operação de reservas de uma casa, com lotação, horário de virada e uma equipe que
-            precisa acompanhar tudo em tempo real.
-          </p>
-
-          <div className={styles.dorGrid}>
-            <div className={styles.dorCard}>
-              <span className={styles.dorTag}>Limite de lotação</span>
-              <p>
-                Não sabem quantas pessoas já estão confirmadas pro almoço ou pro jantar. <b>Não existe controle de
-                capacidade automático</b> — o risco de overbooking fica inteiro nas suas mãos.
-              </p>
-            </div>
-            <div className={styles.dorCard}>
-              <span className={styles.dorTag}>Fluxo engessado</span>
-              <p>
-                Funcionam só com botões fixos e menus decorados. O cliente que escreve naturalmente ("quero reservar
-                pra sábado, 6 pessoas") frequentemente <b>trava o robô</b>.
-              </p>
-            </div>
-            <div className={styles.dorCard}>
-              <span className={styles.dorTag}>Sem painel de operação</span>
-              <p>
-                Você não tem uma tela pra ver as reservas do dia, editar ou acompanhar quem confirmou. <b>A
-                informação fica presa dentro do próprio chat</b>.
-              </p>
-            </div>
-            <div className={styles.dorCard}>
-              <span className={styles.dorTag}>Zero controle de equipe</span>
-              <p>
-                Não dá pra dar acesso só da tela de reservas pra um funcionário sem também entregar toda a
-                configuração sensível do negócio.
-              </p>
-            </div>
-          </div>
-        </section>
-
         {/* ---------- recursos ---------- */}
         <section className={styles.secao} id="recursos">
-          <span className={styles.eyebrow}>02 · O que você ganha</span>
+          <span className={styles.eyebrow}>01 · O que você ganha</span>
           <h2 className={styles.tituloSecao}>
             Um atendente de reservas que nunca dorme, nunca erra a conta e nunca ultrapassa a lotação
           </h2>
@@ -271,36 +229,67 @@ export default function PaginaSite() {
           </div>
         </section>
 
-        {/* ---------- como funciona ---------- */}
+        {/* ---------- operação ---------- */}
         <section className={styles.secao} id="como-funciona">
-          <span className={styles.eyebrow}>03 · Por dentro da conversa</span>
-          <h2 className={styles.tituloSecao}>Por fora, perguntas curtas. Por dentro, uma casa cheia de regras cruzadas</h2>
-          <p className={styles.dekSecao}>
-            O cliente só vê perguntas indo e voltando. Por trás de cada uma, o sistema resolve lotação, regras de
-            data e edição de reserva em tempo real.
-          </p>
+          <div className={styles.operacaoGrid}>
+            <div>
+              <span className={styles.eyebrow}>02 · Zero trabalho operacional</span>
+              <h2 className={styles.tituloSecao}>Sua equipe só recebe o cliente. A gente cuida do resto.</h2>
+              <p className={styles.dekSecao}>
+                Toda a operação e a programação ficam com a gente. Você não mexe em configuração nenhuma pra fazer
+                funcionar — só organiza a mesa e recebe quem chega. A cada reserva nova, o aviso chega sozinho, e sua
+                equipe acompanha tudo dentro do próprio painel, em tempo real.
+              </p>
+            </div>
 
-          <div className={styles.passos}>
-            <span className={styles.passo}>Gatilho</span>
-            <span className={styles.seta}>→</span>
-            <span className={styles.passo}>Data</span>
-            <span className={styles.seta}>→</span>
-            <span className={styles.passo}>Período</span>
-            <span className={styles.seta}>→</span>
-            <span className={styles.passo}>Pessoas</span>
-            <span className={styles.seta}>→</span>
-            <span className={styles.passo}>WhatsApp</span>
-            <span className={styles.seta}>→</span>
-            <span className={styles.passo}>Confirmação</span>
-            <span className={styles.seta}>→</span>
-            <span className={styles.passo}>Registrada</span>
+            <div className={styles.painelMockWrap}>
+              <div className={styles.toastNotificacao}>
+                <span className={styles.toastPonto} />
+                <div>
+                  <b>Nova reserva confirmada</b>
+                  <span>Ana Cordeiro · 4 pessoas · hoje às 20h</span>
+                </div>
+              </div>
+              <div className={styles.painelMock}>
+                <div className={styles.painelMockTopo}>
+                  <span>Reservas de hoje</span>
+                  <span className={styles.painelMockBadge}>12</span>
+                </div>
+                <div className={styles.painelMockLinha}>
+                  <span className={styles.painelMockAvatar}>A</span>
+                  <div className={styles.painelMockTexto}>
+                    <b>Ana Cordeiro</b>
+                    <span>4 pessoas · 20h</span>
+                  </div>
+                </div>
+                <div className={styles.painelMockLinha}>
+                  <span className={styles.painelMockAvatar}>R</span>
+                  <div className={styles.painelMockTexto}>
+                    <b>Rafael Souza</b>
+                    <span>2 pessoas · 20h30</span>
+                  </div>
+                </div>
+                <div className={styles.painelMockLinha}>
+                  <span className={styles.painelMockAvatar}>M</span>
+                  <div className={styles.painelMockTexto}>
+                    <b>Mariana Lopes</b>
+                    <span>6 pessoas · 21h</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
         {/* ---------- comparação ---------- */}
         <section className={styles.secao}>
-          <span className={styles.eyebrow}>04 · A diferença</span>
+          <span className={styles.eyebrow}>03 · A diferença</span>
           <h2 className={styles.tituloSecao}>Não é um chatbot genérico com um nome diferente</h2>
+          <p className={styles.dekSecao}>
+            A maioria dos sistemas de automação de Instagram foi pensada pra responder perguntas simples — não pra
+            tocar a operação de reservas de um restaurante de verdade, com lotação, horário de virada e uma equipe
+            acompanhando tudo em tempo real. A diferença fica clara lado a lado:
+          </p>
           <div className={styles.tabelaWrap}>
             <table className={styles.tabela}>
               <thead>
@@ -313,18 +302,18 @@ export default function PaginaSite() {
               <tbody>
                 <tr>
                   <td className={styles.rotulo}>Controle de lotação</td>
-                  <td><span className={styles.x}>✕</span> manual, por sua conta</td>
+                  <td><span className={styles.x}>✕</span> manual, por sua conta — risco de overbooking</td>
                   <td className={styles.destaque}><span className={styles.check}>✓</span> automático, por período</td>
                 </tr>
                 <tr>
                   <td className={styles.rotulo}>Entende texto livre</td>
-                  <td><span className={styles.x}>✕</span> só botões e menus fixos</td>
+                  <td><span className={styles.x}>✕</span> só botões e menus fixos — trava com frase natural</td>
                   <td className={styles.destaque}><span className={styles.check}>✓</span> conversa natural</td>
                 </tr>
                 <tr>
-                  <td className={styles.rotulo}>Painel de operação</td>
-                  <td><span className={styles.x}>✕</span> informação presa no chat</td>
-                  <td className={styles.destaque}><span className={styles.check}>✓</span> em tempo real, pra equipe</td>
+                  <td className={styles.rotulo}>Onde fica a operação</td>
+                  <td><span className={styles.x}>✕</span> presa dentro do próprio chat</td>
+                  <td className={styles.destaque}><span className={styles.check}>✓</span> painel próprio, com aviso a cada reserva</td>
                 </tr>
                 <tr>
                   <td className={styles.rotulo}>Acesso restrito pra equipe</td>
