@@ -78,22 +78,58 @@ export default function ReservasLayout({ children }: { children: React.ReactNode
       {/* Trocas de tela (Referer de uma página nossa) caem só na barrinha simples de sempre — ver
           reservas/loading.tsx — em vez da splash em vídeo, que fica reservada pra abertura de
           verdade do app. */}
-      {/* Fundo suave (Liquid Glass) da área toda de reservas — um degradê comum (background-image
-          puro, sem filter/blur nem position:fixed) em vez das manchas desfocadas + fixed de
-          antes: aquilo causava uma faixa/corte visível entre onde o brilho alcançava e o resto da
-          tela ficando liso, em Antigas/Futuras (telas curtas, com bastante espaço vazio embaixo).
-          Um gradiente é matematicamente suave do centro até "transparent", sem parada abrupta em
-          lugar nenhum — não tem como sobrar uma borda visível como acontecia antes. */}
-      <div
-        className={`min-h-dvh ${outfit.className}`}
-        style={{
-          backgroundImage:
-            "radial-gradient(640px circle at 8% 0%, rgba(79,70,229,0.10), transparent 70%)," +
-            "radial-gradient(600px circle at 100% 28%, rgba(139,92,246,0.09), transparent 70%)," +
-            "radial-gradient(560px circle at 4% 100%, rgba(245,158,11,0.08), transparent 70%)",
-        }}
-      >
-        {children}
+      {/* Fundo "atmosfera" — mesmas três manchas coloridas desfocadas (cores e posições idênticas)
+          da home de vendas (src/app/site/pagina.module.css, .o1/.o2/.o3), pedido pelo Victor pra
+          o vidro dos cartões ter cor de verdade pra refratar, em vez do degradê quase apagado de
+          antes. A faixa/corte visível em telas curtas (Antigas/Futuras) que tinha feito a versão
+          anterior de "manchas + fixed" ser revertida vinha do container sendo posicionado relativo
+          ao DOCUMENTO (altura variável por tela) — aqui ele é `position: fixed; inset: 0`, do
+          mesmo jeito que o site: sempre do tamanho exato da viewport, nunca do documento, então o
+          alcance do brilho é sempre o mesmo não importa quão curta a tela seja. */}
+      <div className={`relative min-h-dvh bg-[#050509] ${outfit.className}`}>
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: "60vmax",
+              height: "60vmax",
+              top: "-30vmax",
+              left: "-18vmax",
+              background: "radial-gradient(circle, rgba(99,102,241,0.45) 0%, transparent 62%)",
+              mixBlendMode: "screen",
+              filter: "blur(4vmax)",
+            }}
+          />
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: "50vmax",
+              height: "50vmax",
+              top: "30vmax",
+              right: "-20vmax",
+              background: "radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 62%)",
+              mixBlendMode: "screen",
+              filter: "blur(4vmax)",
+            }}
+          />
+          {/* Terceira mancha acinzentada (não rosa/roxa como as outras duas) — mesma cor exata do
+              site, pensada pra suavizar o canto de baixo em vez de continuar saturando com mais
+              índigo/violeta. */}
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: "40vmax",
+              height: "40vmax",
+              bottom: "-18vmax",
+              left: "10vmax",
+              background: "radial-gradient(circle, rgba(199,207,251,0.28) 0%, transparent 62%)",
+              mixBlendMode: "screen",
+              filter: "blur(4vmax)",
+            }}
+          />
+        </div>
+
+        <div className="relative z-10">{children}</div>
         <DefinicoesDoVidroLiquido />
       </div>
       <BannerInstalarApp />

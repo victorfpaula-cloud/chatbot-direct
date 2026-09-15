@@ -76,7 +76,7 @@ const ESTILO_DO_PERIODO: Record<string, { rotulo: string; caminho: string; cor: 
 // src/app/reservas/VidroLiquido.tsx, #vidro-painel) — efeito completo só no Chrome/Edge, Safari e
 // Firefox ignoram a parte url(...) sozinhos e ficam só com o blur de sempre, sem quebrar nada.
 export const CLASSE_CARTAO_DO_DIA =
-  "animate-entrada relative rounded-2xl border border-indigo-500/15 bg-white/[0.04] [backdrop-filter:blur(24px)_url(#vidro-painel)] [-webkit-backdrop-filter:blur(24px)_url(#vidro-painel)] shadow-[0_18px_42px_-16px_rgba(99,102,241,0.2),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
+  "animate-entrada relative rounded-2xl border-2 border-indigo-500/15 bg-white/[0.04] [backdrop-filter:blur(24px)_url(#vidro-painel)] [-webkit-backdrop-filter:blur(24px)_url(#vidro-painel)] shadow-[0_18px_42px_-16px_rgba(99,102,241,0.2),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
 
 export function estiloDoPeriodo(periodo: string) {
   return (
@@ -140,7 +140,7 @@ export function CartaoDeReserva({
     // por causa do transform, sem conseguir competir com o cartão vizinho. Erguer o cartão inteiro
     // (não só a caixinha) resolve, porque aí ele já sobe acima do vizinho antes de chegar nela.
     <div
-      className="animate-entrada relative rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none has-[details[open]]:z-20"
+      className="animate-entrada relative rounded-2xl border-2 border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none has-[details[open]]:z-20"
       style={{ animationDelay: `${Math.min(indice * 45, 300)}ms` }}
     >
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
