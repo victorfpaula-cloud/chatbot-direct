@@ -100,6 +100,10 @@ export default function ReservasLayout({ children }: { children: React.ReactNode
               filter: "blur(4vmax)",
             }}
           />
+          {/* Essa (violeta, canto direito) mais espalhada/difusa que as outras duas de propósito
+              (blur bem maior + degradê esticado até 85%, pico um pouco mais fraco pra compensar) —
+              pedido do Victor depois de ver ela concentrada demais, com uma borda meio dura, no
+              meio da tela. */}
           <div
             className="absolute rounded-full"
             style={{
@@ -107,9 +111,9 @@ export default function ReservasLayout({ children }: { children: React.ReactNode
               height: "50vmax",
               top: "30vmax",
               right: "-20vmax",
-              background: "radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 62%)",
+              background: "radial-gradient(circle, rgba(139,92,246,0.28) 0%, transparent 85%)",
               mixBlendMode: "screen",
-              filter: "blur(4vmax)",
+              filter: "blur(9vmax)",
             }}
           />
           {/* Terceira mancha acinzentada (não rosa/roxa como as outras duas) — mesma cor exata do
