@@ -405,3 +405,52 @@ alter table chatbot_accounts
   add column if not exists slug text unique;
 
 alter table chatbot_push_subscriptions enable row level security;
+
+-- ============================================================================
+-- Agendamento — sistema novo de calendário + blocos de horário (ex: salão de beleza), totalmente
+-- separado do sistema de Reserva acima (chatbot_reservations/chatbot_reservas_log): nenhuma tabela
+-- nem coluna de reserva é lida ou alterada por ele. Liga/desliga por conta em
+-- agendamento_habilitado, default FALSE — toda conta começa desligada.
+-- ============================================================================
+create table if not exists chatbot_agendamentos (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references chatbot_accounts(id) on delete cascade,
+  data_agendamento date not null,
+  horario time not null,
+  cliente_nome text,
+  cliente_instagram_username text,
+  instagram_scoped_id text,
+  whatsapp text,
+  canal text not null default 'instagram',
+  campos_respostas jsonb not null default '{}'::jsonb,
+  confirmado_em timestamptz not null default now()
+);
+
+create index if not exists chatbot_agendamentos_account_data_idx
+  on chatbot_agendamentos (account_id, data_agendamento);
+
+create table if not exists chatbot_agendamentos_log (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references chatbot_accounts(id) on delete cascade,
+  agendamento_id uuid references chatbot_agendamentos(id) on delete set null,
+  cliente_nome text,
+  autor text,
+  acao text,
+  detalhe text,
+  criado_em timestamptz not null default now()
+);
+
+alter table chatbot_account_settings
+  add column if not exists agendamento_habilitado boolean not null default false,
+  add column if not exists palavra_chave_agendamento text,
+  add column if not exists agendamento_intervalo_minutos integer not null default 30,
+  add column if not exists agendamento_vagas_por_horario integer not null default 1,
+  add column if not exists agendamento_horarios jsonb,
+  add column if not exists agendamento_datas_bloqueadas text,
+  add column if not exists agendamento_regras_texto text,
+  add column if not exists agendamento_msg_inicial text,
+  add column if not exists agendamento_msg_confirmada text,
+  add column if not exists agendamento_msg_recusada text,
+  add column if not exists agendamento_pausa_ativa boolean not null default false,
+  add column if not exists agendamento_pausa_mensagem text,
+  add column if not exists agendamento_campos_personalizados jsonb;
