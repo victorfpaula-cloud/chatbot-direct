@@ -45,7 +45,7 @@ export default async function FuncionariosPage({
         {(funcionarios ?? []).map((funcionario) => (
           <div
             key={funcionario.id}
-            className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3"
+            className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3"
           >
             <span className="text-sm font-medium text-neutral-200">{funcionario.usuario}</span>
             <form action={`/api/funcionarios/${funcionario.id}/excluir`} method="POST">

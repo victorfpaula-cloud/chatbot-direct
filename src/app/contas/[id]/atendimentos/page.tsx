@@ -99,7 +99,7 @@ function agruparPorCliente(atendimentos: Atendimento[]): GrupoPorCliente[] {
 
 function CartaoDeAtendimento({ atendimento }: { atendimento: Atendimento }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 text-sm shadow-sm shadow-black/20">
+    <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 text-sm shadow-sm shadow-black/20">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-neutral-500">{formatarDataHora(atendimento.criado_em)}</span>
         <BadgeDeStatus status={atendimento.status} />
@@ -198,7 +198,7 @@ export default async function AtendimentosPage({
               href={href}
               className={`rounded-lg border px-3 py-1.5 text-sm ${
                 ativo
-                  ? "border-neutral-500 bg-neutral-900 text-neutral-100"
+                  ? "border-indigo-500 bg-indigo-500 text-white shadow-md shadow-indigo-950/40"
                   : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
               }`}
             >
@@ -215,7 +215,7 @@ export default async function AtendimentosPage({
           {grupos.map((grupo) => (
             <details
               key={grupo.instagramScopedId}
-              className="group rounded-lg border border-neutral-800 bg-neutral-950 shadow-md shadow-black/30 open:border-neutral-600"
+              className="group rounded-lg border border-neutral-800 bg-neutral-950/60 shadow-md shadow-black/30 open:border-neutral-600"
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm">
                 <div className="flex items-center gap-2">

@@ -98,7 +98,7 @@ export default async function AgendamentoConfigPage({
           </p>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 shadow-md shadow-black/30 [backdrop-filter:blur(18px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(18px)_url(#vidro-cartao-contas)]">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
           <p className="text-sm font-medium text-neutral-200">Horário de funcionamento</p>
           <p className="mt-1 text-xs text-neutral-500">
             Define em quais dias da semana e em qual janela de horário os blocos são gerados. Fora
@@ -112,7 +112,7 @@ export default async function AgendamentoConfigPage({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 shadow-md shadow-black/30 [backdrop-filter:blur(18px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(18px)_url(#vidro-cartao-contas)]">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
           <p className="text-sm font-medium text-neutral-200">Blocos de horário</p>
           <p className="mt-1 text-xs text-neutral-500">
             De quanto em quanto tempo um novo horário fica disponível dentro da janela acima (ex:
@@ -150,7 +150,7 @@ export default async function AgendamentoConfigPage({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 shadow-md shadow-black/30 [backdrop-filter:blur(18px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(18px)_url(#vidro-cartao-contas)]">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
           <p className="text-sm font-medium text-neutral-200">Perguntas extras</p>
           <p className="mt-1 text-xs text-neutral-500">
             Além de dia, horário, nome e WhatsApp (sempre perguntados), monte aqui quantas perguntas
@@ -213,7 +213,7 @@ export default async function AgendamentoConfigPage({
           />
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 shadow-md shadow-black/30 [backdrop-filter:blur(18px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(18px)_url(#vidro-cartao-contas)]">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
           <p className="text-sm font-medium text-neutral-200">Bloquear datas específicas</p>
           <p className="mt-1 text-xs text-neutral-500">
             Bloqueia dias inteiros (feriados, etc) — o resto do fluxo continua funcionando normal.
@@ -226,7 +226,7 @@ export default async function AgendamentoConfigPage({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 shadow-md shadow-black/30 [backdrop-filter:blur(18px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(18px)_url(#vidro-cartao-contas)]">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
           <label className="flex items-center gap-2 text-sm text-neutral-200">
             <input
               type="checkbox"

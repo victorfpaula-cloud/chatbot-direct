@@ -31,7 +31,7 @@ export default async function PalavrasChavePage({
         {(palavrasChave ?? []).map((pc) => (
           <div
             key={pc.id}
-            className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3"
+            className="rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3"
           >
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium">{pc.palavra_chave}</div>

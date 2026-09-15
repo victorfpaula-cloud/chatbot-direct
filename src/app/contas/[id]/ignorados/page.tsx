@@ -36,7 +36,7 @@ export default async function IgnoradosPage({
         {(ignorados ?? []).map((ignorado) => (
           <div
             key={ignorado.id}
-            className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3"
+            className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3"
           >
             <div>
               <div className="text-sm font-medium">@{ignorado.instagram_username}</div>

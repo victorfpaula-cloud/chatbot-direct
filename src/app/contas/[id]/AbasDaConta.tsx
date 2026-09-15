@@ -23,7 +23,11 @@ export default function AbasDaConta({ contaId }: { contaId: string }) {
   const pathname = usePathname();
 
   return (
-    <nav className="mt-6 flex flex-wrap gap-2 rounded-xl border border-neutral-800 bg-neutral-900/40 p-2 [backdrop-filter:blur(16px)_url(#vidro-abas-contas)] [-webkit-backdrop-filter:blur(16px)_url(#vidro-abas-contas)]">
+    // Sem backdrop-filter aqui de propósito — essa barra já vive DENTRO do shell da conta (ver
+    // [id]/layout.tsx), que já tem seu próprio backdrop-filter. Empilhar blur dentro de blur foi
+    // exatamente o que deu artefato visual conhecido no Safari/WebKit quando tentamos isso com os
+    // cartões de reserva dentro do painel do dia — aqui só um fundo sólido, sem filtro próprio.
+    <nav className="mt-6 flex flex-wrap gap-2 rounded-xl border border-neutral-800 bg-neutral-950/60 p-2">
       {ABAS.map((aba) => {
         const href = `/contas/${contaId}/${aba.segmento}`;
         const ativa = pathname?.startsWith(href) ?? false;
