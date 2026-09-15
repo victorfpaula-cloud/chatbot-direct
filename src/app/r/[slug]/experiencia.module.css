@@ -709,6 +709,37 @@
   stroke-dashoffset: 40;
 }
 
+.botaoAgenda {
+  margin-top: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 1.5px solid var(--glass-border);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--ink-hi);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.botaoAgenda svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.botaoAgenda:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.botaoAgenda:active {
+  transform: scale(0.95);
+}
+
 .confete {
   position: fixed;
   z-index: 8;

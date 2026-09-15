@@ -71,13 +71,41 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       btnVoltar.classList.toggle(styles.visivel, historico.length > 0 && nome !== "fim");
     }
 
+    // Entrada e saída fazem par: a cena some se desfazendo num leve desfoque (blur) antes de subir
+    // e desaparecer, e a próxima nasce do mesmo jeito, ao contrário — desfocada, encolhida e um
+    // pouco abaixo, materializando nítida no lugar. Cross-dissolve borrado, não só um fade simples.
     function animarEntrada(cenaEl: HTMLElement) {
       const elementos = cenaEl.querySelectorAll(`.${styles.elem}`);
       gsap.fromTo(
         elementos,
-        { opacity: 0, y: 26, scale: 0.96 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.55, stagger: 0.07, ease: "back.out(1.5)", clearProps: "transform" }
+        { opacity: 0, y: 26, scale: 0.96, filter: "blur(5px)" },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          filter: "blur(0px)",
+          duration: 0.55,
+          stagger: 0.07,
+          ease: "back.out(1.5)",
+          clearProps: "transform,filter",
+        }
       );
+    }
+
+    /** Cada elemento da cena atual se desfaz (desfoca + encolhe + sobe) com um leve escalonamento
+     * entre um e outro, em vez de só o cartão inteiro deslizando pra fora — some em pedaços, não em
+     * bloco só. Roda em paralelo ao slide do `.cenaInterna` já existente em `trocar()`. */
+    function animarSaida(cenaEl: HTMLElement) {
+      const elementos = cenaEl.querySelectorAll(`.${styles.elem}`);
+      return gsap.to(elementos, {
+        opacity: 0,
+        y: -14,
+        scale: 0.92,
+        filter: "blur(6px)",
+        duration: 0.26,
+        stagger: 0.03,
+        ease: "power2.in",
+      });
     }
 
     function animarIconeHero(cenaEl: HTMLElement) {
@@ -111,8 +139,13 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       const proxima = cenas[nome];
       const direcao = indo === "voltar" ? 1 : -1;
       const tl = gsap.timeline();
-      tl.to(atual.querySelector(`.${styles.cenaInterna}`), { opacity: 0, x: 40 * direcao, scale: 0.94, duration: 0.3, ease: "power2.in" }).call(
-        () => {
+      tl.add(animarSaida(atual), 0)
+        .to(
+          atual.querySelector(`.${styles.cenaInterna}`),
+          { opacity: 0, x: 40 * direcao, scale: 0.94, duration: 0.3, ease: "power2.in" },
+          0
+        )
+        .call(() => {
           atual.classList.remove(styles.ativa);
           proxima.classList.add(styles.ativa);
           atualizarProgresso(nome);
@@ -120,8 +153,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
           animarEntrada(proxima);
           animarIconeHero(proxima);
           pulsarBrilhos();
-        }
-      );
+        });
     }
 
     function restaurarEstado(nome: string) {
@@ -140,6 +172,17 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       setTimeout(() => restaurarEstado(alvo), 50);
     }
     btnVoltar.addEventListener("click", voltar);
+
+    // Vibração bem curta nos momentos de "escolha" (não em todo clique) — Android/Chrome vibra de
+    // verdade, iOS/Safari simplesmente não tem `navigator.vibrate` (nunca implementou), então isso
+    // vira um no-op silencioso lá, sem precisar de nenhum tratamento especial pra esse caso.
+    function vibrar(padrao: number | number[]) {
+      try {
+        navigator.vibrate?.(padrao);
+      } catch {
+        // Alguns navegadores lançam se chamado fora de um gesto do usuário — seguro ignorar.
+      }
+    }
 
     function ondularBotao(botao: HTMLElement, e?: { clientX: number; clientY: number }) {
       const r = botao.getBoundingClientRect();
@@ -231,6 +274,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       qa(`.${styles.calDia}.${styles.selecionado}`).forEach((b) => b.classList.remove(styles.selecionado));
       botao.classList.add(styles.selecionado);
       gsap.fromTo(botao, { scale: 1 }, { scale: 1.18, duration: 0.22, yoyo: true, repeat: 1, ease: "power2.out" });
+      vibrar(8);
       void evento;
     }
 
@@ -268,6 +312,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       botao.classList.add(styles.escolhida);
       ondularBotao(botao, evento);
       celebrarEscolha(botao);
+      vibrar(12);
       dados.periodo = valor;
       setTimeout(() => {
         montarCadeiras();
@@ -295,6 +340,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       dados.pessoas = Math.min(20, Math.max(1, dados.pessoas + delta));
       numeroPessoasEl.textContent = String(dados.pessoas);
       gsap.fromTo(numeroPessoasEl, { scale: 1.35, rotation: -6 }, { scale: 1, rotation: 0, duration: 0.35, ease: "back.out(2.4)" });
+      vibrar(6);
       montarCadeiras();
       const nova = cadeirasEl.children[dados.pessoas - 1];
       if (nova) gsap.fromTo(nova, { scale: 0, rotation: -30 }, { scale: 1, rotation: 0, duration: 0.4, ease: "back.out(2.8)" });
@@ -350,6 +396,10 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       q("#resumo-periodo")!.textContent = dados.periodo === "almoco" ? "Almoço" : "Jantar";
       q("#resumo-pessoas")!.textContent = String(dados.pessoas);
       q("#resumo-whatsapp")!.textContent = dados.whatsapp;
+      // Toque pessoal no título dessa última pergunta — só o primeiro nome, pra não ficar formal
+      // demais ("Tudo certo, Maria Eduarda da Silva?" soaria estranho lido em voz alta).
+      const primeiroNome = dados.nome.split(" ")[0];
+      q("#titulo-confirmacao")!.textContent = primeiroNome ? `Tudo certo, ${primeiroNome}?` : "Tudo certo?";
       setTimeout(() => trocar("confirmacao"), 180);
     });
 
@@ -381,9 +431,24 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       }
     }
 
+    // Horário só aproximado (não temos um horário exato reservado, só o período) — serve pra dar
+    // um bloco plausível de ~1h30 no calendário de quem for, não uma hora cravada que o
+    // restaurante nunca prometeu.
+    function horarioAproximadoDoPeriodo(periodo: "almoco" | "jantar" | null): { inicio: string; fim: string } {
+      return periodo === "almoco" ? { inicio: "1200", fim: "1330" } : { inicio: "2000", fim: "2130" };
+    }
+    function linkAdicionarNaAgenda(): string {
+      const { inicio, fim } = horarioAproximadoDoPeriodo(dados.periodo);
+      const dataCompacta = dados.dataEscolhida.replace(/-/g, "");
+      const titulo = encodeURIComponent(`Reserva — ${config.nomeConta}`);
+      const detalhes = encodeURIComponent(`Mesa reservada para ${dados.pessoas} pessoa(s) em ${config.nomeConta}.`);
+      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${dataCompacta}T${inicio}00/${dataCompacta}T${fim}00&details=${detalhes}`;
+    }
+
     const btnConfirmar = q<HTMLButtonElement>("#btn-confirmar")!;
     const dicaConfirmacao = q("#dica-confirmacao")!;
     const fimTexto = q("#fim-texto")!;
+    const linkAgenda = q<HTMLAnchorElement>("#link-agenda")!;
     btnConfirmar.addEventListener("click", async (e) => {
       ondularBotao(btnConfirmar, e);
       dicaConfirmacao.textContent = "";
@@ -407,6 +472,8 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
           return;
         }
         fimTexto.textContent = resultado.mensagem;
+        linkAgenda.href = linkAdicionarNaAgenda();
+        vibrar([15, 40, 15]);
         setTimeout(() => {
           trocar("fim");
           setTimeout(() => {
@@ -733,7 +800,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
             <span className={`${styles.numeroPergunta} ${styles.elem}`} style={{ justifyContent: "center", width: "100%" }}>
               <span className={styles.numeroBolha}>5</span>Última etapa
             </span>
-            <h2 className={`${styles.perguntaTitulo} ${styles.elem}`} style={{ textAlign: "center" }}>
+            <h2 className={`${styles.perguntaTitulo} ${styles.elem}`} style={{ textAlign: "center" }} id="titulo-confirmacao">
               Tudo certo?
             </h2>
             <div className={`${styles.cartaoVidro} ${styles.elem}`}>
@@ -777,6 +844,20 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
             <p className={`${styles.subtitulo} ${styles.elem}`} id="fim-texto">
               {config.mensagemConfirmada}
             </p>
+            <a
+              id="link-agenda"
+              href="#"
+              target="_blank"
+              rel="noreferrer"
+              className={`${styles.botaoAgenda} ${styles.elem}`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="3" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+                <path d="M8 15l2.5 2.5L16 12" />
+              </svg>
+              Adicionar à agenda
+            </a>
           </div>
         </div>
       </div>
