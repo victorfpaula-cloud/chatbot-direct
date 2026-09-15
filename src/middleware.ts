@@ -59,20 +59,41 @@ import {
 const DOMINIOS_DA_RESERVA_EXTERNA = ["automesa.com.br", "www.automesa.com.br"];
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
+  // true só quando o caminho foi trocado por baixo dos panos (ver bloco abaixo) e ainda falta
+  // devolver isso como rewrite lá na isenção de login — reserva externa (/r/[slug]) já devolve
+  // direto ali embaixo, não precisa dessa flag.
+  let precisaReescrever = false;
 
   if (DOMINIOS_DA_RESERVA_EXTERNA.some((dominio) => host === dominio || host.startsWith(`${dominio}:`))) {
-    // "/" (sem slug nenhum), assets estáticos (_next), API e qualquer caminho com extensão de
-    // arquivo (favicon.ico, manifest.webmanifest, robots.txt...) passam direto, sem reescrever —
-    // só "automesa.com.br/algumSlug" vira "/r/algumSlug" por baixo dos panos.
-    if (pathname === "/" || pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
-      return NextResponse.next();
+    const caminhoOriginal = request.nextUrl.pathname;
+
+    // automesa.com.br/login — porta de entrada dos funcionários nesse domínio novo, mesmo login de
+    // sempre por baixo. Só troca o caminho aqui (em request.nextUrl, que o resto da função lê de
+    // novo mais abaixo) — a isenção de sessão e toda a checagem de funcionário continuam rodando
+    // normalmente pra "/reservas/login", sem duplicar nenhuma regra de acesso aqui.
+    if (caminhoOriginal === "/login") {
+      request.nextUrl.pathname = "/reservas/login";
+      precisaReescrever = true;
+    } else if (
+      // "/" (sem slug nenhum), /reservas (painel do funcionário inteiro, todas as sub-rotas), assets
+      // estáticos (_next), API e qualquer caminho com extensão de arquivo (favicon.ico,
+      // manifest.webmanifest, robots.txt...) seguem pro resto da função sem mexer no caminho — são
+      // rotas de verdade do app, cada uma com sua própria regra de acesso mais abaixo.
+      caminhoOriginal !== "/" &&
+      !caminhoOriginal.startsWith("/_next") &&
+      !caminhoOriginal.startsWith("/api") &&
+      !caminhoOriginal.startsWith("/reservas") &&
+      !caminhoOriginal.includes(".")
+    ) {
+      // Reserva externa (automesa.com.br/algumSlug -> /r/algumSlug) é sempre pública — nunca passa
+      // pela checagem de sessão abaixo, devolve na hora.
+      request.nextUrl.pathname = `/r${caminhoOriginal}`;
+      return NextResponse.rewrite(request.nextUrl);
     }
-    const url = request.nextUrl.clone();
-    url.pathname = `/r${pathname}`;
-    return NextResponse.rewrite(url);
   }
+
+  const { pathname } = request.nextUrl;
 
   // Público de propósito: a tela de login (do Victor e a do funcionário) e o envio do formulário
   // da segunda — ninguém consegue nem chegar ali se essas rotas também exigirem estar logado.
@@ -87,7 +108,7 @@ export async function middleware(request: NextRequest) {
     pathname === "/reservas/login" ||
     pathname === "/api/reservas/login"
   ) {
-    return NextResponse.next();
+    return precisaReescrever ? NextResponse.rewrite(request.nextUrl) : NextResponse.next();
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
