@@ -262,6 +262,8 @@ export const config = {
     // é o próprio navegador de quem já está logado que busca essa imagem direto via <img src>,
     // fora do fluxo de navegação normal — sem essa exceção cai no redirecionamento pra /login lá
     // embaixo, que devolve HTML em vez da imagem (ícone de imagem quebrada na tela).
-    "/((?!api/webhook/instagram|api/bridge/sendpulse|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/).*)",
+    // r/ (reserva externa, ver src/app/r/unico/page.tsx): link público que o próprio cliente
+    // final abre direto — ele nunca tem sessão nenhuma, nem de admin nem de funcionário.
+    "/((?!api/webhook/instagram|api/bridge/sendpulse|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/).*)",
   ],
 };
