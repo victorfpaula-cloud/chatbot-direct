@@ -597,7 +597,7 @@ async function continuarFluxo(
         // pedido dela já estourar o limite sozinho.
         const jaReservado = await somaPessoasReservadas(admin, conta.id, dados.data_reserva, dados.periodo);
 
-        if (jaReservado + quantidade > limiteMaximo) {
+        if (!cabeNoLimite(jaReservado, quantidade, limiteMaximo)) {
           const mensagem =
             config?.reserva_mensagem_limite_maximo?.trim() ||
             "Nossas reservas do dia já estão encerradas porque todas as mesas já foram preenchidas. Nosso atendimento será apenas por ordem de chegada.";
@@ -753,7 +753,7 @@ export async function prepararConfirmacaoDeReserva(
   if (typeof limiteMaximo === "number" && dados.data_reserva && dados.periodo) {
     jaReservado = await somaPessoasReservadas(admin, accountId, dados.data_reserva, dados.periodo);
 
-    if (jaReservado + dados.quantidade_pessoas > limiteMaximo) {
+    if (!cabeNoLimite(jaReservado, dados.quantidade_pessoas, limiteMaximo)) {
       const mensagem =
         config?.reserva_mensagem_limite_maximo?.trim() ||
         "Nossas reservas do dia já estão encerradas porque todas as mesas já foram preenchidas. Nosso atendimento será apenas por ordem de chegada.";
@@ -870,6 +870,23 @@ export function limiteMaximoDoPeriodo(
     return config?.reserva_limite_maximo_jantar ?? config?.reserva_limite_maximo ?? undefined;
   }
   return config?.reserva_limite_maximo ?? undefined;
+}
+
+// "Regra de estouro" perto do limite máximo (pedida pelo Victor) — sem isso, uma reserva pra 2
+// pessoas era recusada de cara com o limite em 59/60, mesmo faltando só 1 vaga, porque a soma
+// bateria 61. Só dentro das últimas MARGEM_DE_PROXIMIDADE vagas antes do limite é que uma reserva
+// que passaria dele ainda é aceita — e mesmo assim, só se o quanto ultrapassa não passar de
+// MARGEM_DE_ESTOURO. Longe do limite, a regra de sempre continua valendo sem nenhuma folga.
+const MARGEM_DE_PROXIMIDADE_DO_LIMITE = 3;
+const MARGEM_DE_ESTOURO_DO_LIMITE = 2;
+
+export function cabeNoLimite(jaReservado: number, quantidade: number, limiteMaximo: number): boolean {
+  const totalDepois = jaReservado + quantidade;
+  if (totalDepois <= limiteMaximo) return true;
+
+  const pertoDoLimite = jaReservado >= limiteMaximo - MARGEM_DE_PROXIMIDADE_DO_LIMITE;
+  const dentroDaMargemDeEstouro = totalDepois <= limiteMaximo + MARGEM_DE_ESTOURO_DO_LIMITE;
+  return pertoDoLimite && dentroDaMargemDeEstouro;
 }
 
 export async function buscarConfig(admin: Admin, accountId: string) {

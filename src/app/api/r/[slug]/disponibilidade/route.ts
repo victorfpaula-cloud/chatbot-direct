@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { buscarConfig, limiteMaximoDoPeriodo, somaPessoasReservadas } from "@/lib/reservas";
+import { buscarConfig, cabeNoLimite, limiteMaximoDoPeriodo, somaPessoasReservadas } from "@/lib/reservas";
 import { buscarContaPorSlug, hojeISO, montarConfigPublica } from "@/lib/reservaExterna";
 
 /**
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   if (typeof limiteMaximo === "number") {
     const jaReservado = await somaPessoasReservadas(admin, conta.id, data, periodo);
-    if (jaReservado + pessoas > limiteMaximo) {
+    if (!cabeNoLimite(jaReservado, pessoas, limiteMaximo)) {
       const mensagem =
         configCompleto?.reserva_mensagem_limite_maximo?.trim() ||
         "Nossas reservas do dia já estão encerradas porque todas as mesas já foram preenchidas. Nosso atendimento será apenas por ordem de chegada.";
