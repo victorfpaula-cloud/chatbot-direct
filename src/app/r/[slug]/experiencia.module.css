@@ -205,16 +205,18 @@
   will-change: transform;
 }
 
-/* Brilho de vidro em loop contínuo varrendo o cartão em diagonal — a "vida" do material, além da
-   refração de borda. Fica atrás do conteúdo (ver `.cartaoVidro > *` logo abaixo). */
+/* Brilho de vidro em loop contínuo varrendo o cartão da esquerda pra direita — a "vida" do
+   material, além da refração de borda. Fica atrás do conteúdo (ver `.cartaoVidro > *` logo
+   abaixo). Só varre no eixo horizontal de propósito (gradiente a 90deg, background-position só em
+   X) — a versão anterior também se movia em Y e ficava com um brilho vertical estranho por cima. */
 .cartaoVidro::before,
 .fechadoCartao::before {
   content: "";
   position: absolute;
-  inset: -60%;
+  inset: 0;
   z-index: 0;
-  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.16) 50%, transparent 58%);
-  background-size: 220% 220%;
+  background: linear-gradient(90deg, transparent 42%, rgba(255, 255, 255, 0.16) 50%, transparent 58%);
+  background-size: 260% 100%;
   animation: varreduraVidro 6.5s linear infinite;
   pointer-events: none;
   mix-blend-mode: screen;
@@ -225,10 +227,10 @@
 }
 @keyframes varreduraVidro {
   0% {
-    background-position: 200% -20%;
+    background-position: 200% 0%;
   }
   100% {
-    background-position: -40% 180%;
+    background-position: -100% 0%;
   }
 }
 
