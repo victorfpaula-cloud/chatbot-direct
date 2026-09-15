@@ -586,8 +586,11 @@ export async function PainelDeReservas({
           o antigo link "Voltar" (nas telas de Antigas/Futuras) e o quadro de navegação que ficava
           mais abaixo, só na tela "hoje" — agora dá pra trocar de tela dali de qualquer uma das
           três, sempre no mesmo lugar. */}
+      {/* [backdrop-filter]/[-webkit-backdrop-filter] em vez de backdrop-blur-lg: mesmo blur (16px),
+          referenciando o filtro de refração #vidro-abas (ver VidroLiquido.tsx) — efeito completo só
+          no Chrome/Edge, Safari/Firefox ficam só com o blur de sempre. */}
       <div
-        className="animate-entrada relative mt-4 flex gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1 backdrop-blur-lg motion-reduce:animate-none"
+        className="animate-entrada relative mt-4 flex gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1 [backdrop-filter:blur(16px)_url(#vidro-abas)] [-webkit-backdrop-filter:blur(16px)_url(#vidro-abas)] motion-reduce:animate-none"
         style={{ animationDelay: "40ms" }}
       >
         {(["antigas", "hoje", "futuras"] as ModoDaTelaDeReservas[]).map((destino) => (
@@ -629,7 +632,10 @@ export async function PainelDeReservas({
               {/* As duas na mesma cor (índigo), com um degradê bem mais suave que antes — eram um
                   azul e um roxo brigando entre si e com o resto da tela. */}
               <div className="animate-entrada mt-4 grid grid-cols-2 gap-3 motion-reduce:animate-none" style={{ animationDelay: "80ms" }}>
-                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 backdrop-blur-xl shadow-[0_10px_24px_-14px_rgba(99,102,241,0.18)] before:absolute before:inset-x-[10%] before:top-0 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
+                {/* [backdrop-filter]/[-webkit-backdrop-filter] em vez de backdrop-blur-xl: mesmo
+                    blur (24px), referenciando o filtro de refração #vidro-tile (ver VidroLiquido.tsx) —
+                    efeito completo só no Chrome/Edge, Safari/Firefox ficam só com o blur de sempre. */}
+                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 [backdrop-filter:blur(24px)_url(#vidro-tile)] [-webkit-backdrop-filter:blur(24px)_url(#vidro-tile)] shadow-[0_10px_24px_-14px_rgba(99,102,241,0.18)] before:absolute before:inset-x-[10%] before:top-0 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/30 text-indigo-100">
                     <Icone path={CAMINHO_TICKET} className="h-4 w-4" />
                   </div>
@@ -638,7 +644,7 @@ export async function PainelDeReservas({
                     <p className="text-2xl font-semibold text-neutral-50">{totalDeReservas}</p>
                   </div>
                 </div>
-                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 backdrop-blur-xl shadow-[0_10px_24px_-14px_rgba(99,102,241,0.18)] before:absolute before:inset-x-[10%] before:top-0 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
+                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 [backdrop-filter:blur(24px)_url(#vidro-tile)] [-webkit-backdrop-filter:blur(24px)_url(#vidro-tile)] shadow-[0_10px_24px_-14px_rgba(99,102,241,0.18)] before:absolute before:inset-x-[10%] before:top-0 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/30 text-indigo-100">
                     <Icone path={CAMINHO_PESSOAS} className="h-4 w-4" />
                   </div>

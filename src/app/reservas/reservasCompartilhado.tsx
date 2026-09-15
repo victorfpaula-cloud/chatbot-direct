@@ -71,8 +71,12 @@ const ESTILO_DO_PERIODO: Record<string, { rotulo: string; caminho: string; cor: 
 // vezes além da altura do cartão) ficava cortada, e o combo overflow-hidden + backdrop-blur +
 // rounded-2xl num `<details>` que muda de altura (abre/fecha) é conhecido por dar rendering
 // errado no Safari/WebKit — provavelmente a causa da "faixa cortada" relatada em Antigas/Futuras.
+// [backdrop-filter:...]/[-webkit-backdrop-filter:...] no lugar de backdrop-blur-xl: mesmo blur de
+// antes (24px), só que agora referenciando o filtro SVG de refração de borda (ver
+// src/app/reservas/VidroLiquido.tsx, #vidro-painel) — efeito completo só no Chrome/Edge, Safari e
+// Firefox ignoram a parte url(...) sozinhos e ficam só com o blur de sempre, sem quebrar nada.
 export const CLASSE_CARTAO_DO_DIA =
-  "animate-entrada relative rounded-2xl border border-indigo-500/15 bg-white/[0.04] backdrop-blur-xl shadow-[0_18px_42px_-16px_rgba(99,102,241,0.2),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
+  "animate-entrada relative rounded-2xl border border-indigo-500/15 bg-white/[0.04] [backdrop-filter:blur(24px)_url(#vidro-painel)] [-webkit-backdrop-filter:blur(24px)_url(#vidro-painel)] shadow-[0_18px_42px_-16px_rgba(99,102,241,0.2),0_6px_14px_-6px_rgba(0,0,0,0.55)] before:absolute before:inset-x-[8%] before:top-0 before:z-10 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none";
 
 export function estiloDoPeriodo(periodo: string) {
   return (

@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { Outfit } from "next/font/google";
 import { SplashReservas } from "./SplashReservas";
 import { IndicadorDeCarregamento } from "./IndicadorDeCarregamento";
 import { BannerInstalarApp } from "./BannerInstalarApp";
+import { DefinicoesDoVidroLiquido } from "./VidroLiquido";
+
+// Só a área de reservas (o "painel de funcionário") ganha essa fonte por enquanto — o painel
+// administrativo (/contas) continua com a fonte de sempre até o mesmo redesign chegar lá.
+const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], display: "swap" });
 
 // Só essa área (onde o funcionário vive — ele não acessa mais nada além de /reservas) ganha um
 // ícone e um manifest próprios, pra quando alguém adicionar essa tela à tela de início do
@@ -79,7 +85,7 @@ export default function ReservasLayout({ children }: { children: React.ReactNode
           Um gradiente é matematicamente suave do centro até "transparent", sem parada abrupta em
           lugar nenhum — não tem como sobrar uma borda visível como acontecia antes. */}
       <div
-        className="min-h-dvh"
+        className={`min-h-dvh ${outfit.className}`}
         style={{
           backgroundImage:
             "radial-gradient(640px circle at 8% 0%, rgba(79,70,229,0.10), transparent 70%)," +
@@ -88,6 +94,7 @@ export default function ReservasLayout({ children }: { children: React.ReactNode
         }}
       >
         {children}
+        <DefinicoesDoVidroLiquido />
       </div>
       <BannerInstalarApp />
     </>
