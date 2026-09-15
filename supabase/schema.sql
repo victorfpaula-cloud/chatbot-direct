@@ -413,6 +413,13 @@ alter table chatbot_accounts
 alter table chatbot_accounts
   add column if not exists cor_predominante_logo text;
 
+-- Cor de destaque escolhida À MÃO pelo dono da conta (campo em /contas/[id]/reserva) — quando
+-- preenchida, vence a cor extraída automaticamente do logo (cor_predominante_logo): a extração
+-- automática é só uma estimativa e pode não bater com o tom exato que o dono quer (ex.: tirou uma
+-- média meio "lavada" de um logo vermelho, e o dono queria um vermelho queimado de verdade).
+alter table chatbot_accounts
+  add column if not exists cor_destaque_manual text;
+
 alter table chatbot_push_subscriptions enable row level security;
 
 -- ============================================================================

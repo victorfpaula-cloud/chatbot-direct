@@ -30,6 +30,9 @@ export async function POST(request: NextRequest) {
   const palavraChaveAlterarReserva = formData.get("palavra_chave_alterar_reserva")?.toString() ?? "";
   const alteracaoCutoffHorario = formData.get("alteracao_cutoff_horario")?.toString() ?? "";
 
+  const corDestaqueManualBruta = formData.get("cor_destaque_manual")?.toString().trim() ?? "";
+  const corDestaqueManual = /^#[0-9a-fA-F]{6}$/.test(corDestaqueManualBruta) ? corDestaqueManualBruta : null;
+
   const limiteNormalBruto = formData.get("reserva_limite_normal")?.toString().trim();
   const limiteMaximoBruto = formData.get("reserva_limite_maximo")?.toString().trim();
   const limiteMaximoJantarBruto = formData.get("reserva_limite_maximo_jantar")?.toString().trim();
@@ -46,6 +49,21 @@ export async function POST(request: NextRequest) {
       : null;
 
   const admin = criarClienteAdmin();
+
+  // Cor de destaque mora em chatbot_accounts (junto da cor extraída automaticamente do logo),
+  // não em chatbot_account_settings como o resto dos campos dessa tela — atualização separada.
+  const { error: erroDaCor } = await admin
+    .from("chatbot_accounts")
+    .update({ cor_destaque_manual: corDestaqueManual })
+    .eq("id", accountId);
+
+  if (erroDaCor) {
+    console.error("Falha ao salvar cor de destaque:", erroDaCor);
+    return NextResponse.redirect(
+      new URL(`/contas/${accountId}/reserva?erro=${encodeURIComponent(erroDaCor.message)}`, request.url)
+    );
+  }
+
   const { error } = await admin.from("chatbot_account_settings").upsert(
     {
       account_id: accountId,

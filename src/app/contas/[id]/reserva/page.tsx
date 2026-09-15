@@ -1,6 +1,7 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { BotaoAtivarReservas } from "@/app/contas/BotaoAtivarReservas";
 import DatasBloqueadasEditor from "./DatasBloqueadasEditor";
+import CorDeDestaqueEditor from "./CorDeDestaqueEditor";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,6 +22,14 @@ export default async function ReservaConfigPage({
       "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario"
     )
     .eq("account_id", params.id)
+    .maybeSingle();
+
+  // Cor de destaque da reserva externa mora em chatbot_accounts (junto da cor extraída
+  // automaticamente do logo), não em chatbot_account_settings como o resto dessa tela.
+  const { data: conta } = await admin
+    .from("chatbot_accounts")
+    .select("cor_destaque_manual")
+    .eq("id", params.id)
     .maybeSingle();
 
   // Postgres devolve hora como "18:00:00" — o campo <input type="time"> espera "18:00".
@@ -109,6 +118,18 @@ export default async function ReservaConfigPage({
           <p className="mt-1 text-xs text-neutral-500">
             Pode escrever mais de uma variação separada por vírgula.
           </p>
+        </div>
+
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
+          <p className="text-sm font-medium text-neutral-200">Aparência da reserva externa</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Cor do brilho de fundo e dos botões na página pública de reserva (/r/...). Em branco,
+            usa uma cor calculada automaticamente a partir do logo do Instagram — preencha aqui só
+            se quiser escolher o tom exato à mão.
+          </p>
+          <div className="mt-3">
+            <CorDeDestaqueEditor valorInicial={conta?.cor_destaque_manual ?? ""} />
+          </div>
         </div>
 
         <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">

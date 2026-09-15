@@ -58,6 +58,16 @@ function hslParaHex(h: number, s: number, l: number): string {
   return `#${paraCanal(0)}${paraCanal(8)}${paraCanal(4)}`;
 }
 
+// Vermelhos/rosas (matiz perto de 0°/360°) ficam com cara de pastel/rosa em luminosidade alta —
+// bem diferente de azuis/verdes, que continuam lendo como a própria cor. Por isso a luminosidade
+// base não é fixa: tons quentes usam uma base mais escura (e mais saturada), pra ler como vermelho
+// de verdade em vez de lavado.
+function luminosidadeBaseParaMatiz(h: number): number {
+  const graus = h * 360;
+  const distanciaDoVermelho = Math.min(graus, 360 - graus);
+  return distanciaDoVermelho < 30 ? 0.5 : 0.66;
+}
+
 /** `null` quando o logo é essencialmente sem cor (preto/branco/cinza) — nesse caso o chamador deve
  * manter a paleta índigo padrão em vez de aplicar um cinza sem graça no lugar dela. */
 function paraCorDeAcento(r: number, g: number, b: number): string | null {
@@ -68,7 +78,7 @@ function paraCorDeAcento(r: number, g: number, b: number): string | null {
   const saturacaoRealcada = Math.min(1, s * 1.6);
   if (saturacaoRealcada < 0.16) return null;
 
-  return hslParaHex(h, saturacaoRealcada, 0.66);
+  return hslParaHex(h, saturacaoRealcada, luminosidadeBaseParaMatiz(h));
 }
 
 function hexParaRgb(hex: string): [number, number, number] {
@@ -95,20 +105,35 @@ export type PaletaDoLogo = {
   glow3: string;
 };
 
-/** A partir da cor guardada em `cor_predominante_logo` (já vem em H/L pensados pra virar --acento
- * direto), deriva o resto da paleta usada em experiencia.module.css: uma versão mais clara (hover/
- * destaque), uma mais escura (gradiente do CTA) e os 3 tons do brilho de fundo, mantendo sempre o
- * mesmo matiz do logo. */
+function construirPaleta(h: number, s: number, l: number, acentoExato?: string): PaletaDoLogo {
+  const lHi = Math.min(0.9, l + 0.18);
+  const lDeep = Math.max(0.28, l - 0.2);
+  return {
+    acento: acentoExato ?? hslParaHex(h, s, l),
+    acentoHi: hslParaHex(h, s, lHi),
+    acentoDeep: hslParaHex(h, s, lDeep),
+    glow1: hslParaRgba(h, s, l, 0.5),
+    glow2: hslParaRgba(h, s, l, 0.4),
+    glow3: hslParaRgba(h, s, l, 0.32),
+  };
+}
+
+/** A partir da cor guardada em `cor_predominante_logo` (extraída automaticamente, ver
+ * `extrairCorPredominante`), deriva o resto da paleta usada em experiencia.module.css: uma versão
+ * mais clara (hover/destaque), uma mais escura (gradiente do CTA) e os 3 tons do brilho de fundo,
+ * mantendo sempre o mesmo matiz do logo. */
 export function paletaAPartirDoHex(hex: string): PaletaDoLogo {
   const [r, g, b] = hexParaRgb(hex);
   const [h, s] = rgbParaHsl(r, g, b);
+  return construirPaleta(h, s, luminosidadeBaseParaMatiz(h));
+}
 
-  return {
-    acento: hslParaHex(h, s, 0.66),
-    acentoHi: hslParaHex(h, s, 0.84),
-    acentoDeep: hslParaHex(h, s, 0.45),
-    glow1: hslParaRgba(h, s, 0.66, 0.5),
-    glow2: hslParaRgba(h, s, 0.66, 0.4),
-    glow3: hslParaRgba(h, s, 0.66, 0.32),
-  };
+/** Igual `paletaAPartirDoHex`, mas pra quando o PRÓPRIO dono da conta escolheu a cor à mão (campo
+ * "Cor de destaque" em /contas/[id]/reserva) — usa a luminosidade exata que ele escolheu (sem
+ * nenhum ajuste automático) e mantém o hex digitado como --acento, pra não devolver um tom
+ * levemente diferente do que ele pediu por causa de arredondamento na conversão HSL -> hex. */
+export function paletaAPartirDeAcentoExato(hex: string): PaletaDoLogo {
+  const [r, g, b] = hexParaRgb(hex);
+  const [h, s, l] = rgbParaHsl(r, g, b);
+  return construirPaleta(h, s, l, hex);
 }

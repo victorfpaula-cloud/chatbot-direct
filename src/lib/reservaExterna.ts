@@ -6,7 +6,7 @@ import {
   parseDatasBloqueadas,
   passouDoCutoff,
 } from "@/lib/reservas";
-import { paletaAPartirDoHex, type PaletaDoLogo } from "@/lib/corDoLogo";
+import { paletaAPartirDoHex, paletaAPartirDeAcentoExato, type PaletaDoLogo } from "@/lib/corDoLogo";
 
 // Reserva externa (link público /r/[slug], fora do Instagram — ver src/app/r/[slug]/page.tsx e as
 // rotas em src/app/api/r/[slug]/). Todo o cálculo de "o que pode ser reservado agora" mora aqui,
@@ -21,12 +21,13 @@ export type ContaExterna = {
   page_name: string;
   foto_perfil_url: string | null;
   cor_predominante_logo: string | null;
+  cor_destaque_manual: string | null;
 };
 
 export async function buscarContaPorSlug(admin: Admin, slug: string): Promise<ContaExterna | null> {
   const { data, error } = await admin
     .from("chatbot_accounts")
-    .select("id, page_name, active, foto_perfil_url, cor_predominante_logo")
+    .select("id, page_name, active, foto_perfil_url, cor_predominante_logo, cor_destaque_manual")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -37,6 +38,7 @@ export async function buscarContaPorSlug(admin: Admin, slug: string): Promise<Co
     page_name: data.page_name,
     foto_perfil_url: data.foto_perfil_url,
     cor_predominante_logo: data.cor_predominante_logo,
+    cor_destaque_manual: data.cor_destaque_manual,
   };
 }
 
@@ -68,7 +70,13 @@ export async function montarConfigPublica(admin: Admin, conta: ContaExterna): Pr
   return {
     nomeConta: conta.page_name,
     logoUrl: conta.foto_perfil_url,
-    paleta: conta.cor_predominante_logo ? paletaAPartirDoHex(conta.cor_predominante_logo) : null,
+    // Cor escolhida à mão (se houver) sempre vence a extraída automaticamente do logo — ver
+    // paletaAPartirDeAcentoExato em src/lib/corDoLogo.ts.
+    paleta: conta.cor_destaque_manual
+      ? paletaAPartirDeAcentoExato(conta.cor_destaque_manual)
+      : conta.cor_predominante_logo
+        ? paletaAPartirDoHex(conta.cor_predominante_logo)
+        : null,
     aceitaReservas: !reservaDesligada && !emPausa,
     mensagemFechado: emPausa
       ? config?.reserva_pausa_mensagem?.trim() ||
