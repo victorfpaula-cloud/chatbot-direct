@@ -271,15 +271,33 @@ export function CartaoDePeriodo({
   // Azul (mesmo tom dos botões/destaques da tela) pra ocupação tranquila; amber e vermelho
   // continuam de aviso mesmo, pra não perder o sinal de "atenção" quando a capacidade aperta. Sem
   // caixa/borda própria (isso virou uma seção dentro do cartão do dia, não um cartão à parte) — o
-  // sinal de status agora é só a cor da barra + do texto de "X/Y pessoas".
+  // sinal de status agora é só a cor da barra + do texto de "X/Y pessoas". `borda`/`brilho` tingem
+  // o trilho (border + glow por fora) na MESMA cor do preenchimento — em vez de uma borda branca
+  // genérica, fica com cara de tubo de vidro colorido pela própria "lotação" de dentro, não só
+  // uma barra lisa com uma linha em volta.
   const status =
     percentual === null
-      ? { barra: "bg-neutral-600", texto: "text-neutral-400" }
+      ? { barra: "bg-neutral-600", texto: "text-neutral-400", borda: "border-neutral-500/30", brilho: "" }
       : percentual >= 100
-        ? { barra: "bg-red-500", texto: "text-red-400" }
+        ? {
+            barra: "bg-red-500",
+            texto: "text-red-400",
+            borda: "border-red-500/50",
+            brilho: "shadow-[0_0_12px_-2px_rgba(239,68,68,0.55)]",
+          }
         : percentual >= 70
-          ? { barra: "bg-amber-500", texto: "text-amber-400" }
-          : { barra: "bg-indigo-500", texto: "text-indigo-400" };
+          ? {
+              barra: "bg-amber-500",
+              texto: "text-amber-400",
+              borda: "border-amber-500/50",
+              brilho: "shadow-[0_0_12px_-2px_rgba(245,158,11,0.55)]",
+            }
+          : {
+              barra: "bg-indigo-500",
+              texto: "text-indigo-400",
+              borda: "border-indigo-500/50",
+              brilho: "shadow-[0_0_12px_-2px_rgba(99,102,241,0.55)]",
+            };
   const estiloPeriodo = estiloDoPeriodo(periodo);
 
   return (
@@ -299,11 +317,15 @@ export function CartaoDePeriodo({
       {/* Trilho translúcido (branco, não cinza sólido) — contra o fundo de vidro do card do dia,
           o cinza escuro de antes quase sumia de tão parecido com o fundo. Mais alto que antes só
           pra caber o texto da lotação centralizado dentro dele, bem discreto (fonte pequena, sem
-          gritar) em vez de escrito solto do lado de fora. Borda própria (sem blur próprio — o
-          card do dia por fora já borra o fundo de verdade, ver comentário em CartaoDeReserva
-          sobre esse mesmo cuidado) só pra dar aquela bordinha de vidro que faltava aqui. */}
+          gritar) em vez de escrito solto do lado de fora. Borda + brilho por fora na cor do
+          `status` (não branco genérico — sem blur próprio, o card do dia por fora já borra o
+          fundo de verdade, ver comentário em CartaoDeReserva sobre esse mesmo cuidado) + um
+          reflexo interno bem sutil no topo, pra ficar com cara de tubo de vidro de verdade em vez
+          de só uma barra lisa com uma linha em volta. */}
       {percentual !== null && (
-        <div className="relative mt-3 h-5 w-full overflow-hidden rounded-full border-2 border-white/15 bg-white/10">
+        <div
+          className={`relative mt-3 h-5 w-full overflow-hidden rounded-full border-2 bg-white/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.18),inset_0_-1px_2px_rgba(0,0,0,0.3)] ${status.borda} ${status.brilho}`}
+        >
           <div className={`h-full rounded-full ${status.barra}`} style={{ width: `${percentual}%` }} />
           <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-neutral-300">
             Lotação em {percentual}%
