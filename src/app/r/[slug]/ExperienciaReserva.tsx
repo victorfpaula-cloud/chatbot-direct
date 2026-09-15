@@ -288,10 +288,27 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
     });
     montarCalendario();
 
+    // Depois desse horário, só faz sentido perguntar "almoço ou jantar?" se o dia escolhido NÃO for
+    // hoje (reservar pra amanhã de manhã continua podendo ser almoço) — passado esse horário HOJE,
+    // só sobra jantar mesmo, então a pergunta some da conversa e a gente já assume jantar sozinho,
+    // sem precisar incomodar o cliente com uma escolha que já não é escolha nenhuma.
+    const HORA_LIMITE_ALMOCO = 13;
+    function soSobrouJantar(dataISO: string): boolean {
+      return dataISO === hojeISOStr && new Date().getHours() >= HORA_LIMITE_ALMOCO;
+    }
+
     const btnDiaContinuar = q<HTMLButtonElement>("#btn-dia-continuar")!;
     btnDiaContinuar.addEventListener("click", (e) => {
       ondularBotao(btnDiaContinuar, e);
-      setTimeout(() => trocar("periodo"), 180);
+      if (soSobrouJantar(dados.dataEscolhida)) {
+        dados.periodo = "jantar";
+        setTimeout(() => {
+          montarCadeiras();
+          trocar("pessoas");
+        }, 180);
+      } else {
+        setTimeout(() => trocar("periodo"), 180);
+      }
     });
 
     function formatarDataResumo(iso: string) {
