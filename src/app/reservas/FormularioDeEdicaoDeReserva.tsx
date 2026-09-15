@@ -30,13 +30,19 @@ export function FormularioDeEdicaoDeReserva({
         method="POST"
         className="absolute left-0 z-10 mt-2 flex w-56 flex-col gap-2 rounded-xl border border-neutral-700 bg-neutral-900 p-3 shadow-xl shadow-black/40"
         onSubmit={(evento) => {
-          const confirmou = window.confirm(
-            `Tem certeza que quer alterar o número de pessoas da reserva de ${nomeCliente}?`
-          );
+          const confirmou = window.confirm(`Tem certeza que quer alterar a reserva de ${nomeCliente}?`);
           if (!confirmou) evento.preventDefault();
         }}
       >
         <input type="hidden" name="redirect_to" value={redirectTo} />
+        <label className="text-xs text-neutral-500">Nome</label>
+        <input
+          type="text"
+          name="cliente_nome"
+          defaultValue={nomeCliente}
+          required
+          className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm"
+        />
         <label className="text-xs text-neutral-500">Novo número de pessoas</label>
         <input
           type="number"

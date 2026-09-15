@@ -212,10 +212,14 @@ async function tentarBuscarPerfilDoCliente(
     }
 
     const dados = await resposta.json();
-    return {
-      nome: typeof dados?.name === "string" && dados.name ? dados.name : "Cliente",
-      username: typeof dados?.username === "string" ? dados.username : null,
-    };
+    const username = typeof dados?.username === "string" ? dados.username : null;
+    // Nem todo mundo tem um nome de exibição preenchido no Instagram (só @usuário) — a Graph API
+    // devolve `name` vazio nesse caso, sem erro nenhum pra pegar (foi exatamente isso que aconteceu
+    // na reserva da Ana Jux — ver conversa de 15/09). "@usuário" identifica muito melhor a pessoa
+    // do que o genérico "Cliente" quando isso acontecer de novo.
+    const nome =
+      typeof dados?.name === "string" && dados.name ? dados.name : username ? `@${username}` : "Cliente";
+    return { nome, username };
   } catch (erro) {
     console.error(`Falha ao buscar perfil do cliente no Instagram para IGSID ${instagramScopedId}:`, erro);
     return null;

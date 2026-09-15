@@ -7,9 +7,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const formData = await request.formData();
   const redirectPara = formData.get("redirect_to")?.toString() || "/reservas";
   const novaQuantidade = parseInt(formData.get("quantidade_pessoas")?.toString() ?? "", 10);
+  const novoNome = formData.get("cliente_nome")?.toString().trim() ?? "";
 
   const autorInfo = await resolverAutorDaAcao(request, admin);
-  if (!autorInfo || !Number.isFinite(novaQuantidade) || novaQuantidade <= 0) {
+  if (!autorInfo || !Number.isFinite(novaQuantidade) || novaQuantidade <= 0 || !novoNome) {
     return NextResponse.redirect(new URL(redirectPara, request.url));
   }
 
@@ -26,20 +27,25 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const quantidadeAntiga = reserva.quantidade_pessoas;
+  const nomeAntigo = reserva.cliente_nome;
 
   const { error } = await admin
     .from("chatbot_reservations")
-    .update({ quantidade_pessoas: novaQuantidade })
+    .update({ quantidade_pessoas: novaQuantidade, cliente_nome: novoNome })
     .eq("id", params.id);
 
   if (!error) {
+    const mudancas: string[] = [];
+    if (nomeAntigo !== novoNome) mudancas.push(`nome alterado de "${nomeAntigo}" para "${novoNome}"`);
+    if (quantidadeAntiga !== novaQuantidade) mudancas.push(`quantidade de pessoas alterada de ${quantidadeAntiga} para ${novaQuantidade}`);
+
     await admin.from("chatbot_reservas_log").insert({
       account_id: reserva.account_id,
       reserva_id: reserva.id,
-      cliente_nome: reserva.cliente_nome,
+      cliente_nome: novoNome,
       autor: autorInfo.autor,
       acao: "editado",
-      detalhe: `Quantidade de pessoas alterada de ${quantidadeAntiga} para ${novaQuantidade}`,
+      detalhe: mudancas.length > 0 ? mudancas.join("; ") : "nenhuma alteração",
     });
   }
 
