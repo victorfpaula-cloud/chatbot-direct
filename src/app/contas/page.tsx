@@ -210,7 +210,7 @@ export default async function ContasPage({
         <div className="flex items-center gap-2">
           <a
             href="/reservas"
-            className="rounded-lg border border-violet-700 bg-violet-950/60 px-3 py-1.5 text-xs font-medium text-violet-200 hover:border-violet-500 hover:bg-violet-950"
+            className="rounded-lg border border-violet-700 bg-violet-950/60 px-3 py-1.5 text-xs font-medium text-violet-200 [backdrop-filter:blur(14px)_url(#vidro-abas-contas)] [-webkit-backdrop-filter:blur(14px)_url(#vidro-abas-contas)] hover:border-violet-500 hover:bg-violet-950"
           >
             Reservas
           </a>
@@ -258,7 +258,7 @@ export default async function ContasPage({
           return (
             <div
               key={conta.id}
-              className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-neutral-800 pt-6 shadow-lg shadow-black/30 transition-all hover:-translate-y-0.5 hover:shadow-xl ${estilo.brilho} ${
+              className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-neutral-800/55 pt-6 shadow-lg shadow-black/30 transition-all [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] hover:-translate-y-0.5 hover:shadow-xl ${estilo.brilho} ${
                 conta.active ? "border-neutral-700" : "border-red-950/60"
               }`}
             >

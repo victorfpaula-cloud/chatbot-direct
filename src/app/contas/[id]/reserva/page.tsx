@@ -111,7 +111,7 @@ export default async function ReservaConfigPage({
           </p>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/30">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 shadow-md shadow-black/30 [backdrop-filter:blur(18px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(18px)_url(#vidro-cartao-contas)]">
           <p className="text-sm font-medium text-neutral-200">Mensagens do bot</p>
           <p className="mt-1 text-xs text-neutral-500">
             Cada campo abaixo é o que o bot manda naquele momento da conversa. Deixe em branco pra
@@ -246,7 +246,7 @@ export default async function ReservaConfigPage({
           />
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/30">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 shadow-md shadow-black/30 [backdrop-filter:blur(18px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(18px)_url(#vidro-cartao-contas)]">
           <p className="text-sm font-medium text-neutral-200">Capacidade máxima de pessoas</p>
           <p className="mt-1 text-xs text-neutral-500">
             Um número pra cada período — é a SOMA de todas as reservas já confirmadas pra aquele
@@ -317,7 +317,7 @@ export default async function ReservaConfigPage({
           />
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/30">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 shadow-md shadow-black/30 [backdrop-filter:blur(18px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(18px)_url(#vidro-cartao-contas)]">
           <label className="flex items-center gap-2 text-sm text-neutral-200">
             <input
               type="checkbox"
@@ -359,7 +359,7 @@ export default async function ReservaConfigPage({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/30">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 shadow-md shadow-black/30 [backdrop-filter:blur(18px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(18px)_url(#vidro-cartao-contas)]">
           <p className="text-sm font-medium text-neutral-200">Bloquear datas específicas</p>
           <p className="mt-1 text-xs text-neutral-500">
             Diferente da pausa acima (que trava TUDO na hora), isso aqui bloqueia só os dias que
@@ -375,7 +375,7 @@ export default async function ReservaConfigPage({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/30">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 shadow-md shadow-black/30 [backdrop-filter:blur(18px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(18px)_url(#vidro-cartao-contas)]">
           <p className="text-sm font-medium text-neutral-200">Alterar reserva já feita</p>
           <p className="mt-1 text-xs text-neutral-500">
             Deixa o cliente mudar a QUANTIDADE de pessoas de uma reserva que já fez, direto pelo

@@ -26,7 +26,7 @@ export default async function ContaLayout({
 
       {conta ? (
         <>
-          <div className="mt-4 rounded-2xl border border-neutral-800 bg-neutral-950 p-5 shadow-lg shadow-black/40">
+          <div className="mt-4 rounded-2xl border border-neutral-800 bg-neutral-950/60 p-5 shadow-lg shadow-black/40 [backdrop-filter:blur(24px)_url(#vidro-shell-contas)] [-webkit-backdrop-filter:blur(24px)_url(#vidro-shell-contas)]">
             <h1 className="text-xl font-semibold">{conta.page_name}</h1>
             <p className="mt-1 text-sm text-neutral-400">@{conta.instagram_username}</p>
 

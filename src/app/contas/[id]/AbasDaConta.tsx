@@ -23,7 +23,7 @@ export default function AbasDaConta({ contaId }: { contaId: string }) {
   const pathname = usePathname();
 
   return (
-    <nav className="mt-6 flex flex-wrap gap-2 border-b border-neutral-800 pb-3">
+    <nav className="mt-6 flex flex-wrap gap-2 rounded-xl border border-neutral-800 bg-neutral-900/40 p-2 [backdrop-filter:blur(16px)_url(#vidro-abas-contas)] [-webkit-backdrop-filter:blur(16px)_url(#vidro-abas-contas)]">
       {ABAS.map((aba) => {
         const href = `/contas/${contaId}/${aba.segmento}`;
         const ativa = pathname?.startsWith(href) ?? false;
@@ -34,7 +34,7 @@ export default function AbasDaConta({ contaId }: { contaId: string }) {
             href={href}
             className={`rounded-lg px-3 py-1.5 text-sm transition ${
               ativa
-                ? "bg-neutral-100 font-medium text-neutral-900"
+                ? "bg-indigo-500 font-medium text-white shadow-md shadow-indigo-950/40"
                 : "text-neutral-300 hover:bg-neutral-800"
             }`}
           >
