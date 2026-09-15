@@ -27,6 +27,7 @@ export function EfeitosDeRolagem() {
       styles.heroCtas,
       styles.heroNota,
       styles.telefoneWrap,
+      styles.provaSocialCard,
       styles.eyebrow,
       styles.tituloSecao,
       styles.dekSecao,

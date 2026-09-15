@@ -2,6 +2,7 @@ import { Fraunces, Outfit } from "next/font/google";
 import styles from "./pagina.module.css";
 import { DefinicoesDoVidroLiquidoSite } from "./VidroLiquido";
 import { EfeitosDeRolagem } from "./EfeitosDeRolagem";
+import { ContadorSocial } from "./ContadorSocial";
 
 // Home de vendas do produto (automesa.com.br — ver a reescrita "/" -> "/site" em src/middleware.ts
 // pro domínio próprio). Sem nenhuma leitura de banco: é conteúdo institucional, igual pra todo
@@ -152,6 +153,8 @@ export default function PaginaSite() {
             </div>
           </div>
         </section>
+
+        <ContadorSocial />
 
         {/* ---------- recursos ---------- */}
         <section className={styles.secao} id="recursos">

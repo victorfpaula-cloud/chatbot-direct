@@ -461,6 +461,87 @@
   color: var(--ink-low);
 }
 
+/* ---------- prova social ---------- */
+.provaSocial {
+  padding: 0 max(20px, 5vw) 96px;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+}
+.provaSocialCard {
+  width: 100%;
+  max-width: 640px;
+  text-align: center;
+  padding: 48px 40px;
+  border-radius: 24px;
+  border: 2px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(14px) url(#vidro-feature-site);
+  -webkit-backdrop-filter: blur(14px) url(#vidro-feature-site);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+.provaSocialTag {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acento-hi);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.provaSocialTag::before,
+.provaSocialTag::after {
+  content: "";
+  width: 20px;
+  height: 1.5px;
+  background: var(--acento);
+}
+.contador {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 1px;
+  margin: 22px 0 18px;
+  font-family: var(--fonte-display), serif;
+  font-weight: 600;
+  font-size: clamp(48px, 9vw, 84px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-hi);
+}
+.contadorColuna {
+  display: inline-block;
+  overflow: hidden;
+  height: 1em;
+  line-height: 1;
+}
+.contadorFita {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+.contadorDigito {
+  height: 1em;
+  line-height: 1;
+}
+.contadorPonto {
+  margin: 0 2px;
+  color: var(--ink-mid);
+}
+.contadorMais {
+  color: var(--acento-hi);
+  margin-left: 4px;
+}
+.provaSocialTexto {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--ink-mid);
+  max-width: 46ch;
+  margin: 0 auto;
+}
+
 /* ---------- features ---------- */
 .featureGrid {
   display: grid;
@@ -620,5 +701,11 @@
   }
   .navLinks {
     display: none;
+  }
+  .provaSocialCard {
+    padding: 36px 22px;
+  }
+  .contador {
+    font-size: clamp(38px, 14vw, 56px);
   }
 }
