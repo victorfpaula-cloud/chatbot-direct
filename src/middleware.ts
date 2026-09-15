@@ -52,8 +52,27 @@ import {
  * rede quando o token precisa renovar (por padrão, a cada 1h) — na prática vira "confere de
  * verdade umas poucas vezes por dia" em vez de "toda hora".
  */
+// Domínio próprio comprado só pra reserva externa (/r/[slug]) — automesa.com.br/unico é a MESMA
+// página que /r/unico no domínio de sempre, só com uma URL mais bonita pro cliente final ler no
+// link. Sem essa reescrita, o domínio custom cairia direto na home (ou 404) do app inteiro em vez
+// da página de reserva certa.
+const DOMINIOS_DA_RESERVA_EXTERNA = ["automesa.com.br", "www.automesa.com.br"];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") ?? "";
+
+  if (DOMINIOS_DA_RESERVA_EXTERNA.some((dominio) => host === dominio || host.startsWith(`${dominio}:`))) {
+    // "/" (sem slug nenhum), assets estáticos (_next), API e qualquer caminho com extensão de
+    // arquivo (favicon.ico, manifest.webmanifest, robots.txt...) passam direto, sem reescrever —
+    // só "automesa.com.br/algumSlug" vira "/r/algumSlug" por baixo dos panos.
+    if (pathname === "/" || pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
+      return NextResponse.next();
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = `/r${pathname}`;
+    return NextResponse.rewrite(url);
+  }
 
   // Público de propósito: a tela de login (do Victor e a do funcionário) e o envio do formulário
   // da segunda — ninguém consegue nem chegar ali se essas rotas também exigirem estar logado.
