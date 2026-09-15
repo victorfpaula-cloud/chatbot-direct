@@ -195,7 +195,11 @@
   margin-top: 30px;
   border-radius: 24px;
   border: 2px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.055);
+  /* Meio-termo entre o vidro quase transparente de antes e opaco de mais — mesmo ajuste feito no
+     painel de reservas do funcionário (ver CLASSE_CARTAO_DO_DIA em reservasCompartilhado.tsx):
+     com um fundo bem colorido atrás (ex.: acento vermelho extraído do logo), texto e ícones
+     ficavam difíceis de ler contra o brilho vazando demais através do cartão. */
+  background: rgba(255, 255, 255, 0.095);
   /* blur mais baixo que antes (20px -> 14px) — a referência da skill liquid-glass recomenda
      10-16px: um blur muito alto "lava" a distorção da refração, deixando a borda mais grossa de
      vidro (bezel/scale abaixo) menos perceptível. */
@@ -288,7 +292,6 @@
 .titulo {
   font-family: var(--fonte-display), serif;
   font-weight: 600;
-  font-style: italic;
   font-size: clamp(38px, 10vw, 58px);
   line-height: 1.05;
   text-align: center;
@@ -348,7 +351,6 @@
 .campoNome {
   margin-top: 32px;
   font-family: var(--fonte-display), serif;
-  font-style: italic;
   font-size: 22px;
 }
 
@@ -627,8 +629,12 @@
   font-size: 12px;
   color: var(--ink-low);
 }
+/* Branco (não mais um tom de vermelho) — com o acento do restaurante podendo ser vermelho de
+   verdade (extraído do logo), um texto de erro também vermelho sumia contra o brilho de fundo da
+   mesma cor. O peso maior já é aviso suficiente de que é uma mensagem de erro. */
 .dicaErro {
-  color: #e08a8a;
+  color: var(--ink-hi);
+  font-weight: 600;
 }
 
 .continuarLinha {
@@ -760,7 +766,7 @@
   max-width: 420px;
   border-radius: 24px;
   border: 2px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.095);
   backdrop-filter: blur(14px) saturate(150%) url(#vidro-cartao-externo);
   -webkit-backdrop-filter: blur(14px) saturate(150%) url(#vidro-cartao-externo);
   padding: 32px 26px;
