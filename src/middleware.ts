@@ -75,6 +75,12 @@ export async function middleware(request: NextRequest) {
     if (caminhoOriginal === "/login") {
       request.nextUrl.pathname = "/reservas/login";
       precisaReescrever = true;
+    } else if (caminhoOriginal === "/") {
+      // automesa.com.br sem nada depois — a home de vendas do produto, não o redirect pra
+      // /contas que "/" faz no domínio de sempre (ver src/app/page.tsx). Pública, sem checagem de
+      // sessão, devolve na hora — mesmo espírito da reserva externa logo abaixo.
+      request.nextUrl.pathname = "/site";
+      return NextResponse.rewrite(request.nextUrl);
     } else if (
       // "/" (sem slug nenhum), /reservas (painel do funcionário inteiro, todas as sub-rotas), assets
       // estáticos (_next), API e qualquer caminho com extensão de arquivo (favicon.ico,
@@ -307,6 +313,6 @@ export const config = {
     // api/r/ (src/app/api/r/[slug]/*): as chamadas fetch que essa mesma página pública faz pro
     // calendário/disponibilidade/confirmação — o navegador do cliente final as dispara direto,
     // sem cookie de sessão nenhum, então também precisam ficar de fora do redirecionamento.
-    "/((?!api/webhook/instagram|api/bridge/sendpulse|api/r/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/).*)",
+    "/((?!api/webhook/instagram|api/bridge/sendpulse|api/r/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/|site$).*)",
   ],
 };
