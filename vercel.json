@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/lembrete-reservas",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 23 * * *"
     }
   ]
 }
