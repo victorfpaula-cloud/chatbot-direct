@@ -348,7 +348,13 @@
   height: 16px;
 }
 
-.campoNome {
+/* `.campo.campoNome` (não só `.campoNome`) de propósito — o campo de nome carrega as duas classes
+   juntas (`${styles.campo} ${styles.campoNome}`), e como `.campo` também define font-family e
+   font-size com a MESMA especificidade, quem vem depois no arquivo vencia (`.campo`, mais abaixo)
+   e apagava sozinho o estilo "vitrine" que devia diferenciar esse campo do de WhatsApp — o campo de
+   nome vinha saindo em Outfit 26px (igual ao de WhatsApp) em vez da Fraunces 22px pretendida. Um
+   seletor composto tem mais especificidade e sempre vence, não importa a ordem no arquivo. */
+.campo.campoNome {
   margin-top: 32px;
   font-family: var(--fonte-display), serif;
   font-size: 22px;
