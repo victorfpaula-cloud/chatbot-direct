@@ -30,6 +30,10 @@ export async function POST(request: NextRequest) {
   const palavraChaveAlterarReserva = formData.get("palavra_chave_alterar_reserva")?.toString() ?? "";
   const alteracaoCutoffHorario = formData.get("alteracao_cutoff_horario")?.toString() ?? "";
 
+  const reservaLembreteHabilitado = formData.get("reserva_lembrete_habilitado") === "on";
+  const reservaLembreteHorario = formData.get("reserva_lembrete_horario")?.toString() ?? "";
+  const reservaLembreteMensagem = formData.get("reserva_lembrete_mensagem")?.toString() ?? "";
+
   const corDestaqueManualBruta = formData.get("cor_destaque_manual")?.toString().trim() ?? "";
   const corDestaqueManual = /^#[0-9a-fA-F]{6}$/.test(corDestaqueManualBruta) ? corDestaqueManualBruta : null;
 
@@ -88,6 +92,11 @@ export async function POST(request: NextRequest) {
       reserva_datas_bloqueadas: reservaDatasBloqueadas || null,
       palavra_chave_alterar_reserva: palavraChaveAlterarReserva || null,
       alteracao_cutoff_horario: alteracaoCutoffHorario || null,
+      reserva_lembrete_habilitado: reservaLembreteHabilitado,
+      // Coluna NOT NULL no banco (sempre precisa de um horário pra comparar no cron) — nunca grava
+      // null aqui, mesmo que o campo chegue vazio por algum motivo.
+      reserva_lembrete_horario: reservaLembreteHorario || "18:40",
+      reserva_lembrete_mensagem: reservaLembreteMensagem || null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "account_id" }

@@ -470,3 +470,15 @@ alter table chatbot_account_settings
   add column if not exists agendamento_pausa_ativa boolean not null default false,
   add column if not exists agendamento_pausa_mensagem text,
   add column if not exists agendamento_campos_personalizados jsonb;
+
+-- Lembrete de comparecimento (Reserva) — manda uma mensagem pro Instagram de todo mundo que
+-- confirmou reserva pra HOJE, uma vez por dia, no horário configurado (padrão 18h40). Desligado
+-- por padrão em toda conta nova; quem já tem chatbot_account_settings ganha o horário padrão de
+-- uma vez (default abaixo preenche as linhas existentes), mas continua DESLIGADO até a pessoa
+-- marcar a caixinha em /contas/[id]/reserva. Disparado pelo cron em
+-- src/app/api/cron/lembrete-reservas/route.ts (ver vercel.json) — nunca pelo fluxo de conversa.
+alter table chatbot_account_settings
+  add column if not exists reserva_lembrete_habilitado boolean not null default false,
+  add column if not exists reserva_lembrete_horario time not null default '18:40:00',
+  add column if not exists reserva_lembrete_mensagem text,
+  add column if not exists reserva_lembrete_ultima_data_enviada date;

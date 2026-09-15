@@ -2,6 +2,7 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { BotaoAtivarReservas } from "@/app/contas/BotaoAtivarReservas";
 import DatasBloqueadasEditor from "./DatasBloqueadasEditor";
 import CorDeDestaqueEditor from "./CorDeDestaqueEditor";
+import { MENSAGEM_LEMBRETE_PADRAO } from "@/lib/lembreteDeReserva";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -19,7 +20,7 @@ export default async function ReservaConfigPage({
   const { data: config } = await admin
     .from("chatbot_account_settings")
     .select(
-      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario"
+      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario, reserva_lembrete_habilitado, reserva_lembrete_horario, reserva_lembrete_mensagem"
     )
     .eq("account_id", params.id)
     .maybeSingle();
@@ -39,6 +40,9 @@ export default async function ReservaConfigPage({
   const cutoffAlteracaoParaInput = config?.alteracao_cutoff_horario
     ? config.alteracao_cutoff_horario.slice(0, 5)
     : "";
+  const lembreteHorarioParaInput = config?.reserva_lembrete_horario
+    ? config.reserva_lembrete_horario.slice(0, 5)
+    : "18:40";
 
   // Reservas desligadas nessa conta (botão "Ativar/desativar reservas" em /contas) — nem mostra a
   // configuração, só o jeito de ligar de novo. Isso é o interruptor GERAL da função, diferente da
@@ -431,6 +435,45 @@ export default async function ReservaConfigPage({
               defaultValue={cutoffAlteracaoParaInput}
               className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
             />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
+          <label className="flex items-center gap-2 text-sm text-neutral-200">
+            <input
+              type="checkbox"
+              name="reserva_lembrete_habilitado"
+              defaultChecked={config?.reserva_lembrete_habilitado ?? false}
+              className="h-4 w-4 rounded border-neutral-700 bg-neutral-950"
+            />
+            Mandar lembrete de comparecimento no Instagram
+          </label>
+          <p className="mt-1 text-xs text-neutral-500">
+            Todo dia, no horário abaixo, manda essa mensagem pra quem tem reserva confirmada pra
+            HOJE — uma vez por pessoa, mesmo se ela tiver mais de uma reserva no dia. Só chega pra
+            quem reservou pelo Instagram (reserva cadastrada à mão não tem contato pra mandar DM).
+          </p>
+
+          <div className="mt-3">
+            <label className="text-xs text-neutral-400">Horário do lembrete</label>
+            <input
+              type="time"
+              name="reserva_lembrete_horario"
+              defaultValue={lembreteHorarioParaInput}
+              className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="mt-3">
+            <label className="text-xs text-neutral-400">Mensagem do lembrete</label>
+            <textarea
+              name="reserva_lembrete_mensagem"
+              rows={4}
+              defaultValue={config?.reserva_lembrete_mensagem ?? ""}
+              placeholder={MENSAGEM_LEMBRETE_PADRAO}
+              className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+            />
+            <p className="mt-1 text-xs text-neutral-500">Em branco, usa o texto de exemplo acima.</p>
           </div>
         </div>
 

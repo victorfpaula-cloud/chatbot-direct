@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/lembrete-reservas",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}
