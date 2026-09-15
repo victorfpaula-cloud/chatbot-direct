@@ -404,6 +404,15 @@ create index if not exists chatbot_push_subscriptions_account_idx
 alter table chatbot_accounts
   add column if not exists slug text unique;
 
+-- ============================================================================
+-- Cor predominante do logo (extraída da própria foto de perfil, ver src/lib/corDoLogo.ts) —
+-- guardada em cache do mesmo jeito que foto_perfil_url, recalculada junto quando a foto vence
+-- (24h). Usada só pra colorir o brilho de fundo da reserva externa (/r/[slug]) de acordo com a
+-- identidade visual de cada restaurante, em vez do índigo fixo padrão.
+-- ============================================================================
+alter table chatbot_accounts
+  add column if not exists cor_predominante_logo text;
+
 alter table chatbot_push_subscriptions enable row level security;
 
 -- ============================================================================

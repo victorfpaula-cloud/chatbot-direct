@@ -1,5 +1,6 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { buscarFotoDePerfilDaConta } from "@/lib/metaMessaging";
+import { extrairCorPredominante } from "@/lib/corDoLogo";
 import { BotaoPausar } from "./BotaoPausar";
 import { AvatarConta } from "./AvatarConta";
 import { BotaoSair } from "./BotaoSair";
@@ -32,20 +33,23 @@ async function atualizarFotosDePerfilVencidas(
   if (vencidas.length === 0) return fotosAtualizadas;
 
   const resultados = await Promise.all(
-    vencidas.map(async (conta) => ({
-      id: conta.id,
+    vencidas.map(async (conta) => {
       // Se a busca falhar (Meta fora do ar, token expirado, etc.), mantém a última foto boa em
       // cache em vez de apagar ela — nunca queremos trocar uma foto que já funcionava por
       // "nenhuma foto" só por causa de uma falha passageira na API.
-      foto: (await buscarFotoDePerfilDaConta(conta.access_token, conta.instagram_user_id)) ?? conta.foto_perfil_url,
-    }))
+      const foto = (await buscarFotoDePerfilDaConta(conta.access_token, conta.instagram_user_id)) ?? conta.foto_perfil_url;
+      // Cor do brilho de fundo da reserva externa (ver src/lib/corDoLogo.ts) — recalculada junto
+      // com a foto, na mesma janela de 24h, pra nunca fazer uma chamada extra só por causa dela.
+      const cor = foto ? await extrairCorPredominante(foto) : null;
+      return { id: conta.id, foto, cor };
+    })
   );
 
   await Promise.all(
-    resultados.map(({ id, foto }) =>
+    resultados.map(({ id, foto, cor }) =>
       admin
         .from("chatbot_accounts")
-        .update({ foto_perfil_url: foto, foto_perfil_atualizada_em: new Date().toISOString() })
+        .update({ foto_perfil_url: foto, foto_perfil_atualizada_em: new Date().toISOString(), cor_predominante_logo: cor })
         .eq("id", id)
     )
   );

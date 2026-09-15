@@ -6,6 +6,7 @@ import {
   parseDatasBloqueadas,
   passouDoCutoff,
 } from "@/lib/reservas";
+import { paletaAPartirDoHex, type PaletaDoLogo } from "@/lib/corDoLogo";
 
 // Reserva externa (link público /r/[slug], fora do Instagram — ver src/app/r/[slug]/page.tsx e as
 // rotas em src/app/api/r/[slug]/). Todo o cálculo de "o que pode ser reservado agora" mora aqui,
@@ -15,22 +16,34 @@ import {
 
 type Admin = ReturnType<typeof criarClienteAdmin>;
 
-export type ContaExterna = { id: string; page_name: string };
+export type ContaExterna = {
+  id: string;
+  page_name: string;
+  foto_perfil_url: string | null;
+  cor_predominante_logo: string | null;
+};
 
 export async function buscarContaPorSlug(admin: Admin, slug: string): Promise<ContaExterna | null> {
   const { data, error } = await admin
     .from("chatbot_accounts")
-    .select("id, page_name, active")
+    .select("id, page_name, active, foto_perfil_url, cor_predominante_logo")
     .eq("slug", slug)
     .maybeSingle();
 
   if (error) throw error;
   if (!data || !data.active) return null;
-  return { id: data.id, page_name: data.page_name };
+  return {
+    id: data.id,
+    page_name: data.page_name,
+    foto_perfil_url: data.foto_perfil_url,
+    cor_predominante_logo: data.cor_predominante_logo,
+  };
 }
 
 export type ConfigPublica = {
   nomeConta: string;
+  logoUrl: string | null;
+  paleta: PaletaDoLogo | null;
   aceitaReservas: boolean;
   mensagemFechado: string | null;
   hojeFechadoPorHorario: boolean;
@@ -54,6 +67,8 @@ export async function montarConfigPublica(admin: Admin, conta: ContaExterna): Pr
 
   return {
     nomeConta: conta.page_name,
+    logoUrl: conta.foto_perfil_url,
+    paleta: conta.cor_predominante_logo ? paletaAPartirDoHex(conta.cor_predominante_logo) : null,
     aceitaReservas: !reservaDesligada && !emPausa,
     mensagemFechado: emPausa
       ? config?.reserva_pausa_mensagem?.trim() ||

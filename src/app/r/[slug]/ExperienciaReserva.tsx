@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import styles from "./experiencia.module.css";
 import type { ConfigPublica } from "@/lib/reservaExterna";
@@ -21,6 +21,10 @@ type Etapa = "abertura" | "dia" | "periodo" | "pessoas" | "whatsapp" | "confirma
 
 export function ExperienciaReserva({ slug, config }: { slug: string; config: ConfigPublica }) {
   const raizRef = useRef<HTMLDivElement>(null);
+  // Link de foto da Meta pode ter vencido entre a hora que a página buscou e a hora que o
+  // navegador tenta carregar — igual já tratamos em AvatarConta.tsx, esconde em vez de mostrar
+  // ícone de imagem quebrada.
+  const [logoFalhou, setLogoFalhou] = useState(false);
 
   useEffect(() => {
     const raiz = raizRef.current;
@@ -500,9 +504,23 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sobrescreve --acento/--acento-hi/--acento-deep e os 3 tons do brilho de fundo (--glow-1/2/3)
+  // com a cor extraída do logo do restaurante (ver src/lib/corDoLogo.ts) — sem foto/cor cadastrada
+  // ainda, undefined aqui deixa os valores padrão do CSS module valendo (paleta índigo de sempre).
+  const estiloDaPaleta = config.paleta
+    ? ({
+        "--acento": config.paleta.acento,
+        "--acento-hi": config.paleta.acentoHi,
+        "--acento-deep": config.paleta.acentoDeep,
+        "--glow-1": config.paleta.glow1,
+        "--glow-2": config.paleta.glow2,
+        "--glow-3": config.paleta.glow3,
+      } as unknown as React.CSSProperties)
+    : undefined;
+
   if (!config.aceitaReservas) {
     return (
-      <div ref={raizRef} className={styles.pagina}>
+      <div ref={raizRef} className={styles.pagina} style={estiloDaPaleta}>
         <DefinicoesDoVidroLiquidoExterno />
         <div className={styles.atmosfera}>
           <div className={styles.brilhoWrap} id="bw1">
@@ -526,7 +544,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
   }
 
   return (
-    <div ref={raizRef} className={styles.pagina}>
+    <div ref={raizRef} className={styles.pagina} style={estiloDaPaleta}>
       <DefinicoesDoVidroLiquidoExterno />
       <div className={styles.atmosfera}>
         <div className={styles.brilhoWrap} id="bw1">
@@ -554,11 +572,20 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       <div className={styles.palco}>
         <div className={`${styles.cena} ${styles.ativa}`} data-cena="abertura">
           <div className={styles.cenaInterna}>
+            {config.logoUrl && !logoFalhou && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={config.logoUrl}
+                alt=""
+                onError={() => setLogoFalhou(true)}
+                className={`${styles.logoAbertura} ${styles.elem}`}
+              />
+            )}
             <span className={`${styles.numeroPergunta} ${styles.elem}`} style={{ justifyContent: "center", width: "100%" }}>
               {config.nomeConta}
             </span>
             <h1 className={`${styles.titulo} ${styles.elem}`}>Vamos reservar sua mesa?</h1>
-            <p className={`${styles.subtitulo} ${styles.elem}`}>3 perguntas rápidas, menos de 1 minuto</p>
+            <p className={`${styles.subtitulo} ${styles.elem}`}>Reserva simples e rápida</p>
             <input id="campo-nome" type="text" autoComplete="name" placeholder="Como você se chama?" className={`${styles.campo} ${styles.campoNome} ${styles.elem}`} />
             <button className={`${styles.cta} ${styles.elem}`} id="btn-comecar">
               <span className={styles.ctaHalo} />
