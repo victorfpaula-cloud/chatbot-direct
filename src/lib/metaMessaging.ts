@@ -187,10 +187,47 @@ export function formatarMensagensDaPonte(mensagens: MensagemDaPonte[]): string |
     .join("\n\n");
 }
 
+async function tentarBuscarPerfilDoCliente(
+  tokenDaConta: string,
+  instagramScopedId: string
+): Promise<{ nome: string; username: string | null } | null> {
+  try {
+    const resposta = await fetch(
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${instagramScopedId}?fields=name,username&access_token=${encodeURIComponent(
+        tokenDaConta
+      )}`,
+      { cache: "no-store" }
+    );
+
+    if (!resposta.ok) {
+      // Antes caía em silêncio total no nome genérico — sem status nem corpo da resposta, não dava
+      // pra saber se foi token expirado, rate limit, permissão faltando ou o quê (foi exatamente
+      // essa falta de log que impediu de diagnosticar a reserva que salvou "Cliente" em produção).
+      const corpoDoErro = await resposta.text().catch(() => "");
+      console.error(
+        `Falha ao buscar perfil do cliente no Instagram (status ${resposta.status}) para IGSID ${instagramScopedId}:`,
+        corpoDoErro
+      );
+      return null;
+    }
+
+    const dados = await resposta.json();
+    return {
+      nome: typeof dados?.name === "string" && dados.name ? dados.name : "Cliente",
+      username: typeof dados?.username === "string" ? dados.username : null,
+    };
+  } catch (erro) {
+    console.error(`Falha ao buscar perfil do cliente no Instagram para IGSID ${instagramScopedId}:`, erro);
+    return null;
+  }
+}
+
 /**
  * Busca nome e @usuário do Instagram de quem mandou a mensagem — usado no fluxo de reserva pra
- * não precisar perguntar o nome (Etapa 6). Se a chamada falhar por qualquer motivo, devolve um
- * nome genérico em vez de derrubar o fluxo inteiro por causa disso.
+ * não precisar perguntar o nome (Etapa 6). Tenta uma segunda vez antes de desistir (uma reserva
+ * salva com o nome genérico "Cliente" não tem como ser corrigida sozinha depois, então vale a pena
+ * uma segunda tentativa pra cobrir uma falha passageira de rede/rate-limit) — só cai no nome
+ * genérico se as duas tentativas falharem.
  */
 export async function buscarPerfilDoCliente(
   tokenDaConta: string,
@@ -201,25 +238,12 @@ export async function buscarPerfilDoCliente(
     return contextoDaPonte.perfilConhecido;
   }
 
-  try {
-    const resposta = await fetch(
-      `https://graph.facebook.com/${GRAPH_API_VERSION}/${instagramScopedId}?fields=name,username&access_token=${encodeURIComponent(
-        tokenDaConta
-      )}`,
-      { cache: "no-store" }
-    );
+  const primeiraTentativa = await tentarBuscarPerfilDoCliente(tokenDaConta, instagramScopedId);
+  if (primeiraTentativa) return primeiraTentativa;
 
-    if (!resposta.ok) return { nome: "Cliente", username: null };
-
-    const dados = await resposta.json();
-    return {
-      nome: typeof dados?.name === "string" && dados.name ? dados.name : "Cliente",
-      username: typeof dados?.username === "string" ? dados.username : null,
-    };
-  } catch (erro) {
-    console.error("Falha ao buscar perfil do cliente no Instagram:", erro);
-    return { nome: "Cliente", username: null };
-  }
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  const segundaTentativa = await tentarBuscarPerfilDoCliente(tokenDaConta, instagramScopedId);
+  return segundaTentativa ?? { nome: "Cliente", username: null };
 }
 
 /**
