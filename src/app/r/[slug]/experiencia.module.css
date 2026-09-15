@@ -194,7 +194,7 @@
   width: 100%;
   margin-top: 30px;
   border-radius: 24px;
-  border: 1px solid var(--glass-border);
+  border: 1.5px solid var(--glass-border);
   background: rgba(255, 255, 255, 0.055);
   backdrop-filter: blur(20px) saturate(150%) url(#vidro-cartao-externo);
   -webkit-backdrop-filter: blur(20px) saturate(150%) url(#vidro-cartao-externo);
@@ -208,21 +208,27 @@
   will-change: transform;
 }
 
-/* Brilho de vidro em loop contínuo varrendo o cartão da esquerda pra direita — a "vida" do
-   material, além da refração de borda. Fica atrás do conteúdo (ver `.cartaoVidro > *` logo
-   abaixo). Só varre no eixo horizontal de propósito (gradiente a 90deg, background-position só em
-   X) — a versão anterior também se movia em Y e ficava com um brilho vertical estranho por cima. */
+/* Brilho em loop contínuo percorrendo só a BORDA do vidro (não mais o cartão inteiro) — um
+   pseudo-elemento do tamanho do cartão, mas mascarado (mask-composite: exclude) pra só sobrar
+   visível o anel fino da própria borda; o gradiente desliza da esquerda pra direita por baixo
+   dessa máscara. Bem mais lento que a primeira versão (essa passava rápido demais). Só varre no
+   eixo horizontal de propósito (gradiente a 90deg) — uma versão anterior se movia em Y também e
+   ficava com um brilho vertical estranho por cima. */
 .cartaoVidro::before,
 .fechadoCartao::before {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 0;
-  background: linear-gradient(90deg, transparent 42%, rgba(255, 255, 255, 0.16) 50%, transparent 58%);
-  background-size: 260% 100%;
-  animation: varreduraVidro 6.5s linear infinite;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(90deg, transparent 46%, rgba(255, 255, 255, 0.95) 50%, transparent 54%);
+  background-size: 340% 100%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: varreduraVidro 15s linear infinite;
   pointer-events: none;
-  mix-blend-mode: screen;
 }
 .cartaoVidro > * {
   position: relative;
@@ -714,7 +720,7 @@
   width: 100%;
   max-width: 420px;
   border-radius: 24px;
-  border: 1px solid var(--glass-border);
+  border: 1.5px solid var(--glass-border);
   background: rgba(255, 255, 255, 0.055);
   backdrop-filter: blur(20px) saturate(150%) url(#vidro-cartao-externo);
   -webkit-backdrop-filter: blur(20px) saturate(150%) url(#vidro-cartao-externo);
