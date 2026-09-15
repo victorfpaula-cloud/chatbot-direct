@@ -129,8 +129,14 @@ export function CartaoDeReserva({
     // novo aqui só borraria a superfície quase lisa do próprio card do dia, sem ganho visual, só
     // custo de desempenho e, em alguns celulares/WebKit, artefato visual com vários desses
     // aninhados na tela ao mesmo tempo).
+    // has-[details[open]]:z-20 — a animação de entrada (animate-entrada) aplica um transform em
+    // CADA cartão, e transform cria um contexto de empilhamento próprio: sem isso, o cartão de
+    // baixo (mais novo, vem depois no DOM) sempre pinta por cima da caixinha de "Editar" do cartão
+    // de cima, mesmo ela tendo z-10 — o z-10 só vale DENTRO do contexto do próprio cartão, preso
+    // por causa do transform, sem conseguir competir com o cartão vizinho. Erguer o cartão inteiro
+    // (não só a caixinha) resolve, porque aí ele já sobe acima do vizinho antes de chegar nela.
     <div
-      className="animate-entrada relative rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none"
+      className="animate-entrada relative rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-white/[0.025] to-[#0c0c0f]/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none has-[details[open]]:z-20"
       style={{ animationDelay: `${Math.min(indice * 45, 300)}ms` }}
     >
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
