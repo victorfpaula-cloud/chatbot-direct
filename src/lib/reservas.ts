@@ -695,32 +695,77 @@ async function continuarFluxo(
 }
 
 async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string, dados: any) {
-  const { data: config } = await buscarConfig(admin, conta.id);
+  const resultado = await prepararConfirmacaoDeReserva(admin, conta.id, {
+    nome: dados.nome ?? null,
+    username: dados.username ?? null,
+    instagram_scoped_id: idDoCliente,
+    data_reserva: dados.data_reserva ?? null,
+    data_reserva_br: dados.data_reserva_br ?? null,
+    periodo: dados.periodo ?? null,
+    quantidade_pessoas: dados.quantidade_pessoas ?? 0,
+    whatsapp: dados.whatsapp ?? null,
+  });
+
+  // Avisa o cliente ANTES de tentar escrever na planilha — a reserva já está garantida no banco
+  // nesse ponto (quando ok:true), então uma falha na planilha (rede, permissão) não pode virar um
+  // "não deu certo" falso pro cliente.
+  await enviarMensagemDirect(conta.access_token, idDoCliente, resultado.mensagem);
+
+  if (resultado.ok && resultado.reservaId) {
+    await sincronizarComPlanilha(admin, resultado.config, resultado.reservaId, dados);
+  }
+}
+
+/**
+ * Núcleo de "confirmar uma reserva" — checagem de capacidade, gravação em chatbot_reservations,
+ * ajuste do total acumulado e os dois avisos (nova reserva / lotação atingida). Compartilhado
+ * entre o fluxo do Instagram (`finalizarReserva`, acima) e a reserva externa por link
+ * (`src/app/api/r/[slug]/reservar/route.ts`) — de propósito: são as MESMAS regras de
+ * horário/capacidade valendo nos dois canais, lidas ao vivo de `chatbot_account_settings` a cada
+ * chamada, então uma mudança feita no painel (Instagram) vale automaticamente pro link também, sem
+ * nenhuma sincronização manual. Não manda mensagem nenhuma (isso é responsabilidade de quem chama,
+ * já que os dois canais avisam o cliente de formas bem diferentes) e não escreve na planilha (ver
+ * `sincronizarComPlanilha` — separado de propósito, pra quem chama poder avisar o cliente antes).
+ */
+export async function prepararConfirmacaoDeReserva(
+  admin: Admin,
+  accountId: string,
+  dados: {
+    nome?: string | null;
+    username?: string | null;
+    instagram_scoped_id?: string | null;
+    data_reserva: string | null;
+    data_reserva_br?: string | null;
+    periodo: string | null;
+    quantidade_pessoas: number;
+    whatsapp: string | null;
+  }
+): Promise<{ ok: boolean; mensagem: string; reservaId?: string; config: any }> {
+  const { data: config } = await buscarConfig(admin, accountId);
 
   // Confere a capacidade de novo aqui, bem antes de gravar — o cliente pode ter levado minutos
   // entre a pergunta da quantidade e essa confirmação final, e outra pessoa pode ter confirmado
   // uma reserva pro mesmo dia+período nesse meio tempo. Sem essa segunda checagem, dava pra
   // estourar o limite combinando duas reservas que passaram cada uma na checagem da etapa
   // "pessoas" só porque, na hora de cada uma, a outra ainda não tinha sido confirmada.
-  const limiteMaximo = limiteMaximoDoPeriodo(config, dados.periodo);
+  const limiteMaximo = limiteMaximoDoPeriodo(config, dados.periodo ?? undefined);
   let jaReservado = 0;
   if (typeof limiteMaximo === "number" && dados.data_reserva && dados.periodo) {
-    jaReservado = await somaPessoasReservadas(admin, conta.id, dados.data_reserva, dados.periodo);
+    jaReservado = await somaPessoasReservadas(admin, accountId, dados.data_reserva, dados.periodo);
 
-    if (jaReservado + (dados.quantidade_pessoas ?? 0) > limiteMaximo) {
+    if (jaReservado + dados.quantidade_pessoas > limiteMaximo) {
       const mensagem =
         config?.reserva_mensagem_limite_maximo?.trim() ||
         "Nossas reservas do dia já estão encerradas porque todas as mesas já foram preenchidas. Nosso atendimento será apenas por ordem de chegada.";
-      await enviarMensagemDirect(conta.access_token, idDoCliente, mensagem);
-      return;
+      return { ok: false, mensagem, config };
     }
   }
 
   const { data: reservaSalva, error: erroAoSalvar } = await admin
     .from("chatbot_reservations")
     .insert({
-      account_id: conta.id,
-      instagram_scoped_id: idDoCliente,
+      account_id: accountId,
+      instagram_scoped_id: dados.instagram_scoped_id ?? null,
       cliente_nome: dados.nome ?? null,
       cliente_instagram_username: dados.username ?? null,
       data_reserva: dados.data_reserva ?? null,
@@ -735,16 +780,16 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
 
   if (erroAoSalvar) {
     console.error("Falha ao salvar reserva no banco:", erroAoSalvar);
-    await enviarMensagemDirect(
-      conta.access_token,
-      idDoCliente,
-      "Deu um probleminha aqui pra registrar sua reserva — pode mandar de novo em alguns minutos? Se persistir, chama a gente direto."
-    );
-    return;
+    return {
+      ok: false,
+      config,
+      mensagem:
+        "Deu um probleminha aqui pra registrar sua reserva — pode tentar de novo em alguns minutos? Se persistir, chama a gente direto.",
+    };
   }
 
-  await ajustarTotalAcumulado(admin, conta.id, 1, dados.quantidade_pessoas ?? 0);
-  await notificarNovaReserva(admin, conta.id, dados.nome ?? null, dados.data_reserva_br ?? null);
+  await ajustarTotalAcumulado(admin, accountId, 1, dados.quantidade_pessoas ?? 0);
+  await notificarNovaReserva(admin, accountId, dados.nome ?? null, dados.data_reserva_br ?? null);
 
   // Essa reserva foi exatamente a que fez a soma bater (ou passar) o limite — as próximas
   // tentativas pra esse mesmo dia+período já são recusadas antes de chegar aqui (ver checagem
@@ -754,40 +799,38 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
     typeof limiteMaximo === "number" &&
     dados.data_reserva &&
     dados.periodo &&
-    jaReservado + (dados.quantidade_pessoas ?? 0) >= limiteMaximo
+    jaReservado + dados.quantidade_pessoas >= limiteMaximo
   ) {
     const periodoTexto = dados.periodo === "almoco" ? "Almoço" : dados.periodo === "jantar" ? "Jantar" : "Período";
-    await notificarLotacaoAtingida(admin, conta.id, periodoTexto);
+    await notificarLotacaoAtingida(admin, accountId, periodoTexto);
   }
 
-  // Avisa o cliente ANTES de tentar escrever na planilha — a reserva já está garantida no banco
-  // nesse ponto, então uma falha na planilha (rede, permissão) não pode virar um "não deu certo"
-  // falso pro cliente.
   const mensagemConfirmada =
     config?.reserva_msg_confirmada?.trim() ||
     "Reserva confirmada! Te esperamos por lá. Qualquer mudança, é só chamar por aqui de novo.";
-  await enviarMensagemDirect(conta.access_token, idDoCliente, mensagemConfirmada);
 
+  return { ok: true, mensagem: mensagemConfirmada, reservaId: reservaSalva?.id, config };
+}
+
+/** Separado de `prepararConfirmacaoDeReserva` de propósito — ver comentário lá em cima. */
+export async function sincronizarComPlanilha(admin: Admin, config: any, reservaId: string, dados: any) {
   const idDaPlanilha = config?.google_sheet_id;
-  if (idDaPlanilha && reservaSalva) {
-    const periodoTexto = dados.periodo === "almoco" ? "Almoço" : dados.periodo === "jantar" ? "Jantar" : "";
+  if (!idDaPlanilha) return;
 
-    const escreveuNaPlanilha = await adicionarLinhaNaPlanilha(idDaPlanilha, [
-      dados.nome ?? "",
-      dados.username ?? "",
-      String(dados.quantidade_pessoas ?? ""),
-      dados.whatsapp ?? "",
-      dados.data_reserva_br ?? "",
-      periodoTexto,
-      formatarDataHoraBR(new Date()),
-    ]);
+  const periodoTexto = dados.periodo === "almoco" ? "Almoço" : dados.periodo === "jantar" ? "Jantar" : "";
 
-    if (escreveuNaPlanilha) {
-      await admin
-        .from("chatbot_reservations")
-        .update({ sheet_sincronizado: true })
-        .eq("id", reservaSalva.id);
-    }
+  const escreveuNaPlanilha = await adicionarLinhaNaPlanilha(idDaPlanilha, [
+    dados.nome ?? "",
+    dados.username ?? "",
+    String(dados.quantidade_pessoas ?? ""),
+    dados.whatsapp ?? "",
+    dados.data_reserva_br ?? "",
+    periodoTexto,
+    formatarDataHoraBR(new Date()),
+  ]);
+
+  if (escreveuNaPlanilha) {
+    await admin.from("chatbot_reservations").update({ sheet_sincronizado: true }).eq("id", reservaId);
   }
 }
 
@@ -797,7 +840,7 @@ async function finalizarReserva(admin: Admin, conta: Conta, idDoCliente: string,
  * fluxo) pra uma data+período específicos. Usada pra checar capacidade: o limite máximo
  * configurado é por dia+período (almoço e jantar contam à parte, cada um com o mesmo teto).
  */
-async function somaPessoasReservadas(
+export async function somaPessoasReservadas(
   admin: Admin,
   accountId: string,
   dataReserva: string,
@@ -819,7 +862,7 @@ async function somaPessoasReservadas(
  * de fallback pro Jantar, se a conta ainda não configurou um valor separado pra ele em
  * `reserva_limite_maximo_jantar` — assim ninguém perde a capacidade que já tinha antes dessa
  * separação existir, só de não ter mexido na configuração ainda). */
-function limiteMaximoDoPeriodo(
+export function limiteMaximoDoPeriodo(
   config: { reserva_limite_maximo?: number | null; reserva_limite_maximo_jantar?: number | null } | null | undefined,
   periodo: string | undefined
 ): number | undefined {
@@ -829,11 +872,11 @@ function limiteMaximoDoPeriodo(
   return config?.reserva_limite_maximo ?? undefined;
 }
 
-async function buscarConfig(admin: Admin, accountId: string) {
+export async function buscarConfig(admin: Admin, accountId: string) {
   const resultado = await admin
     .from("chatbot_account_settings")
     .select(
-      "reserva_regras_texto, reserva_mensagem_limite_maximo, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_cutoff_horario, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas"
+      "reserva_habilitada, reserva_pausa_ativa, reserva_pausa_mensagem, reserva_regras_texto, reserva_mensagem_limite_maximo, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_cutoff_horario, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas"
     )
     .eq("account_id", accountId)
     .maybeSingle();
@@ -918,7 +961,7 @@ function interpretarSimNao(payload: string | undefined, texto: string | undefine
 
 type DataSimples = { ano: number; mes: number; dia: number };
 
-function agoraEmSaoPaulo(): DataSimples & { hora: number; minuto: number } {
+export function agoraEmSaoPaulo(): DataSimples & { hora: number; minuto: number } {
   const partes = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
@@ -940,13 +983,13 @@ function agoraEmSaoPaulo(): DataSimples & { hora: number; minuto: number } {
   };
 }
 
-function somarDias({ ano, mes, dia }: DataSimples, quantidade: number): DataSimples {
+export function somarDias({ ano, mes, dia }: DataSimples, quantidade: number): DataSimples {
   const data = new Date(Date.UTC(ano, mes - 1, dia));
   data.setUTCDate(data.getUTCDate() + quantidade);
   return { ano: data.getUTCFullYear(), mes: data.getUTCMonth() + 1, dia: data.getUTCDate() };
 }
 
-function paraISO({ ano, mes, dia }: DataSimples): string {
+export function paraISO({ ano, mes, dia }: DataSimples): string {
   return `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 }
 
@@ -996,7 +1039,7 @@ function parseDataLivre(texto: string, hojeSP: DataSimples): DataSimples | null 
  * separados por vírgula, aceitando intervalo com um traço entre duas datas) — ver
  * `parseDatasBloqueadas`.
  */
-function estaBloqueada(dataISO: string, datasBloqueadasTexto: string | null | undefined): boolean {
+export function estaBloqueada(dataISO: string, datasBloqueadasTexto: string | null | undefined): boolean {
   if (!datasBloqueadasTexto?.trim()) return false;
   return parseDatasBloqueadas(datasBloqueadasTexto).has(dataISO);
 }
@@ -1007,7 +1050,7 @@ function estaBloqueada(dataISO: string, datasBloqueadasTexto: string | null | un
  * fechado usando um traço entre duas datas (ex: "24/12/2026-26/12/2026" bloqueia os 3 dias).
  * Trechos que não batem com nenhum desses formatos são ignorados, sem quebrar o resto da lista.
  */
-function parseDatasBloqueadas(texto: string): Set<string> {
+export function parseDatasBloqueadas(texto: string): Set<string> {
   const resultado = new Set<string>();
   const partes = texto.split(",").map((p) => p.trim()).filter(Boolean);
 
@@ -1050,7 +1093,7 @@ function parseDataBRCompleta(texto: string): DataSimples | null {
   return { ano, mes, dia };
 }
 
-function passouDoCutoff(cutoff: string | null, horaAtual: number, minutoAtual: number): boolean {
+export function passouDoCutoff(cutoff: string | null, horaAtual: number, minutoAtual: number): boolean {
   if (!cutoff) return false;
   const [horaCutoff, minutoCutoff] = cutoff.split(":").map((v) => parseInt(v, 10));
   if (Number.isNaN(horaCutoff)) return false;

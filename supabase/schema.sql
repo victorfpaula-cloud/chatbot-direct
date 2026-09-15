@@ -396,4 +396,12 @@ create table if not exists chatbot_push_subscriptions (
 create index if not exists chatbot_push_subscriptions_account_idx
   on chatbot_push_subscriptions(account_id);
 
+-- ============================================================================
+-- Slug curto pra identificar a conta na URL pública de reserva externa (/r/[slug], fora do
+-- Instagram — ver src/app/r/[slug]/page.tsx), sem expor o uuid interno. Nullable porque a maioria
+-- das contas (ainda) não tem link externo; só ganha um slug quando o dono pede pra ter essa página.
+-- ============================================================================
+alter table chatbot_accounts
+  add column if not exists slug text unique;
+
 alter table chatbot_push_subscriptions enable row level security;
