@@ -1,6 +1,15 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { Interruptor } from "@/app/contas/Interruptor";
 import { CartaoDeSecao } from "../CartaoDeSecao";
-import { CLASSE_CAMPO, CLASSE_CAMPO_TEXTAREA, CLASSE_RÓTULO, CLASSE_AJUDA, CLASSE_BOTAO_SALVAR, CLASSE_AVISO_ERRO } from "../estilosDeCampo";
+import {
+  CLASSE_CAMPO,
+  CLASSE_CAMPO_TEXTAREA,
+  CLASSE_RÓTULO,
+  CLASSE_AJUDA,
+  CLASSE_BOTAO_SALVAR,
+  CLASSE_AVISO_ERRO,
+  CLASSE_ESTADO_DESLIGADO,
+} from "../estilosDeCampo";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +22,45 @@ export default async function PalavrasChavePage({
 }) {
   const admin = criarClienteAdmin();
 
-  const { data: palavrasChave } = await admin
-    .from("chatbot_keywords")
-    .select("id, palavra_chave, mensagens, pausa_entre_mensagens_ms, ativo, created_at")
-    .eq("account_id", params.id)
-    .order("created_at", { ascending: true });
+  const [{ data: palavrasChave }, { data: config }] = await Promise.all([
+    admin
+      .from("chatbot_keywords")
+      .select("id, palavra_chave, mensagens, pausa_entre_mensagens_ms, ativo, created_at")
+      .eq("account_id", params.id)
+      .order("created_at", { ascending: true }),
+    admin.from("chatbot_account_settings").select("chatbot_direct_habilitado").eq("account_id", params.id).maybeSingle(),
+  ]);
+
+  // Chatbot Direct desligado nessa conta (chavinha "Direct" em /contas) — mesmo espírito das
+  // telas de Reserva/Agendamento/Busca Automática: some a configuração, só mostra o jeito de
+  // ligar de novo. `!== false` (não `?? true`) porque config pode vir null numa conta muito nova
+  // ainda sem linha de configuração — nesse caso o padrão é ligado, igual sempre foi.
+  if (config?.chatbot_direct_habilitado === false) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-neutral-50">Palavras-chave</h2>
+          <p className="mt-1.5 text-sm text-neutral-400">
+            Quando o cliente manda uma dessas palavras, o bot responde com a sequência de mensagens
+            configurada.
+          </p>
+        </div>
+
+        <div className={CLASSE_ESTADO_DESLIGADO}>
+          <p className="text-sm text-neutral-400">
+            Chatbot Direct está desativado pra essa conta — a configuração fica escondida e o bot
+            nunca responde por palavra-chave/Gemini até você ativar.
+          </p>
+          <form action="/api/contas/direct-status" method="POST">
+            <input type="hidden" name="account_id" value={params.id} />
+            <input type="hidden" name="habilitar" value="1" />
+            <input type="hidden" name="redirect_to" value={`/contas/${params.id}/palavras-chave`} />
+            <Interruptor ligado={false} rotulo="Ativar Chatbot Direct" />
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

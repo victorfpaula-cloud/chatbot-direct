@@ -156,11 +156,14 @@ export default async function ContasPage({
     idsDasContas.length > 0
       ? admin
           .from("chatbot_account_settings")
-          .select("account_id, reserva_habilitada, agendamento_habilitado, busca_automatica_habilitada")
+          .select(
+            "account_id, chatbot_direct_habilitado, reserva_habilitada, agendamento_habilitado, busca_automatica_habilitada"
+          )
           .in("account_id", idsDasContas)
       : Promise.resolve({
           data: [] as {
             account_id: string;
+            chatbot_direct_habilitado: boolean;
             reserva_habilitada: boolean;
             agendamento_habilitado: boolean;
             busca_automatica_habilitada: boolean;
@@ -172,6 +175,7 @@ export default async function ContasPage({
     (configsDeServico ?? []).map((c) => [
       c.account_id,
       {
+        direct: c.chatbot_direct_habilitado,
         reserva: c.reserva_habilitada,
         agendamento: c.agendamento_habilitado,
         busca: c.busca_automatica_habilitada,
@@ -283,7 +287,12 @@ export default async function ContasPage({
         {(contas ?? []).map((conta) => {
           const estilo = estiloDaConta(conta.id);
           const stats = estatisticasPorConta.get(conta.id) ?? { respondidas: 0, erros: 0 };
-          const servicos = servicosPorConta.get(conta.id) ?? { reserva: false, agendamento: false, busca: false };
+          const servicos = servicosPorConta.get(conta.id) ?? {
+            direct: true,
+            reserva: false,
+            agendamento: false,
+            busca: false,
+          };
 
           return (
             <div
@@ -350,6 +359,7 @@ export default async function ContasPage({
                 <div className="mt-4">
                   <ChavesDeServico
                     contaId={conta.id}
+                    directHabilitado={servicos.direct}
                     reservaHabilitada={servicos.reserva}
                     agendamentoHabilitado={servicos.agendamento}
                     buscaHabilitada={servicos.busca}

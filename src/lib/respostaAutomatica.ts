@@ -42,60 +42,75 @@ export async function decidirEResponder(
       tipoResposta = "reserva";
       respostaResumo = "Tratado pelo fluxo de reserva (mensagens configuradas na aba Reserva).";
     } else if (textoDaMensagem) {
-      // Espera um pouquinho pra ver se a mesma pessoa vai completar o pensamento numa segunda
-      // mensagem antes de responder (reportado em teste real: "Talvez ao invés de 8 pessoas, serão
-      // 9" seguido de "Tem problema?" — cada uma respondida separadamente, como perguntas sem
-      // relação nenhuma). Um `null` aqui significa que já existe mensagem mais nova da mesma
-      // pessoa esperando na fila — quem responde por tudo é aquela chamada, então essa aqui não
-      // faz nada.
-      const textoAgrupado = await agruparMensagensRapidas(admin, conta.id, idDoCliente, textoDaMensagem);
+      // Chatbot Direct (palavra-chave + Gemini) — chavinha independente da Reserva/Agendamento
+      // (ver chatbot_direct_habilitado em /contas): existe conta que contrata só Reserva sem
+      // contratar essa parte. Nasce LIGADO (default true na coluna) — sem linha de configuração
+      // nenhuma ainda (conta muito nova), `configDirect` vem null e o `!== false` abaixo mantém
+      // ligado, igual sempre foi antes dessa chavinha existir.
+      const { data: configDirect } = await admin
+        .from("chatbot_account_settings")
+        .select("chatbot_direct_habilitado")
+        .eq("account_id", conta.id)
+        .maybeSingle();
 
-      if (textoAgrupado === null) {
+      if (configDirect?.chatbot_direct_habilitado === false) {
         tipoResposta = "sem_resposta";
       } else {
-        const { data: palavrasChave, error: erroAoBuscarPalavrasChave } = await admin
-          .from("chatbot_keywords")
-          .select("palavra_chave, mensagens, pausa_entre_mensagens_ms")
-          .eq("account_id", conta.id)
-          .eq("ativo", true)
-          .order("created_at", { ascending: true });
+        // Espera um pouquinho pra ver se a mesma pessoa vai completar o pensamento numa segunda
+        // mensagem antes de responder (reportado em teste real: "Talvez ao invés de 8 pessoas,
+        // serão 9" seguido de "Tem problema?" — cada uma respondida separadamente, como perguntas
+        // sem relação nenhuma). Um `null` aqui significa que já existe mensagem mais nova da
+        // mesma pessoa esperando na fila — quem responde por tudo é aquela chamada, então essa
+        // aqui não faz nada.
+        const textoAgrupado = await agruparMensagensRapidas(admin, conta.id, idDoCliente, textoDaMensagem);
 
-        if (erroAoBuscarPalavrasChave) throw erroAoBuscarPalavrasChave;
-
-        const textoNormalizado = normalizar(textoAgrupado);
-
-        const palavraChaveCorrespondente = (palavrasChave ?? []).find((pc) => {
-          const variacoes = (pc.palavra_chave ?? "")
-            .split(",")
-            .map((v: string) => normalizar(v.trim()))
-            .filter((v: string) => v.length > 0);
-
-          return variacoes.some((variacao: string) => textoNormalizado.includes(variacao));
-        });
-
-        if (palavraChaveCorrespondente) {
-          const mensagensDaSequencia: string[] = Array.isArray(palavraChaveCorrespondente.mensagens)
-            ? palavraChaveCorrespondente.mensagens
-            : [];
-          const pausaMs = Math.min(palavraChaveCorrespondente.pausa_entre_mensagens_ms ?? 0, 4000);
-
-          for (let i = 0; i < mensagensDaSequencia.length; i++) {
-            if (i > 0 && pausaMs > 0) {
-              await aguardar(pausaMs);
-            }
-            await enviarMensagemDirect(conta.access_token, idDoCliente, mensagensDaSequencia[i]);
-          }
-
-          tipoResposta = "palavra_chave";
-          respostaResumo = mensagensDaSequencia.join(" | ") || null;
+        if (textoAgrupado === null) {
+          tipoResposta = "sem_resposta";
         } else {
-          const respostaGemini = await responderComGemini(admin, conta, idDoCliente, textoAgrupado);
+          const { data: palavrasChave, error: erroAoBuscarPalavrasChave } = await admin
+            .from("chatbot_keywords")
+            .select("palavra_chave, mensagens, pausa_entre_mensagens_ms")
+            .eq("account_id", conta.id)
+            .eq("ativo", true)
+            .order("created_at", { ascending: true });
 
-          if (respostaGemini) {
-            tipoResposta = "gemini";
-            respostaResumo = respostaGemini;
+          if (erroAoBuscarPalavrasChave) throw erroAoBuscarPalavrasChave;
+
+          const textoNormalizado = normalizar(textoAgrupado);
+
+          const palavraChaveCorrespondente = (palavrasChave ?? []).find((pc) => {
+            const variacoes = (pc.palavra_chave ?? "")
+              .split(",")
+              .map((v: string) => normalizar(v.trim()))
+              .filter((v: string) => v.length > 0);
+
+            return variacoes.some((variacao: string) => textoNormalizado.includes(variacao));
+          });
+
+          if (palavraChaveCorrespondente) {
+            const mensagensDaSequencia: string[] = Array.isArray(palavraChaveCorrespondente.mensagens)
+              ? palavraChaveCorrespondente.mensagens
+              : [];
+            const pausaMs = Math.min(palavraChaveCorrespondente.pausa_entre_mensagens_ms ?? 0, 4000);
+
+            for (let i = 0; i < mensagensDaSequencia.length; i++) {
+              if (i > 0 && pausaMs > 0) {
+                await aguardar(pausaMs);
+              }
+              await enviarMensagemDirect(conta.access_token, idDoCliente, mensagensDaSequencia[i]);
+            }
+
+            tipoResposta = "palavra_chave";
+            respostaResumo = mensagensDaSequencia.join(" | ") || null;
           } else {
-            tipoResposta = "sem_resposta";
+            const respostaGemini = await responderComGemini(admin, conta, idDoCliente, textoAgrupado);
+
+            if (respostaGemini) {
+              tipoResposta = "gemini";
+              respostaResumo = respostaGemini;
+            } else {
+              tipoResposta = "sem_resposta";
+            }
           }
         }
       }

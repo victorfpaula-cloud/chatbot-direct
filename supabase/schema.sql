@@ -183,6 +183,17 @@ alter table chatbot_account_settings
   add column if not exists busca_automatica_url text;
 
 -- ============================================================================
+-- Interruptor SÓ do atendimento automático "Chatbot Direct" (palavra-chave + Gemini) — separado
+-- do "Pausar" de chatbot_accounts.active, que desliga TUDO (reserva, agendamento, busca e direct
+-- juntos). Existe conta que contrata só Reserva sem contratar o Chatbot Direct, então precisa dar
+-- pra desligar só essa parte. Nasce LIGADO (default true, ao contrário dos outros serviços) —
+-- diferente de reserva/agendamento/busca, que são add-ons novos começando desligados, o Chatbot
+-- Direct é o comportamento de sempre que toda conta já tinha antes dessa chavinha existir.
+-- ============================================================================
+alter table chatbot_account_settings
+  add column if not exists chatbot_direct_habilitado boolean not null default true;
+
+-- ============================================================================
 -- Cache da foto de perfil de cada conta (tela /contas) — antes buscava direto na Meta a cada
 -- abertura da tela; agora guarda aqui e só busca de novo quando estiver velha (ver
 -- src/app/contas/page.tsx), já que a foto de perfil de um restaurante quase nunca muda.

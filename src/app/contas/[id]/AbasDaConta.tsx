@@ -2,12 +2,9 @@
 
 import { usePathname } from "next/navigation";
 
-const ABAS_SEMPRE_VISIVEIS = [
-  { segmento: "palavras-chave", rotulo: "Palavras-chave" },
-  { segmento: "gemini", rotulo: "Gemini" },
-];
-
 const ABAS_POR_SERVICO = [
+  { segmento: "palavras-chave", rotulo: "Palavras-chave", chave: "directHabilitado" as const },
+  { segmento: "gemini", rotulo: "Gemini", chave: "directHabilitado" as const },
   { segmento: "reserva", rotulo: "Reserva", chave: "reservaHabilitada" as const },
   { segmento: "agendamento", rotulo: "Agendamento", chave: "agendamentoHabilitado" as const },
   { segmento: "busca", rotulo: "Busca Automática", chave: "buscaHabilitada" as const },
@@ -20,32 +17,32 @@ const ABAS_FINAIS = [
 ];
 
 /**
- * Menu de abas de cada conta, agora ESCONDENDO a aba de um serviço (Reserva/Agendamento/Busca
- * Automática) quando ele está desligado naquela conta — antes as 3 apareciam sempre, pra toda
- * conta, mesmo numa que nunca vai usar reserva nem agendamento (ex: uma conta só de atendimento
- * automático) — isso é exatamente o "muito rolo" que o Victor reportou. As chavinhas de verdade
- * (ligar/desligar) ficam nos cartões de /contas (ver ChavesDeServico.tsx) — aqui só decide o que
- * mostrar, não liga nem desliga nada.
+ * Menu de abas de cada conta, agora ESCONDENDO a aba de um serviço (Direct/Reserva/Agendamento/
+ * Busca Automática) quando ele está desligado naquela conta — antes as abas apareciam sempre,
+ * pra toda conta, mesmo numa que nunca vai usar reserva nem agendamento (ex: uma conta só de
+ * atendimento automático) — isso é exatamente o "muito rolo" que o Victor reportou. Palavras-
+ * chave/Gemini entraram no mesmo grupo condicional (chave "directHabilitado"): existe conta que
+ * contrata só Reserva sem contratar o Chatbot Direct, então nem essas duas fazem sentido pra ela.
+ * As chavinhas de verdade (ligar/desligar) ficam nos cartões de /contas (ver ChavesDeServico.tsx)
+ * — aqui só decide o que mostrar, não liga nem desliga nada.
  */
 export default function AbasDaConta({
   contaId,
+  directHabilitado,
   reservaHabilitada,
   agendamentoHabilitado,
   buscaHabilitada,
 }: {
   contaId: string;
+  directHabilitado: boolean;
   reservaHabilitada: boolean;
   agendamentoHabilitado: boolean;
   buscaHabilitada: boolean;
 }) {
   const pathname = usePathname();
-  const flags = { reservaHabilitada, agendamentoHabilitado, buscaHabilitada };
+  const flags = { directHabilitado, reservaHabilitada, agendamentoHabilitado, buscaHabilitada };
 
-  const abas = [
-    ...ABAS_SEMPRE_VISIVEIS,
-    ...ABAS_POR_SERVICO.filter((aba) => flags[aba.chave]),
-    ...ABAS_FINAIS,
-  ];
+  const abas = [...ABAS_POR_SERVICO.filter((aba) => flags[aba.chave]), ...ABAS_FINAIS];
 
   return (
     // Sem backdrop-filter aqui de propósito — essa barra já vive DENTRO do shell da conta (ver
