@@ -499,6 +499,13 @@ create table if not exists chatbot_agendamentos_log (
   criado_em timestamptz not null default now()
 );
 
+-- Guardam dado real de cliente (nome, whatsapp, @ do Instagram) — precisavam de RLS desde a
+-- criação, igual toda outra tabela daqui, mas ficaram pra trás sem essa linha (só reparado depois,
+-- numa auditoria de segurança; nenhum código do app acessa essas tabelas pela chave anônima, só
+-- pela service_role — então isso nunca quebrou nada, só deixava a porta destrancada).
+alter table chatbot_agendamentos enable row level security;
+alter table chatbot_agendamentos_log enable row level security;
+
 alter table chatbot_account_settings
   add column if not exists agendamento_habilitado boolean not null default false,
   add column if not exists palavra_chave_agendamento text,
