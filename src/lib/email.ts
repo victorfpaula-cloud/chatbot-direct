@@ -10,14 +10,13 @@ import type { RelatorioSemanal } from "@/lib/relatorioSemanal";
 // nem confundir o processamento de uma mensagem real.
 const RESEND_API_URL = "https://api.resend.com/emails";
 
-// Remetente padrão do Resend (onboarding@resend.dev) — funciona sem precisar verificar domínio
-// próprio, mas COM UMA RESTRIÇÃO IMPORTANTE enquanto nenhum domínio for verificado na conta
-// Resend: só entrega pro e-mail dono da própria conta Resend, não pra um e-mail arbitrário de
-// cliente. Isso significa que enviarRelatorioSemanal pode falhar silenciosamente (Resend aceita a
-// chamada, mas o e-mail não chega) se o destinatário cadastrado não for esse e-mail dono da conta
-// — só some depois de verificar um domínio próprio no Resend. Sem isso, dá pra pelo menos mandar
-// pro próprio e-mail do Victor por enquanto.
-const REMETENTE = "Chatbot Direct <onboarding@resend.dev>";
+// Domínio automesa.com.br verificado na Resend (SPF/DKIM configurados) — dá pra mandar de
+// qualquer endereço @automesa.com.br, mesmo sem essa caixa existir de verdade (a Resend não
+// confere se a caixa existe, só que o domínio é seu). Antes disso o remetente era o
+// onboarding@resend.dev padrão da Resend, que só entregava pro e-mail dono da própria conta
+// Resend — não dava pra mandar relatório pra e-mail arbitrário de cliente. Agora entrega
+// normalmente pra qualquer destinatário.
+const REMETENTE = "Chatbot Direct <relatorios@automesa.com.br>";
 
 export async function enviarEmailDeReclamacao(dados: {
   contaNome: string;
@@ -171,6 +170,10 @@ export async function enviarRelatorioSemanal(
       body: JSON.stringify({
         from: REMETENTE,
         to: [destinatario],
+        // Sem caixa de e-mail de verdade atrás de relatorios@automesa.com.br — se o cliente
+        // responder o relatório, cai aqui (mesmo e-mail que já recebe os avisos de reclamação),
+        // não se perde no vazio. Omitido se ALERT_EMAIL não estiver configurada.
+        reply_to: process.env.ALERT_EMAIL || undefined,
         subject: `Relatório semanal — ${relatorio.contaNome} (${periodo})`,
         html,
       }),
