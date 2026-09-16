@@ -99,7 +99,7 @@ function agruparPorCliente(atendimentos: Atendimento[]): GrupoPorCliente[] {
 
 function CartaoDeAtendimento({ atendimento }: { atendimento: Atendimento }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 text-sm shadow-sm shadow-black/20">
+    <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-neutral-500">{formatarDataHora(atendimento.criado_em)}</span>
         <BadgeDeStatus status={atendimento.status} />
@@ -131,7 +131,7 @@ function CartaoDeAtendimento({ atendimento }: { atendimento: Atendimento }) {
       )}
 
       {atendimento.status === "erro" && atendimento.erro_detalhe && (
-        <p className="mt-2 break-words rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-xs text-red-300">
+        <p className="mt-2 break-words rounded-lg border border-red-800/40 bg-red-950/40 px-3 py-2 text-xs text-red-300">
           {atendimento.erro_detalhe}
         </p>
       )}
@@ -177,8 +177,8 @@ export default async function AtendimentosPage({
 
   return (
     <div>
-      <h2 className="text-lg font-semibold">Atendimentos</h2>
-      <p className="mt-1 text-sm text-neutral-400">
+      <h2 className="text-xl font-semibold text-neutral-50">Atendimentos</h2>
+      <p className="mt-1.5 text-sm text-neutral-400">
         Histórico das últimas {LIMITE_DE_LINHAS} mensagens recebidas nessa conta, agrupadas por
         cliente — toca num cliente pra ver tudo que ele mandou e clicou. Cada atendimento mostra o
         que o bot fez em resposta — se respondeu, se deu erro, ou se ficou em silêncio (nenhuma
@@ -196,10 +196,10 @@ export default async function AtendimentosPage({
             <a
               key={filtro.rotulo}
               href={href}
-              className={`rounded-lg border px-3 py-1.5 text-sm ${
+              className={`rounded-lg border px-3 py-1.5 text-sm transition ${
                 ativo
                   ? "border-indigo-500 bg-indigo-500 text-white shadow-md shadow-indigo-950/40"
-                  : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
+                  : "border-white/10 bg-white/[0.03] text-neutral-400 hover:border-white/25 hover:bg-white/10"
               }`}
             >
               {filtro.rotulo}
@@ -215,7 +215,7 @@ export default async function AtendimentosPage({
           {grupos.map((grupo) => (
             <details
               key={grupo.instagramScopedId}
-              className="group rounded-lg border border-neutral-800 bg-neutral-950/60 shadow-md shadow-black/30 open:border-neutral-600"
+              className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] open:border-indigo-500/30 [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)]"
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm">
                 <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ export default async function AtendimentosPage({
                 </div>
               </summary>
 
-              <div className="flex flex-col gap-3 border-t border-neutral-800 p-4 pt-3">
+              <div className="flex flex-col gap-3 border-t border-white/10 p-4 pt-3">
                 {grupo.atendimentos.map((atendimento) => (
                   <CartaoDeAtendimento key={atendimento.id} atendimento={atendimento} />
                 ))}

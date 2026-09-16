@@ -172,6 +172,17 @@ alter table chatbot_account_settings
   add column if not exists reserva_habilitada boolean not null default false;
 
 -- ============================================================================
+-- Mesmo espírito de reserva_habilitada/agendamento_habilitado, agora pro serviço "Busca
+-- Automática" — busca periódica de informação num site externo (ex: programação de cinema) pra
+-- responder o cliente sem precisar navegar ao vivo a cada pergunta (ver conversa sobre o cliente
+-- Cinemec). busca_automatica_url guarda o link do site a consultar; a busca em si (scraper +
+-- cron) ainda não existe neste commit — só a chavinha e o campo pra já deixar pronto.
+-- ============================================================================
+alter table chatbot_account_settings
+  add column if not exists busca_automatica_habilitada boolean not null default false,
+  add column if not exists busca_automatica_url text;
+
+-- ============================================================================
 -- Cache da foto de perfil de cada conta (tela /contas) — antes buscava direto na Meta a cada
 -- abertura da tela; agora guarda aqui e só busca de novo quando estiver velha (ver
 -- src/app/contas/page.tsx), já que a foto de perfil de um restaurante quase nunca muda.

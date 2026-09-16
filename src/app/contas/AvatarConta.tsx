@@ -21,20 +21,23 @@ export function AvatarConta({
 }) {
   const [falhouAoCarregar, setFalhouAoCarregar] = useState(false);
 
+  // ring-offset-transparent (não uma cor sólida como antes) — o cartão que envolve isso agora é
+  // vidro translúcido (Liquid Glass), não mais um neutral-800 sólido; uma cor de "vão" fixa
+  // pintaria um remendo opaco por cima do vidro, quebrando o efeito.
   if (fotoUrl && !falhouAoCarregar) {
     return (
       <img
         src={fotoUrl}
         alt=""
         onError={() => setFalhouAoCarregar(true)}
-        className={`h-12 w-12 rounded-full object-cover ring-2 ring-offset-2 ring-offset-neutral-800 ${corDoAnel}`}
+        className={`h-12 w-12 rounded-full object-cover ring-2 ring-offset-2 ring-offset-transparent ${corDoAnel}`}
       />
     );
   }
 
   return (
     <div
-      className={`flex h-12 w-12 items-center justify-center rounded-full text-lg font-semibold ring-2 ring-offset-2 ring-offset-neutral-800 ${corDeFundo} ${corDoAnel}`}
+      className={`flex h-12 w-12 items-center justify-center rounded-full text-lg font-semibold ring-2 ring-offset-2 ring-offset-transparent ${corDeFundo} ${corDoAnel}`}
     >
       {letra}
     </div>

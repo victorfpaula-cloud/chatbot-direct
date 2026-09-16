@@ -1,8 +1,21 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { BotaoAtivarReservas } from "@/app/contas/BotaoAtivarReservas";
+import { Interruptor } from "@/app/contas/Interruptor";
 import DatasBloqueadasEditor from "./DatasBloqueadasEditor";
 import CorDeDestaqueEditor from "./CorDeDestaqueEditor";
 import { MENSAGEM_LEMBRETE_PADRAO } from "@/lib/lembreteDeReserva";
+import {
+  CLASSE_CAMPO,
+  CLASSE_CAMPO_TEXTAREA,
+  CLASSE_RÓTULO,
+  CLASSE_AJUDA,
+  CLASSE_CHECKBOX,
+  CLASSE_BOTAO_SALVAR,
+  CLASSE_AVISO_SALVO,
+  CLASSE_AVISO_ERRO,
+  CLASSE_ESTADO_DESLIGADO,
+  CLASSE_SECAO,
+  CLASSE_TITULO_SECAO,
+} from "../estilosDeCampo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -51,14 +64,14 @@ export default async function ReservaConfigPage({
   if (!config?.reserva_habilitada) {
     return (
       <div>
-        <h2 className="text-lg font-semibold">Reserva</h2>
+        <h2 className="text-xl font-semibold text-neutral-50">Reserva</h2>
         <p className="mt-1 text-sm text-neutral-400">
           Fluxo automático de reserva: só entra em ação quando o cliente manda a palavra-chave
           configurada aqui. Depois disso, o bot pergunta data, período, quantidade de pessoas e
           WhatsApp, mostra as regras e pede confirmação — tudo por conta própria.
         </p>
 
-        <div className="mt-4 flex flex-col items-start gap-3 rounded-xl border border-dashed border-neutral-700 px-4 py-6">
+        <div className={CLASSE_ESTADO_DESLIGADO}>
           <p className="text-sm text-neutral-400">
             Reservas estão desativadas pra essa conta — a configuração fica escondida e o bot
             nunca entra nesse fluxo até você ativar.
@@ -67,7 +80,7 @@ export default async function ReservaConfigPage({
             <input type="hidden" name="account_id" value={params.id} />
             <input type="hidden" name="habilitar" value="1" />
             <input type="hidden" name="redirect_to" value={`/contas/${params.id}/reserva`} />
-            <BotaoAtivarReservas habilitada={false} />
+            <Interruptor ligado={false} rotulo="Ativar Reservas" />
           </form>
         </div>
       </div>
@@ -78,7 +91,7 @@ export default async function ReservaConfigPage({
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Reserva</h2>
+          <h2 className="text-xl font-semibold text-neutral-50">Reserva</h2>
           <p className="mt-1 text-sm text-neutral-400">
             Fluxo automático de reserva: só entra em ação quando o cliente manda a palavra-chave
             configurada aqui. Depois disso, o bot pergunta data, período, quantidade de pessoas e
@@ -89,18 +102,22 @@ export default async function ReservaConfigPage({
           <input type="hidden" name="account_id" value={params.id} />
           <input type="hidden" name="habilitar" value="0" />
           <input type="hidden" name="redirect_to" value={`/contas/${params.id}/reserva`} />
-          <BotaoAtivarReservas habilitada={true} />
+          <Interruptor
+            ligado={true}
+            rotulo="Reservas ativas"
+            mensagemConfirmarDesligar="Tem certeza que deseja desativar reservas nessa conta? O bot para de aceitar novas reservas, a configuração fica escondida e ela some do dropdown de reservas até você ativar de novo."
+          />
         </form>
       </div>
 
       {searchParams.salvo && (
-        <div className="mt-4 rounded-lg border border-green-900 bg-green-950 px-4 py-2 text-sm text-green-300">
+        <div className={CLASSE_AVISO_SALVO}>
           Configuração salva.
         </div>
       )}
 
       {searchParams.erro && (
-        <div className="mt-4 break-words rounded-lg border border-red-900 bg-red-950 px-4 py-2 text-sm text-red-300">
+        <div className={CLASSE_AVISO_ERRO}>
           {searchParams.erro}
         </div>
       )}
@@ -109,7 +126,7 @@ export default async function ReservaConfigPage({
         <input type="hidden" name="account_id" value={params.id} />
 
         <div>
-          <label className="text-xs text-neutral-400">
+          <label className={CLASSE_RÓTULO}>
             Palavra-chave que inicia o fluxo de reserva
           </label>
           <input
@@ -117,16 +134,16 @@ export default async function ReservaConfigPage({
             name="palavra_chave_reserva"
             defaultValue={config?.palavra_chave_reserva ?? ""}
             placeholder="Ex: reserva, reservar, quero reservar"
-            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO}
           />
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className={CLASSE_AJUDA}>
             Pode escrever mais de uma variação separada por vírgula.
           </p>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
-          <p className="text-sm font-medium text-neutral-200">Aparência da reserva externa</p>
-          <p className="mt-1 text-xs text-neutral-500">
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Aparência da reserva externa</p>
+          <p className={CLASSE_AJUDA}>
             Cor do brilho de fundo e dos botões na página pública de reserva (/r/...). Em branco,
             usa uma cor calculada automaticamente a partir do logo do Instagram — preencha aqui só
             se quiser escolher o tom exato à mão.
@@ -136,16 +153,16 @@ export default async function ReservaConfigPage({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
-          <p className="text-sm font-medium text-neutral-200">Mensagens do bot</p>
-          <p className="mt-1 text-xs text-neutral-500">
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Mensagens do bot</p>
+          <p className={CLASSE_AJUDA}>
             Cada campo abaixo é o que o bot manda naquele momento da conversa. Deixe em branco pra
             usar o texto padrão (mostrado como exemplo no próprio campo).
           </p>
 
           <div className="mt-4">
-            <label className="text-xs text-neutral-400">Saudação inicial</label>
-            <p className="mt-1 text-xs text-neutral-500">
+            <label className={CLASSE_RÓTULO}>Saudação inicial</label>
+            <p className={CLASSE_AJUDA}>
               Mandada assim que o cliente digita a palavra-chave, antes da primeira pergunta. Se
               deixar em branco, o bot não manda saudação nenhuma e já começa perguntando a data.
             </p>
@@ -154,13 +171,13 @@ export default async function ReservaConfigPage({
               rows={2}
               defaultValue={config?.reserva_msg_inicial ?? ""}
               placeholder="(em branco = sem saudação, vai direto pra pergunta da data)"
-              className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO_TEXTAREA}
             />
           </div>
 
           <div className="mt-4">
-            <label className="text-xs text-neutral-400">Pergunta 1 — data</label>
-            <p className="mt-1 text-xs text-neutral-500">
+            <label className={CLASSE_RÓTULO}>Pergunta 1 — data</label>
+            <p className={CLASSE_AJUDA}>
               Pergunta pro cliente escolher o dia da reserva (aparece junto com os botões Hoje,
               Amanhã e Outro dia).
             </p>
@@ -169,13 +186,13 @@ export default async function ReservaConfigPage({
               rows={2}
               defaultValue={config?.reserva_msg_pergunta_data ?? ""}
               placeholder="Pra qual dia você quer reservar? Toque num botão abaixo ou digite: Hoje, Amanhã, Outro dia."
-              className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO_TEXTAREA}
             />
           </div>
 
           <div className="mt-4">
-            <label className="text-xs text-neutral-400">Pergunta 2 — período</label>
-            <p className="mt-1 text-xs text-neutral-500">
+            <label className={CLASSE_RÓTULO}>Pergunta 2 — período</label>
+            <p className={CLASSE_AJUDA}>
               Pergunta se é Almoço ou Jantar (aparece junto com os botões).
             </p>
             <textarea
@@ -183,13 +200,13 @@ export default async function ReservaConfigPage({
               rows={2}
               defaultValue={config?.reserva_msg_pergunta_periodo ?? ""}
               placeholder="É pro Almoço ou Jantar?"
-              className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO_TEXTAREA}
             />
           </div>
 
           <div className="mt-4">
-            <label className="text-xs text-neutral-400">Pergunta 3 — quantidade de pessoas</label>
-            <p className="mt-1 text-xs text-neutral-500">
+            <label className={CLASSE_RÓTULO}>Pergunta 3 — quantidade de pessoas</label>
+            <p className={CLASSE_AJUDA}>
               Pergunta quantas pessoas vão na reserva.
             </p>
             <textarea
@@ -197,13 +214,13 @@ export default async function ReservaConfigPage({
               rows={2}
               defaultValue={config?.reserva_msg_pergunta_pessoas ?? ""}
               placeholder="Pra quantas pessoas é a reserva?"
-              className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO_TEXTAREA}
             />
           </div>
 
           <div className="mt-4">
-            <label className="text-xs text-neutral-400">Pergunta 4 — WhatsApp</label>
-            <p className="mt-1 text-xs text-neutral-500">
+            <label className={CLASSE_RÓTULO}>Pergunta 4 — WhatsApp</label>
+            <p className={CLASSE_AJUDA}>
               Pede o número de WhatsApp pra contato, depois disso o bot mostra as Regras (campo
               logo abaixo) e pede a confirmação final.
             </p>
@@ -212,13 +229,13 @@ export default async function ReservaConfigPage({
               rows={2}
               defaultValue={config?.reserva_msg_pergunta_whatsapp ?? ""}
               placeholder="Qual o melhor WhatsApp pra contato?"
-              className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO_TEXTAREA}
             />
           </div>
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">
+          <label className={CLASSE_RÓTULO}>
             Regras (mostradas antes do pedido de confirmação)
           </label>
           <textarea
@@ -226,13 +243,13 @@ export default async function ReservaConfigPage({
             rows={6}
             defaultValue={config?.reserva_regras_texto ?? ""}
             placeholder="Ex: tolerância de 15 minutos, mesa liberada após esse prazo"
-            className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO_TEXTAREA}
           />
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">Mensagem quando a reserva é confirmada</label>
-          <p className="mt-1 text-xs text-neutral-500">
+          <label className={CLASSE_RÓTULO}>Mensagem quando a reserva é confirmada</label>
+          <p className={CLASSE_AJUDA}>
             Última mensagem do fluxo, mandada depois que o cliente toca em "Sim, confirmar".
           </p>
           <textarea
@@ -240,13 +257,13 @@ export default async function ReservaConfigPage({
             rows={3}
             defaultValue={config?.reserva_msg_confirmada ?? ""}
             placeholder="Reserva confirmada! Te esperamos por lá. Qualquer mudança, é só chamar por aqui de novo."
-            className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO_TEXTAREA}
           />
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">Mensagem quando o cliente cancela</label>
-          <p className="mt-1 text-xs text-neutral-500">
+          <label className={CLASSE_RÓTULO}>Mensagem quando o cliente cancela</label>
+          <p className={CLASSE_AJUDA}>
             Mandada quando o cliente toca em "Não, cancelar" na confirmação final.
           </p>
           <textarea
@@ -254,12 +271,12 @@ export default async function ReservaConfigPage({
             rows={3}
             defaultValue={config?.reserva_msg_recusada ?? ""}
             placeholder="Sem problema, fica pra próxima! Se quiser reservar depois, é só chamar de novo."
-            className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO_TEXTAREA}
           />
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">
+          <label className={CLASSE_RÓTULO}>
             Limite normal de pessoas (só informativo)
           </label>
           <input
@@ -267,13 +284,13 @@ export default async function ReservaConfigPage({
             min={0}
             name="reserva_limite_normal"
             defaultValue={config?.reserva_limite_normal ?? ""}
-            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO}
           />
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
-          <p className="text-sm font-medium text-neutral-200">Capacidade máxima de pessoas</p>
-          <p className="mt-1 text-xs text-neutral-500">
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Capacidade máxima de pessoas</p>
+          <p className={CLASSE_AJUDA}>
             Um número pra cada período — é a SOMA de todas as reservas já confirmadas pra aquele
             dia+período. Assim que bater nesse número, ninguém mais consegue reservar pra esse
             período — nem uma reserva pequena que ainda caberia, se pedir mais do que o que sobrou.
@@ -281,19 +298,19 @@ export default async function ReservaConfigPage({
 
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-xs text-neutral-400">Almoço</label>
+              <label className={CLASSE_RÓTULO}>Almoço</label>
               <input
                 type="number"
                 min={0}
                 name="reserva_limite_maximo"
                 defaultValue={config?.reserva_limite_maximo ?? ""}
-                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className={CLASSE_CAMPO}
               />
             </div>
 
             <div>
-              <label className="text-xs text-neutral-400">Jantar</label>
-              <p className="mt-1 text-xs text-neutral-500">
+              <label className={CLASSE_RÓTULO}>Jantar</label>
+              <p className={CLASSE_AJUDA}>
                 Em branco usa o mesmo número do Almoço.
               </p>
               <input
@@ -301,25 +318,25 @@ export default async function ReservaConfigPage({
                 min={0}
                 name="reserva_limite_maximo_jantar"
                 defaultValue={config?.reserva_limite_maximo_jantar ?? ""}
-                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className={CLASSE_CAMPO}
               />
             </div>
           </div>
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">Mensagem quando passa do limite máximo</label>
+          <label className={CLASSE_RÓTULO}>Mensagem quando passa do limite máximo</label>
           <textarea
             name="reserva_mensagem_limite_maximo"
             rows={3}
             defaultValue={config?.reserva_mensagem_limite_maximo ?? ""}
             placeholder="Nossas reservas do dia já estão encerradas porque todas as mesas já foram preenchidas. Nosso atendimento será apenas por ordem de chegada."
-            className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO_TEXTAREA}
           />
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">
+          <label className={CLASSE_RÓTULO}>
             Horário limite pra reservar "Hoje" (depois disso, some a opção "Hoje" — "Amanhã" e
             "Outro dia" continuam disponíveis)
           </label>
@@ -327,40 +344,40 @@ export default async function ReservaConfigPage({
             type="time"
             name="reserva_cutoff_horario"
             defaultValue={cutoffParaInput}
-            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO}
           />
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">ID da planilha do Google Sheets</label>
+          <label className={CLASSE_RÓTULO}>ID da planilha do Google Sheets</label>
           <input
             type="text"
             name="google_sheet_id"
             defaultValue={config?.google_sheet_id ?? ""}
             placeholder="Cola aqui só o ID (o trecho entre /d/ e /edit na URL da planilha)"
-            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO}
           />
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
+        <div className={CLASSE_SECAO}>
           <label className="flex items-center gap-2 text-sm text-neutral-200">
             <input
               type="checkbox"
               name="reserva_pausa_ativa"
               defaultChecked={config?.reserva_pausa_ativa ?? false}
-              className="h-4 w-4 rounded border-neutral-700 bg-neutral-950"
+              className={CLASSE_CHECKBOX}
             />
             Pausar reservas temporariamente
           </label>
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className={CLASSE_AJUDA}>
             Enquanto estiver marcado, quem mandar a palavra-chave de reserva recebe a mensagem
             abaixo em vez de começar o fluxo. Importante: isso não desliga sozinho depois de um
             tempo — fica pausado até você desmarcar essa caixinha aqui manualmente.
           </p>
 
           <div className="mt-3">
-            <label className="text-xs text-neutral-400">Até quando (opcional, só anotação)</label>
-            <p className="mt-1 text-xs text-neutral-500">
+            <label className={CLASSE_RÓTULO}>Até quando (opcional, só anotação)</label>
+            <p className={CLASSE_AJUDA}>
               Isso aqui é só um lembrete visual pra você — o sistema não desmarca a pausa sozinho
               nessa data, é preciso desmarcar a caixinha "Pausar reservas temporariamente" à mão.
             </p>
@@ -368,25 +385,25 @@ export default async function ReservaConfigPage({
               type="date"
               name="reserva_pausa_data"
               defaultValue={config?.reserva_pausa_data ?? ""}
-              className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO}
             />
           </div>
 
           <div className="mt-3">
-            <label className="text-xs text-neutral-400">Mensagem durante a pausa</label>
+            <label className={CLASSE_RÓTULO}>Mensagem durante a pausa</label>
             <textarea
               name="reserva_pausa_mensagem"
               rows={3}
               defaultValue={config?.reserva_pausa_mensagem ?? ""}
               placeholder="No momento não estamos aceitando novas reservas por aqui. Assim que reabrirmos, avisamos por aqui."
-              className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO_TEXTAREA}
             />
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
-          <p className="text-sm font-medium text-neutral-200">Bloquear datas específicas</p>
-          <p className="mt-1 text-xs text-neutral-500">
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Bloquear datas específicas</p>
+          <p className={CLASSE_AJUDA}>
             Diferente da pausa acima (que trava TUDO na hora), isso aqui bloqueia só os dias que
             você escolher — o resto do fluxo continua funcionando normal, só que ninguém consegue
             reservar pra esses dias específicos (nem clicando em "Hoje"/"Amanhã" quando bater
@@ -400,9 +417,9 @@ export default async function ReservaConfigPage({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
-          <p className="text-sm font-medium text-neutral-200">Alterar reserva já feita</p>
-          <p className="mt-1 text-xs text-neutral-500">
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Alterar reserva já feita</p>
+          <p className={CLASSE_AJUDA}>
             Deixa o cliente mudar a QUANTIDADE de pessoas de uma reserva que já fez, direto pelo
             Direct — pra mudar de dia, ele precisa fazer uma reserva nova. Dispara quando a
             mensagem tem a palavra-chave de reserva (acima) JUNTO com uma das palavras de alteração
@@ -410,22 +427,22 @@ export default async function ReservaConfigPage({
           </p>
 
           <div className="mt-3">
-            <label className="text-xs text-neutral-400">Palavras que indicam alteração</label>
+            <label className={CLASSE_RÓTULO}>Palavras que indicam alteração</label>
             <input
               type="text"
               name="palavra_chave_alterar_reserva"
               defaultValue={config?.palavra_chave_alterar_reserva ?? ""}
               placeholder="mudar, alterar, trocar, editar, aumentar, diminuir, adicionar, remover"
-              className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO}
             />
-            <p className="mt-1 text-xs text-neutral-500">
+            <p className={CLASSE_AJUDA}>
               Pode escrever mais de uma variação separada por vírgula. Em branco usa a lista padrão
               mostrada como exemplo.
             </p>
           </div>
 
           <div className="mt-3">
-            <label className="text-xs text-neutral-400">
+            <label className={CLASSE_RÓTULO}>
               Horário limite, NO DIA da reserva, pra ainda poder alterar (depois disso, o bot avisa
               que não dá mais e pede pra informar direto na chegada)
             </label>
@@ -433,53 +450,53 @@ export default async function ReservaConfigPage({
               type="time"
               name="alteracao_cutoff_horario"
               defaultValue={cutoffAlteracaoParaInput}
-              className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO}
             />
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
+        <div className={CLASSE_SECAO}>
           <label className="flex items-center gap-2 text-sm text-neutral-200">
             <input
               type="checkbox"
               name="reserva_lembrete_habilitado"
               defaultChecked={config?.reserva_lembrete_habilitado ?? false}
-              className="h-4 w-4 rounded border-neutral-700 bg-neutral-950"
+              className={CLASSE_CHECKBOX}
             />
             Mandar lembrete de comparecimento no Instagram
           </label>
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className={CLASSE_AJUDA}>
             Todo dia, no horário abaixo, manda essa mensagem pra quem tem reserva confirmada pra
             HOJE — uma vez por pessoa, mesmo se ela tiver mais de uma reserva no dia. Só chega pra
             quem reservou pelo Instagram (reserva cadastrada à mão não tem contato pra mandar DM).
           </p>
 
           <div className="mt-3">
-            <label className="text-xs text-neutral-400">Horário do lembrete</label>
+            <label className={CLASSE_RÓTULO}>Horário do lembrete</label>
             <input
               type="time"
               name="reserva_lembrete_horario"
               defaultValue={lembreteHorarioParaInput}
-              className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO}
             />
           </div>
 
           <div className="mt-3">
-            <label className="text-xs text-neutral-400">Mensagem do lembrete</label>
+            <label className={CLASSE_RÓTULO}>Mensagem do lembrete</label>
             <textarea
               name="reserva_lembrete_mensagem"
               rows={4}
               defaultValue={config?.reserva_lembrete_mensagem ?? ""}
               placeholder={MENSAGEM_LEMBRETE_PADRAO}
-              className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO_TEXTAREA}
             />
-            <p className="mt-1 text-xs text-neutral-500">Em branco, usa o texto de exemplo acima.</p>
+            <p className={CLASSE_AJUDA}>Em branco, usa o texto de exemplo acima.</p>
           </div>
         </div>
 
         <button
           type="submit"
-          className="mt-2 rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 hover:border-neutral-500"
+          className={CLASSE_BOTAO_SALVAR}
         >
           Salvar configuração
         </button>

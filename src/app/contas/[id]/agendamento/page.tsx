@@ -1,9 +1,22 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { BotaoAtivarAgendamento } from "@/app/contas/BotaoAtivarAgendamento";
+import { Interruptor } from "@/app/contas/Interruptor";
 import DatasBloqueadasEditor from "../reserva/DatasBloqueadasEditor";
 import HorariosSemanaEditor from "./HorariosSemanaEditor";
 import CamposPersonalizadosEditor from "./CamposPersonalizadosEditor";
 import { buscarConfigAgendamento, DIAS_DA_SEMANA_PADRAO } from "@/lib/agendamentos";
+import {
+  CLASSE_CAMPO,
+  CLASSE_CAMPO_TEXTAREA,
+  CLASSE_RÓTULO,
+  CLASSE_AJUDA,
+  CLASSE_CHECKBOX,
+  CLASSE_BOTAO_SALVAR,
+  CLASSE_AVISO_SALVO,
+  CLASSE_AVISO_ERRO,
+  CLASSE_ESTADO_DESLIGADO,
+  CLASSE_SECAO,
+  CLASSE_TITULO_SECAO,
+} from "../estilosDeCampo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,14 +38,14 @@ export default async function AgendamentoConfigPage({
   if (!config?.habilitado) {
     return (
       <div>
-        <h2 className="text-lg font-semibold">Agendamento</h2>
+        <h2 className="text-xl font-semibold text-neutral-50">Agendamento</h2>
         <p className="mt-1 text-sm text-neutral-400">
           Fluxo automático de agendamento por calendário e blocos de horário (ex: salão de beleza,
           clínica) — igual ao espírito da Reserva, mas com dia escolhido num calendário completo e
           horário escolhido dentro dos blocos que você configurar, em vez de Almoço/Jantar.
         </p>
 
-        <div className="mt-4 flex flex-col items-start gap-3 rounded-xl border border-dashed border-neutral-700 px-4 py-6">
+        <div className={CLASSE_ESTADO_DESLIGADO}>
           <p className="text-sm text-neutral-400">
             Agendamento está desativado pra essa conta — a configuração fica escondida e o bot
             nunca entra nesse fluxo até você ativar.
@@ -41,7 +54,7 @@ export default async function AgendamentoConfigPage({
             <input type="hidden" name="account_id" value={params.id} />
             <input type="hidden" name="habilitar" value="1" />
             <input type="hidden" name="redirect_to" value={`/contas/${params.id}/agendamento`} />
-            <BotaoAtivarAgendamento habilitado={false} />
+            <Interruptor ligado={false} rotulo="Ativar Agendamento" />
           </form>
         </div>
       </div>
@@ -52,7 +65,7 @@ export default async function AgendamentoConfigPage({
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Agendamento</h2>
+          <h2 className="text-xl font-semibold text-neutral-50">Agendamento</h2>
           <p className="mt-1 text-sm text-neutral-400">
             Só entra em ação quando o cliente manda a palavra-chave configurada aqui. Depois disso,
             o bot pergunta o dia (calendário), o horário (dentro dos blocos livres), as perguntas
@@ -63,17 +76,21 @@ export default async function AgendamentoConfigPage({
           <input type="hidden" name="account_id" value={params.id} />
           <input type="hidden" name="habilitar" value="0" />
           <input type="hidden" name="redirect_to" value={`/contas/${params.id}/agendamento`} />
-          <BotaoAtivarAgendamento habilitado={true} />
+          <Interruptor
+            ligado={true}
+            rotulo="Agendamento ativo"
+            mensagemConfirmarDesligar="Tem certeza que deseja desativar o Agendamento nessa conta? O bot para de aceitar novos agendamentos e a configuração fica escondida até você ativar de novo."
+          />
         </form>
       </div>
 
       {searchParams.salvo && (
-        <div className="mt-4 rounded-lg border border-green-900 bg-green-950 px-4 py-2 text-sm text-green-300">
+        <div className={CLASSE_AVISO_SALVO}>
           Configuração salva.
         </div>
       )}
       {searchParams.erro && (
-        <div className="mt-4 break-words rounded-lg border border-red-900 bg-red-950 px-4 py-2 text-sm text-red-300">
+        <div className={CLASSE_AVISO_ERRO}>
           {searchParams.erro}
         </div>
       )}
@@ -82,7 +99,7 @@ export default async function AgendamentoConfigPage({
         <input type="hidden" name="account_id" value={params.id} />
 
         <div>
-          <label className="text-xs text-neutral-400">
+          <label className={CLASSE_RÓTULO}>
             Palavra-chave que inicia o fluxo de agendamento
           </label>
           <input
@@ -90,17 +107,17 @@ export default async function AgendamentoConfigPage({
             name="palavra_chave_agendamento"
             defaultValue={config.palavraChave ?? ""}
             placeholder="Ex: agendar, agendamento, marcar horário"
-            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO}
           />
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className={CLASSE_AJUDA}>
             Pode escrever mais de uma variação separada por vírgula. Diferente da palavra-chave de
             Reserva — os dois fluxos nunca se confundem.
           </p>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
-          <p className="text-sm font-medium text-neutral-200">Horário de funcionamento</p>
-          <p className="mt-1 text-xs text-neutral-500">
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Horário de funcionamento</p>
+          <p className={CLASSE_AJUDA}>
             Define em quais dias da semana e em qual janela de horário os blocos são gerados. Fora
             dessa janela (ou num dia desmarcado), não aparece nenhum horário pro cliente escolher.
           </p>
@@ -112,20 +129,20 @@ export default async function AgendamentoConfigPage({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
-          <p className="text-sm font-medium text-neutral-200">Blocos de horário</p>
-          <p className="mt-1 text-xs text-neutral-500">
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Blocos de horário</p>
+          <p className={CLASSE_AJUDA}>
             De quanto em quanto tempo um novo horário fica disponível dentro da janela acima (ex:
             09:00, depois 09:30, 10:00...), e quantos agendamentos cabem em cada um desses blocos ao
             mesmo tempo.
           </p>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-xs text-neutral-400">Intervalo entre horários</label>
+              <label className={CLASSE_RÓTULO}>Intervalo entre horários</label>
               <select
                 name="agendamento_intervalo_minutos"
                 defaultValue={config.intervaloMinutos}
-                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className={CLASSE_CAMPO}
               >
                 <option value={30}>30 minutos</option>
                 <option value={60}>1 hora</option>
@@ -134,15 +151,15 @@ export default async function AgendamentoConfigPage({
               </select>
             </div>
             <div>
-              <label className="text-xs text-neutral-400">Vagas simultâneas por horário</label>
+              <label className={CLASSE_RÓTULO}>Vagas simultâneas por horário</label>
               <input
                 type="number"
                 min={1}
                 name="agendamento_vagas_por_horario"
                 defaultValue={config.vagasPorHorario}
-                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className={CLASSE_CAMPO}
               />
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className={CLASSE_AJUDA}>
                 Deixe 1 se só uma pessoa atende por vez. Aumente se tiver mais de um profissional
                 livre no mesmo horário.
               </p>
@@ -150,9 +167,9 @@ export default async function AgendamentoConfigPage({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
-          <p className="text-sm font-medium text-neutral-200">Perguntas extras</p>
-          <p className="mt-1 text-xs text-neutral-500">
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Perguntas extras</p>
+          <p className={CLASSE_AJUDA}>
             Além de dia, horário, nome e WhatsApp (sempre perguntados), monte aqui quantas perguntas
             a mais quiser, na ordem em que devem aparecer.
           </p>
@@ -165,8 +182,8 @@ export default async function AgendamentoConfigPage({
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">Saudação inicial</label>
-          <p className="mt-1 text-xs text-neutral-500">
+          <label className={CLASSE_RÓTULO}>Saudação inicial</label>
+          <p className={CLASSE_AJUDA}>
             Mandada assim que o cliente digita a palavra-chave, antes da primeira pergunta.
           </p>
           <textarea
@@ -174,12 +191,12 @@ export default async function AgendamentoConfigPage({
             rows={2}
             defaultValue={config.msgInicial ?? ""}
             placeholder="(em branco = sem saudação, vai direto pro calendário)"
-            className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO_TEXTAREA}
           />
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">
+          <label className={CLASSE_RÓTULO}>
             Regras (mostradas antes do pedido de confirmação)
           </label>
           <textarea
@@ -187,35 +204,35 @@ export default async function AgendamentoConfigPage({
             rows={4}
             defaultValue={config.regrasTexto ?? ""}
             placeholder="Ex: chegue com 10 minutos de antecedência"
-            className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO_TEXTAREA}
           />
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">Mensagem quando o agendamento é confirmado</label>
+          <label className={CLASSE_RÓTULO}>Mensagem quando o agendamento é confirmado</label>
           <textarea
             name="agendamento_msg_confirmada"
             rows={3}
             defaultValue={config.msgConfirmada ?? ""}
             placeholder="Agendamento confirmado! Te esperamos por lá."
-            className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO_TEXTAREA}
           />
         </div>
 
         <div>
-          <label className="text-xs text-neutral-400">Mensagem quando o cliente cancela</label>
+          <label className={CLASSE_RÓTULO}>Mensagem quando o cliente cancela</label>
           <textarea
             name="agendamento_msg_recusada"
             rows={3}
             defaultValue={config.msgRecusada ?? ""}
             placeholder="Sem problema, fica pra próxima!"
-            className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            className={CLASSE_CAMPO_TEXTAREA}
           />
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
-          <p className="text-sm font-medium text-neutral-200">Bloquear datas específicas</p>
-          <p className="mt-1 text-xs text-neutral-500">
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Bloquear datas específicas</p>
+          <p className={CLASSE_AJUDA}>
             Bloqueia dias inteiros (feriados, etc) — o resto do fluxo continua funcionando normal.
           </p>
           <div className="mt-3">
@@ -226,35 +243,35 @@ export default async function AgendamentoConfigPage({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 shadow-md shadow-black/30">
+        <div className={CLASSE_SECAO}>
           <label className="flex items-center gap-2 text-sm text-neutral-200">
             <input
               type="checkbox"
               name="agendamento_pausa_ativa"
               defaultChecked={config.pausaAtiva}
-              className="h-4 w-4 rounded border-neutral-700 bg-neutral-950"
+              className={CLASSE_CHECKBOX}
             />
             Pausar agendamentos temporariamente
           </label>
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className={CLASSE_AJUDA}>
             Enquanto marcado, quem mandar a palavra-chave recebe a mensagem abaixo em vez de
             começar o fluxo. Não desliga sozinho — é preciso desmarcar essa caixinha manualmente.
           </p>
           <div className="mt-3">
-            <label className="text-xs text-neutral-400">Mensagem durante a pausa</label>
+            <label className={CLASSE_RÓTULO}>Mensagem durante a pausa</label>
             <textarea
               name="agendamento_pausa_mensagem"
               rows={3}
               defaultValue={config.pausaMensagem ?? ""}
               placeholder="No momento não estamos aceitando novos agendamentos por aqui."
-              className="mt-1 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className={CLASSE_CAMPO_TEXTAREA}
             />
           </div>
         </div>
 
         <button
           type="submit"
-          className="mt-2 rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 hover:border-neutral-500"
+          className={CLASSE_BOTAO_SALVAR}
         >
           Salvar configuração
         </button>

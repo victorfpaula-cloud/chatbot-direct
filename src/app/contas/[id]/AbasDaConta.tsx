@@ -2,25 +2,50 @@
 
 import { usePathname } from "next/navigation";
 
-const ABAS = [
+const ABAS_SEMPRE_VISIVEIS = [
   { segmento: "palavras-chave", rotulo: "Palavras-chave" },
   { segmento: "gemini", rotulo: "Gemini" },
-  { segmento: "reserva", rotulo: "Reserva" },
-  { segmento: "agendamento", rotulo: "Agendamento" },
+];
+
+const ABAS_POR_SERVICO = [
+  { segmento: "reserva", rotulo: "Reserva", chave: "reservaHabilitada" as const },
+  { segmento: "agendamento", rotulo: "Agendamento", chave: "agendamentoHabilitado" as const },
+  { segmento: "busca", rotulo: "Busca Automática", chave: "buscaHabilitada" as const },
+];
+
+const ABAS_FINAIS = [
   { segmento: "atendimentos", rotulo: "Atendimentos" },
   { segmento: "ignorados", rotulo: "Ignorados" },
   { segmento: "funcionarios", rotulo: "Funcionários" },
 ];
 
 /**
- * Menu de abas de cada conta (Palavras-chave / Gemini / Reserva / Atendimentos), agora destacando
- * qual aba está aberta no momento. Precisa ser Client Component só por causa do `usePathname()`
- * (é o único jeito de saber qual página está ativa) — os links continuam sendo `<a href>` normais
- * (recarregam a página inteira, como todo o resto do site), então não muda nada da navegação em
- * si, só o visual de qual aba está selecionada.
+ * Menu de abas de cada conta, agora ESCONDENDO a aba de um serviço (Reserva/Agendamento/Busca
+ * Automática) quando ele está desligado naquela conta — antes as 3 apareciam sempre, pra toda
+ * conta, mesmo numa que nunca vai usar reserva nem agendamento (ex: uma conta só de atendimento
+ * automático) — isso é exatamente o "muito rolo" que o Victor reportou. As chavinhas de verdade
+ * (ligar/desligar) ficam nos cartões de /contas (ver ChavesDeServico.tsx) — aqui só decide o que
+ * mostrar, não liga nem desliga nada.
  */
-export default function AbasDaConta({ contaId }: { contaId: string }) {
+export default function AbasDaConta({
+  contaId,
+  reservaHabilitada,
+  agendamentoHabilitado,
+  buscaHabilitada,
+}: {
+  contaId: string;
+  reservaHabilitada: boolean;
+  agendamentoHabilitado: boolean;
+  buscaHabilitada: boolean;
+}) {
   const pathname = usePathname();
+  const flags = { reservaHabilitada, agendamentoHabilitado, buscaHabilitada };
+
+  const abas = [
+    ...ABAS_SEMPRE_VISIVEIS,
+    ...ABAS_POR_SERVICO.filter((aba) => flags[aba.chave]),
+    ...ABAS_FINAIS,
+  ];
 
   return (
     // Sem backdrop-filter aqui de propósito — essa barra já vive DENTRO do shell da conta (ver
@@ -28,7 +53,7 @@ export default function AbasDaConta({ contaId }: { contaId: string }) {
     // exatamente o que deu artefato visual conhecido no Safari/WebKit quando tentamos isso com os
     // cartões de reserva dentro do painel do dia — aqui só um fundo sólido, sem filtro próprio.
     <nav className="mt-6 flex flex-wrap gap-2 rounded-xl border border-neutral-800 bg-neutral-950/60 p-2">
-      {ABAS.map((aba) => {
+      {abas.map((aba) => {
         const href = `/contas/${contaId}/${aba.segmento}`;
         const ativa = pathname?.startsWith(href) ?? false;
 

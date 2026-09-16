@@ -1,4 +1,6 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { CartaoDeSecao } from "../CartaoDeSecao";
+import { CLASSE_CAMPO, CLASSE_CAMPO_TEXTAREA, CLASSE_RÓTULO, CLASSE_AJUDA, CLASSE_BOTAO_SALVAR, CLASSE_AVISO_ERRO } from "../estilosDeCampo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,33 +20,33 @@ export default async function PalavrasChavePage({
     .order("created_at", { ascending: true });
 
   return (
-    <div>
-      <h2 className="text-lg font-semibold">Palavras-chave</h2>
+    <div className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-xl font-semibold text-neutral-50">Palavras-chave</h2>
+        <p className="mt-1.5 text-sm text-neutral-400">
+          Quando o cliente manda uma dessas palavras, o bot responde com a sequência de mensagens
+          configurada — sem precisar de nenhum fluxo automático (Reserva/Agendamento) por trás.
+        </p>
+      </div>
 
-      {searchParams.erro && (
-        <div className="mt-4 rounded-lg border border-red-900 bg-red-950 px-4 py-2 text-sm text-red-300">
-          {searchParams.erro}
-        </div>
-      )}
+      {searchParams.erro && <div className={CLASSE_AVISO_ERRO}>{searchParams.erro}</div>}
 
-      <div className="mt-4 flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         {(palavrasChave ?? []).map((pc) => (
           <div
             key={pc.id}
-            className="rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3"
+            className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5 [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)]"
           >
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">{pc.palavra_chave}</div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-neutral-100">{pc.palavra_chave}</div>
               <form action={`/api/keywords/${pc.id}/excluir`} method="POST">
-                <button type="submit" className="text-xs text-red-400 hover:text-red-300">
+                <button type="submit" className="text-xs font-medium text-red-400/80 hover:text-red-300">
                   Excluir
                 </button>
               </form>
             </div>
             {pc.pausa_entre_mensagens_ms ? (
-              <p className="mt-1 text-xs text-neutral-500">
-                Pausa entre mensagens: {pc.pausa_entre_mensagens_ms}ms
-              </p>
+              <p className={CLASSE_AJUDA}>Pausa entre mensagens: {pc.pausa_entre_mensagens_ms}ms</p>
             ) : null}
             <ol className="mt-2 flex flex-col gap-1 text-xs text-neutral-400">
               {((pc.mensagens as string[]) ?? []).map((m, i) => (
@@ -57,68 +59,54 @@ export default async function PalavrasChavePage({
         ))}
 
         {(palavrasChave ?? []).length === 0 && (
-          <p className="rounded-xl border border-dashed border-neutral-700 px-4 py-6 text-center text-sm text-neutral-400">
+          <p className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-6 text-center text-sm text-neutral-400">
             Nenhuma palavra-chave cadastrada ainda.
           </p>
         )}
       </div>
 
-      <h3 className="mt-8 text-sm font-semibold text-neutral-300">+ Nova palavra-chave</h3>
+      <CartaoDeSecao titulo="+ Nova palavra-chave">
+        <form action="/api/keywords" method="POST" className="flex flex-col gap-4">
+          <input type="hidden" name="account_id" value={params.id} />
 
-      <form action="/api/keywords" method="POST" className="mt-3 flex flex-col gap-3">
-        <input type="hidden" name="account_id" value={params.id} />
-
-        <div>
-          <label className="text-xs text-neutral-400">
-            Palavra-chave (pode colocar variações separadas por vírgula, ex: preço, valor, quanto
-            custa)
-          </label>
-          <input
-            type="text"
-            name="palavra_chave"
-            required
-            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="text-xs text-neutral-400">
-            Mensagens da sequência (na ordem — deixa em branco a que não for usar)
-          </label>
-          <div className="mt-1 flex flex-col gap-2">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <textarea
-                key={n}
-                name={`mensagem_${n}`}
-                placeholder={`Mensagem ${n}`}
-                rows={2}
-                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-              />
-            ))}
+          <div>
+            <label className={CLASSE_RÓTULO}>
+              Palavra-chave (pode colocar variações separadas por vírgula, ex: preço, valor, quanto
+              custa)
+            </label>
+            <input type="text" name="palavra_chave" required className={CLASSE_CAMPO} />
           </div>
-        </div>
 
-        <div>
-          <label className="text-xs text-neutral-400">
-            Pausa entre as mensagens, em milissegundos (opcional — deixa em branco pra mandar tudo
-            de uma vez, sem pausa)
-          </label>
-          <input
-            type="number"
-            name="pausa_entre_mensagens_ms"
-            min={0}
-            placeholder="0"
-            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-          />
-        </div>
+          <div>
+            <label className={CLASSE_RÓTULO}>
+              Mensagens da sequência (na ordem — deixa em branco a que não for usar)
+            </label>
+            <div className="mt-1.5 flex flex-col gap-2">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <textarea
+                  key={n}
+                  name={`mensagem_${n}`}
+                  placeholder={`Mensagem ${n}`}
+                  rows={2}
+                  className={CLASSE_CAMPO_TEXTAREA.replace("mt-1.5 ", "")}
+                />
+              ))}
+            </div>
+          </div>
 
-        <button
-          type="submit"
-          className="mt-2 rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 hover:border-neutral-500"
-        >
-          Salvar palavra-chave
-        </button>
-      </form>
+          <div>
+            <label className={CLASSE_RÓTULO}>
+              Pausa entre as mensagens, em milissegundos (opcional — deixa em branco pra mandar tudo
+              de uma vez, sem pausa)
+            </label>
+            <input type="number" name="pausa_entre_mensagens_ms" min={0} placeholder="0" className={CLASSE_CAMPO} />
+          </div>
+
+          <button type="submit" className={CLASSE_BOTAO_SALVAR}>
+            Salvar palavra-chave
+          </button>
+        </form>
+      </CartaoDeSecao>
     </div>
   );
 }

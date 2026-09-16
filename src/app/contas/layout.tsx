@@ -7,19 +7,54 @@ const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600", "700",
 
 export default function ContasLayout({ children }: { children: React.ReactNode }) {
   return (
-    // Fundo com brilhos suaves em degradê (mesmo espírito do fundo de /reservas) — sem isso, a
-    // refração de vidro (feDisplacementMap) não tem nada de colorido pra distorcer atrás dela e o
-    // efeito fica invisível: borrar uma cor lisa dá nela mesma, lisa.
-    <div
-      className={`min-h-dvh ${outfit.className}`}
-      style={{
-        backgroundImage:
-          "radial-gradient(640px circle at 6% 0%, rgba(79,70,229,0.12), transparent 70%)," +
-          "radial-gradient(600px circle at 100% 22%, rgba(139,92,246,0.10), transparent 70%)," +
-          "radial-gradient(560px circle at 8% 100%, rgba(245,158,11,0.07), transparent 70%)",
-      }}
-    >
-      {children}
+    // Mesmas manchas coloridas desfocadas de /reservas e /site (cores/posições quase idênticas,
+    // só sem a animação de deriva — aqui é um painel de trabalho usado o dia todo, não uma
+    // experiência de venda, ver comentário em VidroLiquido.tsx) — o degradê fraco de antes não
+    // tinha cor de verdade suficiente pra refração de vidro (feDisplacementMap) distorcer: borrar
+    // uma cor quase lisa dá nela mesma, quase lisa. `position: fixed` (não relative ao documento)
+    // pelo mesmo motivo documentado em src/app/reservas/layout.tsx: mantém o alcance certo mesmo
+    // em páginas curtas.
+    <div className={`relative min-h-dvh bg-[#050509] ${outfit.className}`}>
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: "60vmax",
+            height: "60vmax",
+            top: "-30vmax",
+            left: "-18vmax",
+            background: "radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 62%)",
+            mixBlendMode: "screen",
+            filter: "blur(4vmax)",
+          }}
+        />
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: "50vmax",
+            height: "50vmax",
+            top: "30vmax",
+            right: "-20vmax",
+            background: "radial-gradient(circle, rgba(139,92,246,0.26) 0%, transparent 85%)",
+            mixBlendMode: "screen",
+            filter: "blur(9vmax)",
+          }}
+        />
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: "40vmax",
+            height: "40vmax",
+            bottom: "-18vmax",
+            left: "10vmax",
+            background: "radial-gradient(circle, rgba(245,158,11,0.14) 0%, transparent 62%)",
+            mixBlendMode: "screen",
+            filter: "blur(4vmax)",
+          }}
+        />
+      </div>
+
+      <div className="relative z-10">{children}</div>
       <DefinicoesDoVidroLiquidoContas />
     </div>
   );

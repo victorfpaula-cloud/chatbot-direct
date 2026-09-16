@@ -1,4 +1,6 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { CartaoDeSecao } from "../CartaoDeSecao";
+import { CLASSE_CAMPO, CLASSE_RÓTULO, CLASSE_BOTAO_SALVAR, CLASSE_AVISO_ERRO } from "../estilosDeCampo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,32 +20,30 @@ export default async function IgnoradosPage({
     .order("created_at", { ascending: true });
 
   return (
-    <div>
-      <h2 className="text-lg font-semibold">Ignorados</h2>
-      <p className="mt-1 text-sm text-neutral-400">
-        @usuários que o bot nunca deve responder (ex.: o próprio dono da conta) — toda mensagem
-        vinda de um desses @usuários é ignorada completamente, sem resposta e sem aparecer no
-        histórico de Atendimentos.
-      </p>
+    <div className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-xl font-semibold text-neutral-50">Ignorados</h2>
+        <p className="mt-1.5 text-sm text-neutral-400">
+          @usuários que o bot nunca deve responder (ex.: o próprio dono da conta) — toda mensagem
+          vinda de um desses @usuários é ignorada completamente, sem resposta e sem aparecer no
+          histórico de Atendimentos.
+        </p>
+      </div>
 
-      {searchParams.erro && (
-        <div className="mt-4 rounded-lg border border-red-900 bg-red-950 px-4 py-2 text-sm text-red-300">
-          {searchParams.erro}
-        </div>
-      )}
+      {searchParams.erro && <div className={CLASSE_AVISO_ERRO}>{searchParams.erro}</div>}
 
-      <div className="mt-4 flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         {(ignorados ?? []).map((ignorado) => (
           <div
             key={ignorado.id}
-            className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3"
+            className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5 [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)]"
           >
             <div>
-              <div className="text-sm font-medium">@{ignorado.instagram_username}</div>
-              {ignorado.nome && <div className="text-xs text-neutral-500">{ignorado.nome}</div>}
+              <div className="text-sm font-semibold text-neutral-100">@{ignorado.instagram_username}</div>
+              {ignorado.nome && <div className="mt-0.5 text-xs text-neutral-500">{ignorado.nome}</div>}
             </div>
             <form action={`/api/ignorados/${ignorado.id}/excluir`} method="POST">
-              <button type="submit" className="text-xs text-red-400 hover:text-red-300">
+              <button type="submit" className="text-xs font-medium text-red-400/80 hover:text-red-300">
                 Excluir
               </button>
             </form>
@@ -51,45 +51,37 @@ export default async function IgnoradosPage({
         ))}
 
         {(ignorados ?? []).length === 0 && (
-          <p className="rounded-xl border border-dashed border-neutral-700 px-4 py-6 text-center text-sm text-neutral-400">
+          <p className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-6 text-center text-sm text-neutral-400">
             Nenhum @usuário ignorado ainda.
           </p>
         )}
       </div>
 
-      <h3 className="mt-8 text-sm font-semibold text-neutral-300">+ Adicionar @usuário</h3>
+      <CartaoDeSecao titulo="+ Adicionar @usuário">
+        <form action="/api/ignorados" method="POST" className="flex flex-col gap-4">
+          <input type="hidden" name="account_id" value={params.id} />
 
-      <form action="/api/ignorados" method="POST" className="mt-3 flex flex-col gap-3">
-        <input type="hidden" name="account_id" value={params.id} />
+          <div>
+            <label className={CLASSE_RÓTULO}>@usuário do Instagram (sem o @)</label>
+            <input
+              type="text"
+              name="instagram_username"
+              required
+              placeholder="breno_unicosushibar"
+              className={CLASSE_CAMPO}
+            />
+          </div>
 
-        <div>
-          <label className="text-xs text-neutral-400">@usuário do Instagram (sem o @)</label>
-          <input
-            type="text"
-            name="instagram_username"
-            required
-            placeholder="breno_unicosushibar"
-            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-          />
-        </div>
+          <div>
+            <label className={CLASSE_RÓTULO}>Nome (opcional, só pra identificar depois)</label>
+            <input type="text" name="nome" placeholder="Breno Costa" className={CLASSE_CAMPO} />
+          </div>
 
-        <div>
-          <label className="text-xs text-neutral-400">Nome (opcional, só pra identificar depois)</label>
-          <input
-            type="text"
-            name="nome"
-            placeholder="Breno Costa"
-            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="mt-2 rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 hover:border-neutral-500"
-        >
-          Salvar
-        </button>
-      </form>
+          <button type="submit" className={CLASSE_BOTAO_SALVAR}>
+            Salvar
+          </button>
+        </form>
+      </CartaoDeSecao>
     </div>
   );
 }

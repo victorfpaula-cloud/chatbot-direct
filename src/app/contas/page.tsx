@@ -4,6 +4,7 @@ import { extrairCorPredominante } from "@/lib/corDoLogo";
 import { BotaoPausar } from "./BotaoPausar";
 import { AvatarConta } from "./AvatarConta";
 import { BotaoSair } from "./BotaoSair";
+import { ChavesDeServico } from "./ChavesDeServico";
 
 export const dynamic = "force-dynamic";
 
@@ -144,7 +145,7 @@ export default async function ContasPage({
   // cada uma só precisa da lista de contas, nenhuma depende do resultado da outra. Antes
   // rodavam uma atrás da outra (cada uma esperando a anterior terminar); agora rodam ao mesmo
   // tempo, então o tempo total de espera vira "a mais lenta delas", não "a soma de todas".
-  const [{ data: atendimentosDeHoje }, fotosAtualizadas] = await Promise.all([
+  const [{ data: atendimentosDeHoje }, fotosAtualizadas, { data: configsDeServico }] = await Promise.all([
     idsDasContas.length > 0
       ? admin
           .from("chatbot_atendimentos")
@@ -152,7 +153,31 @@ export default async function ContasPage({
           .gte("criado_em", inicioDoDiaEmSaoPauloISO())
       : Promise.resolve({ data: [] as { account_id: string; instagram_scoped_id: string; status: string }[] }),
     atualizarFotosDePerfilVencidas(admin, contas ?? []),
+    idsDasContas.length > 0
+      ? admin
+          .from("chatbot_account_settings")
+          .select("account_id, reserva_habilitada, agendamento_habilitado, busca_automatica_habilitada")
+          .in("account_id", idsDasContas)
+      : Promise.resolve({
+          data: [] as {
+            account_id: string;
+            reserva_habilitada: boolean;
+            agendamento_habilitado: boolean;
+            busca_automatica_habilitada: boolean;
+          }[],
+        }),
   ]);
+
+  const servicosPorConta = new Map(
+    (configsDeServico ?? []).map((c) => [
+      c.account_id,
+      {
+        reserva: c.reserva_habilitada,
+        agendamento: c.agendamento_habilitado,
+        busca: c.busca_automatica_habilitada,
+      },
+    ])
+  );
 
   // Foto de perfil de cada conta — agora cacheada no banco (`chatbot_accounts.foto_perfil_url`) e
   // só buscada de novo na Meta quando estiver velha (ver atualizarFotosDePerfilVencidas), já que a
@@ -258,12 +283,13 @@ export default async function ContasPage({
         {(contas ?? []).map((conta) => {
           const estilo = estiloDaConta(conta.id);
           const stats = estatisticasPorConta.get(conta.id) ?? { respondidas: 0, erros: 0 };
+          const servicos = servicosPorConta.get(conta.id) ?? { reserva: false, agendamento: false, busca: false };
 
           return (
             <div
               key={conta.id}
-              className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-neutral-800/55 pt-6 shadow-lg shadow-black/30 transition-all [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] hover:-translate-y-0.5 hover:shadow-xl ${estilo.brilho} ${
-                conta.active ? "border-neutral-700" : "border-red-950/60"
+              className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white/[0.05] pt-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_40px_-18px_rgba(0,0,0,0.55)] transition-all [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] hover:-translate-y-0.5 hover:shadow-xl ${estilo.brilho} ${
+                conta.active ? "border-white/10" : "border-red-500/25"
               }`}
             >
               {/* Faixa colorida no topo do cartão — verde ativa, amarela pausada, vermelha com erro hoje. */}
@@ -321,10 +347,19 @@ export default async function ContasPage({
                   )}
                 </a>
 
-                <div className="mt-5 flex flex-col gap-2">
+                <div className="mt-4">
+                  <ChavesDeServico
+                    contaId={conta.id}
+                    reservaHabilitada={servicos.reserva}
+                    agendamentoHabilitado={servicos.agendamento}
+                    buscaHabilitada={servicos.busca}
+                  />
+                </div>
+
+                <div className="mt-4 flex flex-col gap-2">
                   <a
                     href={`/contas/${conta.id}/palavras-chave`}
-                    className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-center text-xs font-medium text-neutral-300 hover:bg-neutral-950"
+                    className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-center text-xs font-medium text-neutral-300 hover:bg-white/10"
                   >
                     Configurar atendimento
                   </a>
@@ -338,7 +373,7 @@ export default async function ContasPage({
 
                     <a
                       href={`/contas/${conta.id}/excluir`}
-                      className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-center text-xs font-medium text-neutral-500 hover:border-red-900 hover:bg-red-950/40 hover:text-red-400"
+                      className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-center text-xs font-medium text-neutral-500 hover:border-red-900 hover:bg-red-950/40 hover:text-red-400"
                     >
                       Excluir
                     </a>
