@@ -115,7 +115,11 @@ function escaparHtml(texto: string): string {
 function quadradinho(rotulo: string, corpoHtml: string, opts?: { bg?: string; borda?: string }): string {
   const bg = opts?.bg ?? "#fafafa";
   const borda = opts?.borda ?? "#e4e4e7";
-  return `<div style="border:1px solid ${borda}; border-radius:10px; padding:10px 12px; background:${bg};" bgcolor="${bg}">
+  // height:100% pra preencher a <td> inteira (linhaDeQuadradinhos já garante que toda célula da
+  // mesma linha tem a mesma altura — comportamento nativo de <table> — mas sem isso essa div só
+  // ficava do tamanho do próprio conteúdo, e Reservas/Stories (que têm uma linha a mais de legenda)
+  // saíam visivelmente maiores que os quadradinhos vizinhos com só um número.
+  return `<div style="border:1px solid ${borda}; border-radius:10px; padding:10px 12px; background:${bg}; height:100%; box-sizing:border-box;" bgcolor="${bg}">
     <p style="margin:0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#71717a;">${rotulo}</p>
     ${corpoHtml}
   </div>`;
