@@ -537,10 +537,14 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
     const ehTelaEstreita = window.matchMedia("(max-width: 640px)").matches;
     function derivaAutonoma(sel: string, dur: number, dist: number) {
       if (ehTelaEstreita) {
+        // No celular o brilho nasce bem mais alto que a tela (top: -Nvmax no CSS, um diâmetro
+        // gigante) — um deslocamento do mesmo tamanho usado no desktop mal saía do canto onde já
+        // nasce. Triplicado só aqui, na vertical, pra realmente atravessar uma fatia boa da tela.
+        const alcanceVertical = dist * 3;
         gsap.fromTo(
           sel,
-          { y: `-=${dist / 2}` },
-          { y: `+=${dist}`, x: `+=${dist * 0.1}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
+          { y: `-=${alcanceVertical / 2}` },
+          { y: `+=${alcanceVertical}`, x: `+=${dist * 0.15}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
         );
       } else {
         gsap.fromTo(
@@ -587,25 +591,29 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       if (diff < -180) diff += 360;
       return diff;
     }
-    function derivaDeCor(sel: string, dur: number, corBaseCss: string, matizAlvo: number) {
+    // Vai e volta entre DOIS matizes-alvo (não de "0" até um alvo) — se a cor de origem daquela
+    // conta já calhar de nascer perto de um alvo só, a rotação até ele fica pequena demais e o
+    // giro quase não aparece. Com dois alvos sempre uns 35-40° separados um do outro (dentro da
+    // mesma faixa vermelho->laranja), a variação visível nunca desaparece, não importa de onde a
+    // cor de origem começa.
+    function derivaDeCor(sel: string, dur: number, corBaseCss: string, matizA: number, matizB: number) {
       const origem = matizDaCor(corBaseCss);
       if (origem === null) return;
-      const graus = rotacaoAte(origem, matizAlvo);
+      const grausA = rotacaoAte(origem, matizA);
+      const grausB = rotacaoAte(origem, matizB);
       gsap.fromTo(
         sel,
-        { filter: "blur(4vmax) hue-rotate(0deg)" },
-        { filter: `blur(4vmax) hue-rotate(${graus}deg)`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
+        { filter: `blur(4vmax) hue-rotate(${grausA}deg)` },
+        { filter: `blur(4vmax) hue-rotate(${grausB}deg)`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
       );
     }
 
     let aoMoverPonteiro: ((e: PointerEvent) => void) | null = null;
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      // Mais rápido que antes (ciclo mais curto) e com um alcance menor (mais sutil) ao mesmo
-      // tempo — pedido explícito: rápido o bastante pra dar pra perceber o movimento acontecendo
-      // ("ar mais tecnológico"), mas sem ficar num vaivém grande e óbvio.
-      derivaAutonoma(`.${styles.o1}`, 12, 90);
-      derivaAutonoma(`.${styles.o2}`, 15, 78);
-      derivaAutonoma(`.${styles.o3}`, 10, 65);
+      // Mais rápido ainda que a rodada anterior — pedido explícito de dar pra ver acontecendo.
+      derivaAutonoma(`.${styles.o1}`, 7, 90);
+      derivaAutonoma(`.${styles.o2}`, 9, 78);
+      derivaAutonoma(`.${styles.o3}`, 6, 65);
       respirar(`.${styles.o1}`, 8, 1.12);
       respirar(`.${styles.o2}`, 10, 1.16);
       respirar(`.${styles.o3}`, 6.5, 1.2);
@@ -616,12 +624,12 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       const corGlow1 = estiloRaiz.getPropertyValue("--glow-1").trim() || "rgba(99, 102, 241, 0.5)";
       const corGlow2 = estiloRaiz.getPropertyValue("--glow-2").trim() || "rgba(129, 140, 248, 0.4)";
       const corGlow3 = estiloRaiz.getPropertyValue("--glow-3").trim() || "rgba(199, 207, 251, 0.32)";
-      // Três matizes-alvo dentro da MESMA família vermelho->laranja (0°-30° no círculo de cores),
-      // nunca chegando nos ~50-60° onde já é amarelo — cada brilho pousa num tom levemente
-      // diferente pra não ficarem todos sincronizados na mesma cor exata.
-      derivaDeCor(`.${styles.o1}`, 15, corGlow1, 8);
-      derivaDeCor(`.${styles.o2}`, 19, corGlow2, 355);
-      derivaDeCor(`.${styles.o3}`, 12, corGlow3, 20);
+      // Cada brilho vai e volta entre dois matizes dentro da MESMA família vermelho->laranja
+      // (0°-30°, nunca chegando nos ~50-60° onde já é amarelo) — a distância entre os dois alvos é
+      // sempre uns 35° não importa a cor de origem daquela conta, então a variação sempre aparece.
+      derivaDeCor(`.${styles.o1}`, 10, corGlow1, 355, 30);
+      derivaDeCor(`.${styles.o2}`, 13, corGlow2, 350, 25);
+      derivaDeCor(`.${styles.o3}`, 8, corGlow3, 20, 345);
 
       gsap.to(`.${styles.ctaHalo}`, { scale: 1.4, opacity: 0, duration: 1.5, repeat: -1, ease: "power1.out" });
       gsap.to(`.${styles.ctaSeta}`, { x: 5, duration: 0.8, yoyo: true, repeat: -1, ease: "sine.inOut" });
