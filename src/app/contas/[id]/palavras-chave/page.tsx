@@ -1,11 +1,11 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { Interruptor } from "@/app/contas/Interruptor";
 import { CartaoDeSecao } from "../CartaoDeSecao";
+import { CartaoDePalavraChave } from "./CartaoDePalavraChave";
 import {
   CLASSE_CAMPO,
   CLASSE_CAMPO_TEXTAREA,
   CLASSE_RÓTULO,
-  CLASSE_AJUDA,
   CLASSE_BOTAO_SALVAR,
   CLASSE_AVISO_ERRO,
   CLASSE_ESTADO_DESLIGADO,
@@ -76,29 +76,7 @@ export default async function PalavrasChavePage({
 
       <div className="flex flex-col gap-3">
         {(palavrasChave ?? []).map((pc) => (
-          <div
-            key={pc.id}
-            className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5 [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)]"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-neutral-100">{pc.palavra_chave}</div>
-              <form action={`/api/keywords/${pc.id}/excluir`} method="POST">
-                <button type="submit" className="text-xs font-medium text-red-400/80 hover:text-red-300">
-                  Excluir
-                </button>
-              </form>
-            </div>
-            {pc.pausa_entre_mensagens_ms ? (
-              <p className={CLASSE_AJUDA}>Pausa entre mensagens: {pc.pausa_entre_mensagens_ms}ms</p>
-            ) : null}
-            <ol className="mt-2 flex flex-col gap-1 text-xs text-neutral-400">
-              {((pc.mensagens as string[]) ?? []).map((m, i) => (
-                <li key={i}>
-                  {i + 1}. {m}
-                </li>
-              ))}
-            </ol>
-          </div>
+          <CartaoDePalavraChave key={pc.id} contaId={params.id} pc={pc} />
         ))}
 
         {(palavrasChave ?? []).length === 0 && (
