@@ -1,10 +1,11 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { buscarFotoDePerfilDaConta } from "@/lib/metaMessaging";
 import { extrairCorPredominante } from "@/lib/corDoLogo";
-import { BotaoPausar } from "./BotaoPausar";
 import { AvatarConta } from "./AvatarConta";
 import { BotaoSair } from "./BotaoSair";
 import { ChavesDeServico } from "./ChavesDeServico";
+import { AnelDeProgresso } from "./AnelDeProgresso";
+import { MenuDeAcoesDaConta } from "./MenuDeAcoesDaConta";
 
 export const dynamic = "force-dynamic";
 
@@ -139,6 +140,78 @@ function inicioDoDiaEmSaoPauloISO(): string {
 
 type EstatisticaDoDia = { respondidas: number; erros: number };
 
+// Dia da semana de hoje em São Paulo, no padrão ISO-8601 (1 = segunda ... 7 = domingo) — mesmo
+// padrão da coluna schedule_slots.day_of_week no banco do Agendador de Stories (ver
+// supabase/schema.sql do projeto agendador-stories). Brasil não tem mais horário de verão desde
+// 2019, então São Paulo é sempre UTC-3 fixo.
+function diaDaSemanaHojeEmSaoPaulo(): number {
+  const abreviacao = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short" }).format(
+    new Date()
+  );
+  const mapa: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+  return mapa[abreviacao] ?? 1;
+}
+
+// Data de hoje em São Paulo, como "AAAA-MM-DD" — usada pra filtrar publish_log.scheduled_for
+// (coluna `date`, sem hora) do Agendador de Stories.
+function dataDeHojeEmSaoPauloISO(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+}
+
+type ResumoDeStoriesHoje = { total: number; postados: number } | "nao_conectado";
+
+// Resumo de hoje do Agendador de Stories (app separado, mas que vive no MESMO projeto Supabase —
+// ver /api/contas/agendador-stories-status) pra cada conta com esse produto habilitado. Casando
+// pelo instagram_user_id (= accounts.ig_user_id lá, mesmo ID real da conta do Instagram), sem
+// tabela de mapeamento própria. "nao_conectado" cobre tanto quem nunca conectou lá quanto o caso
+// (raro) de instagram_user_id não bater com nada.
+async function buscarResumoDeStoriesHoje(
+  admin: ReturnType<typeof criarClienteAdmin>,
+  contasComStories: { id: string; instagram_user_id: string }[]
+): Promise<Map<string, ResumoDeStoriesHoje>> {
+  const resumo = new Map<string, ResumoDeStoriesHoje>();
+  if (contasComStories.length === 0) return resumo;
+
+  const idsDoInstagram = contasComStories.map((c) => c.instagram_user_id);
+  const { data: contasStories } = await admin.from("accounts").select("id, ig_user_id").in("ig_user_id", idsDoInstagram);
+
+  const storiesIdParaContaLocal = new Map<string, string>();
+  for (const c of contasComStories) {
+    const contaStories = (contasStories ?? []).find((cs) => cs.ig_user_id === c.instagram_user_id);
+    if (contaStories) storiesIdParaContaLocal.set(contaStories.id, c.id);
+    else resumo.set(c.id, "nao_conectado");
+  }
+
+  const idsDeStories = Array.from(storiesIdParaContaLocal.keys());
+  if (idsDeStories.length === 0) return resumo;
+
+  const diaHoje = diaDaSemanaHojeEmSaoPaulo();
+  const dataHoje = dataDeHojeEmSaoPauloISO();
+
+  const [{ data: horarios }, { data: publicacoes }] = await Promise.all([
+    admin.from("schedule_slots").select("account_id").in("account_id", idsDeStories).eq("day_of_week", diaHoje).eq("is_active", true),
+    admin.from("publish_log").select("account_id, status").in("account_id", idsDeStories).eq("scheduled_for", dataHoje),
+  ]);
+
+  const totalPorConta = new Map<string, number>();
+  for (const h of horarios ?? []) {
+    totalPorConta.set(h.account_id, (totalPorConta.get(h.account_id) ?? 0) + 1);
+  }
+  const postadosPorConta = new Map<string, number>();
+  for (const p of publicacoes ?? []) {
+    if (p.status === "success") postadosPorConta.set(p.account_id, (postadosPorConta.get(p.account_id) ?? 0) + 1);
+  }
+
+  for (const [storiesId, contaLocalId] of storiesIdParaContaLocal) {
+    resumo.set(contaLocalId, {
+      total: totalPorConta.get(storiesId) ?? 0,
+      postados: postadosPorConta.get(storiesId) ?? 0,
+    });
+  }
+
+  return resumo;
+}
+
 export default async function ContasPage({
   searchParams,
 }: {
@@ -207,6 +280,14 @@ export default async function ContasPage({
   for (const conta of contas ?? []) {
     fotosPorConta.set(conta.id, fotosAtualizadas.get(conta.id) ?? conta.foto_perfil_url ?? null);
   }
+
+  // Só busca resumo de Stories de hoje pras contas que realmente têm esse produto habilitado —
+  // sem isso, toda abertura de /contas faria 3 consultas extras no banco do Agendador de Stories
+  // à toa, mesmo pra quem nunca usa esse produto.
+  const contasComStories = (contas ?? [])
+    .filter((c) => servicosPorConta.get(c.id)?.stories)
+    .map((c) => ({ id: c.id, instagram_user_id: c.instagram_user_id }));
+  const resumoDeStoriesPorConta = await buscarResumoDeStoriesHoje(admin, contasComStories);
 
   // "Status do dia": conta rápida de quantos CLIENTES essa conta atendeu hoje e quantos tiveram
   // erro — só pra dar uma visão geral batendo o olho, sem precisar entrar em cada conta. Isso
@@ -304,6 +385,9 @@ export default async function ContasPage({
             stories: false,
           };
 
+          const fade = conta.active ? "" : "opacity-50";
+          const resumoStories = resumoDeStoriesPorConta.get(conta.id);
+
           return (
             <div
               key={conta.id}
@@ -315,62 +399,106 @@ export default async function ContasPage({
               <span className={`absolute inset-x-0 top-0 h-1 ${corDaFaixa(conta, stats)}`} />
 
               <div className="flex flex-col px-5 pb-5">
-                {/* Pausada: tudo aqui dentro fica bem apagado (mesmo espírito do cartão de reserva
-                    já confirmada, "sem vida") — só o essencial pra decidir o que fazer (reativar
-                    ou excluir, logo abaixo, FORA desse wrapper) continua com destaque de verdade. */}
-                <div className={conta.active ? "" : "opacity-50"}>
-                <div className="flex items-center justify-between">
-                  <AvatarConta
-                    fotoUrl={fotosPorConta.get(conta.id) ?? null}
-                    letra={conta.page_name.charAt(0).toUpperCase()}
-                    corDeFundo={estilo.avatar}
-                    corDoAnel={conta.active ? "ring-neutral-700" : "ring-red-900"}
-                  />
-
-                  <span
-                    className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-                      conta.active
-                        ? "border-green-900 bg-green-950 text-green-300"
-                        : "border-red-900 bg-red-950 text-red-400"
-                    }`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        conta.active ? "animate-pulse bg-green-500" : "bg-red-500"
-                      }`}
+                {/* Faixa 1: cabeçalho — avatar, status, nome. Pausada: fica apagada (mesmo
+                    espírito do cartão de reserva já confirmada, "sem vida") — só o rodapé, lá
+                    embaixo, continua com destaque de verdade. */}
+                <div className={fade}>
+                  <div className="flex items-center justify-between">
+                    <AvatarConta
+                      fotoUrl={fotosPorConta.get(conta.id) ?? null}
+                      letra={conta.page_name.charAt(0).toUpperCase()}
+                      corDeFundo={estilo.avatar}
+                      corDoAnel={conta.active ? "ring-neutral-700" : "ring-red-900"}
                     />
-                    {conta.active ? "Ativa" : "Pausada"}
-                  </span>
+
+                    <span
+                      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+                        conta.active
+                          ? "border-green-900 bg-green-950 text-green-300"
+                          : "border-red-900 bg-red-950 text-red-400"
+                      }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          conta.active ? "animate-pulse bg-green-500" : "bg-red-500"
+                        }`}
+                      />
+                      {conta.active ? "Ativa" : "Pausada"}
+                    </span>
+                  </div>
+
+                  {/* min-h reserva o espaço de 2 linhas mesmo quando o nome cabe numa linha só —
+                      assim todo cartão fica com a mesma altura, tenha nome curto ou comprido. Se
+                      o nome for maior que 2 linhas, corta com "..." (line-clamp-2) em vez de
+                      esticar o cartão além da conta. */}
+                  <p className="mt-4 line-clamp-2 min-h-[2.5rem] font-medium leading-tight text-neutral-100">
+                    {conta.page_name}
+                  </p>
+                  <p className="text-sm text-neutral-500">@{conta.instagram_username}</p>
                 </div>
 
-                {/* min-h reserva o espaço de 2 linhas mesmo quando o nome cabe numa linha só —
-                    assim todo cartão fica com a mesma altura, tenha nome curto ou comprido. Se o
-                    nome for maior que 2 linhas, corta com "..." (line-clamp-2) em vez de esticar
-                    o cartão além da conta. */}
-                <p className="mt-4 line-clamp-2 min-h-[2.5rem] font-medium leading-tight text-neutral-100">
-                  {conta.page_name}
-                </p>
-                <p className="text-sm text-neutral-500">@{conta.instagram_username}</p>
-
-                {/* Status do dia — quantos CLIENTES foram atendidos hoje, e quantos tiveram erro
-                    (se houver). Por cliente, não por mensagem — ver comentário lá em cima. */}
-                <a
-                  href={`/contas/${conta.id}/atendimentos`}
-                  className="mt-3 flex flex-wrap items-center gap-2 text-xs"
-                >
-                  <span className="rounded-full border border-neutral-700 bg-neutral-900 px-2 py-0.5 text-neutral-300">
-                    {stats.respondidas} cliente{stats.respondidas === 1 ? "" : "s"} respondido
-                    {stats.respondidas === 1 ? "" : "s"} hoje
-                  </span>
-                  {stats.erros > 0 && (
-                    <span className="flex items-center gap-1 rounded-full border border-red-900 bg-red-950 px-2 py-0.5 font-medium text-red-300">
-                      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                      {stats.erros} cliente{stats.erros === 1 ? "" : "s"} com erro hoje
+                {/* Faixa 2: métricas de hoje, sempre duas caixinhas do MESMO tamanho lado a lado
+                    — atendimentos e Stories — em vez do card crescer ou encolher dependendo de
+                    quais produtos essa conta tem. Quando Stories não se aplica (desligado, ou
+                    ligado mas ainda não conectado lá, ou sem horário nenhum hoje), a caixinha da
+                    direita vira um placeholder tracejado do mesmo tamanho, nunca desaparece. */}
+                <div className={`mt-3.5 grid grid-cols-2 gap-2.5 border-t border-white/10 pt-3.5 ${fade}`}>
+                  <a
+                    href={`/contas/${conta.id}/atendimentos`}
+                    className="flex min-h-[64px] flex-col justify-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 transition hover:border-white/20"
+                  >
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+                      Atendimentos
                     </span>
-                  )}
-                </a>
+                    <span className="text-base font-semibold text-neutral-100">{stats.respondidas} hoje</span>
+                    {stats.erros > 0 && (
+                      <span className="text-[11px] font-medium text-red-400">
+                        {stats.erros} com erro
+                      </span>
+                    )}
+                  </a>
 
-                <div className="mt-4">
+                  {!servicos.stories ? (
+                    <a
+                      href={`/contas/${conta.id}/stories`}
+                      className="flex min-h-[64px] items-center justify-center rounded-xl border border-dashed border-white/10 px-3 py-2.5 text-center text-[11px] leading-snug text-neutral-600 transition hover:border-white/20 hover:text-neutral-500"
+                    >
+                      Stories não contratado
+                    </a>
+                  ) : resumoStories === "nao_conectado" ? (
+                    <a
+                      href={`/contas/${conta.id}/stories`}
+                      className="flex min-h-[64px] items-center justify-center rounded-xl border border-dashed border-white/10 px-3 py-2.5 text-center text-[11px] leading-snug text-neutral-600 transition hover:border-white/20 hover:text-neutral-500"
+                    >
+                      Ainda não conectado no Agendador de Stories
+                    </a>
+                  ) : !resumoStories || resumoStories.total === 0 ? (
+                    <a
+                      href={`/contas/${conta.id}/stories`}
+                      className="flex min-h-[64px] items-center justify-center rounded-xl border border-dashed border-white/10 px-3 py-2.5 text-center text-[11px] leading-snug text-neutral-600 transition hover:border-white/20 hover:text-neutral-500"
+                    >
+                      Nenhum Story hoje
+                    </a>
+                  ) : (
+                    <a
+                      href={`/contas/${conta.id}/stories`}
+                      className="flex min-h-[64px] items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 transition hover:border-white/20"
+                    >
+                      <AnelDeProgresso pct={(resumoStories.postados / resumoStories.total) * 100} />
+                      <span className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+                          Stories hoje
+                        </span>
+                        <span className="text-base font-semibold text-neutral-100">
+                          {resumoStories.postados}/{resumoStories.total}
+                        </span>
+                      </span>
+                    </a>
+                  )}
+                </div>
+
+                {/* Faixa 3: produtos contratados. */}
+                <div className={`mt-3.5 ${fade}`}>
                   <ChavesDeServico
                     contaId={conta.id}
                     directHabilitado={servicos.direct}
@@ -381,46 +509,19 @@ export default async function ContasPage({
                   />
                 </div>
 
-                <div className="mt-4 flex flex-col gap-2">
-                  {/* Atalho direto pra tela de reservas JÁ nessa conta (?conta=...) — sem isso, o
-                      antigo botão "Reservas" lá em cima sempre caía na primeira conta com reserva
-                      ativada (não existia como pedir uma conta específica de lá), inútil assim que
-                      tiver mais de um cliente usando esse serviço. Só aparece quando reserva está
-                      ligada nessa conta — pra quem não usa, some igual à aba correspondente. */}
-                  {servicos.reserva && (
-                    <a
-                      href={`/reservas?conta=${conta.id}`}
-                      className="w-full rounded-lg border border-violet-700 bg-violet-950/60 px-3 py-1.5 text-center text-xs font-medium text-violet-200 [backdrop-filter:blur(14px)_url(#vidro-abas-contas)] [-webkit-backdrop-filter:blur(14px)_url(#vidro-abas-contas)] hover:border-violet-500 hover:bg-violet-950"
-                    >
-                      Administração de reservas
-                    </a>
-                  )}
-
+                {/* Faixa 4 (rodapé): FORA do wrapper apagado acima — continua com destaque de
+                    verdade mesmo numa conta pausada. Reservas/Pausar/Excluir (ações menos usadas
+                    no dia a dia, e que tinham alturas diferentes de cartão pra cartão) ficam
+                    dentro do menu "⋯"; só "Configurações gerais" continua como botão sempre à
+                    vista. */}
+                <div className="mt-3.5 flex items-center gap-2 border-t border-white/10 pt-3.5">
                   <a
                     href={`/contas/${conta.id}/palavras-chave`}
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-center text-xs font-medium text-neutral-300 hover:bg-white/10"
+                    className="flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-center text-xs font-medium text-neutral-300 hover:bg-white/10"
                   >
                     Configurações gerais
                   </a>
-                </div>
-                </div>
-
-                {/* Reativar/Excluir ficam FORA do wrapper apagado acima — só um pouco menos
-                    opacos que o normal, pra continuarem sendo o destaque de quem abre um cartão
-                    pausado (é a ação que resolve o problema), mesmo com o resto bem discreto. */}
-                <div className={`mt-2 flex gap-2 ${conta.active ? "" : "opacity-90"}`}>
-                  <form action="/api/contas/status" method="POST" className="flex-1">
-                    <input type="hidden" name="account_id" value={conta.id} />
-                    <input type="hidden" name="ativar" value={conta.active ? "0" : "1"} />
-                    <BotaoPausar ativo={conta.active} />
-                  </form>
-
-                  <a
-                    href={`/contas/${conta.id}/excluir`}
-                    className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-center text-xs font-medium text-neutral-500 hover:border-red-900 hover:bg-red-950/40 hover:text-red-400"
-                  >
-                    Excluir
-                  </a>
+                  <MenuDeAcoesDaConta contaId={conta.id} ativo={conta.active} reservaHabilitada={servicos.reserva} />
                 </div>
               </div>
             </div>
