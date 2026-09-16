@@ -537,9 +537,9 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
 
     let aoMoverPonteiro: ((e: PointerEvent) => void) | null = null;
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      derivaAutonoma(`.${styles.o1}`, 17, 50);
-      derivaAutonoma(`.${styles.o2}`, 21, -42);
-      derivaAutonoma(`.${styles.o3}`, 14, 34);
+      derivaAutonoma(`.${styles.o1}`, 16, 85);
+      derivaAutonoma(`.${styles.o2}`, 19, -70);
+      derivaAutonoma(`.${styles.o3}`, 13, 60);
       respirar(`.${styles.o1}`, 8, 1.12);
       respirar(`.${styles.o2}`, 10, 1.16);
       respirar(`.${styles.o3}`, 6.5, 1.2);
