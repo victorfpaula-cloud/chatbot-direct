@@ -329,10 +329,13 @@ export default async function ContasPage({
 
   return (
     // max-w cresce nos breakpoints maiores (tablet/desktop) — no celular já ficava bom do jeito
-    // que era, mas no iPad e desktop sobrava muita borda vazia dos lados com só max-w-4xl fixo,
-    // e os cards ficavam mais estreitos que precisavam (nome de conta comprida, tipo "Dona
-    // Baunilha Doceria e Cafeteria Sorocaba", quebrava em 2 linhas apertadas à toa).
-    <main className="mx-auto max-w-4xl px-6 py-10 md:max-w-5xl lg:max-w-6xl xl:max-w-7xl">
+    // que era, mas no iPad e desktop sobrava muita borda vazia dos lados com só max-w-4xl fixo, e
+    // os cards ficavam mais estreitos que precisavam (nome de conta comprida, tipo "Dona Baunilha
+    // Doceria e Cafeteria Sorocaba", quebrava em 2 linhas apertadas à toa). Primeira tentativa
+    // (indo até max-w-7xl) ficou grande demais/colado na borda no iPad — parou de crescer em
+    // max-w-6xl e o padding lateral (px) também cresce por breakpoint, pra sobrar uma margem
+    // visível em vez de esticar até quase encostar na tela.
+    <main className="mx-auto max-w-4xl px-6 py-10 md:max-w-5xl md:px-10 lg:max-w-6xl lg:px-12">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Contas conectadas</h1>
