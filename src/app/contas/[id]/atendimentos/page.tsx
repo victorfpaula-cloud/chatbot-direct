@@ -34,14 +34,14 @@ export default async function AtendimentosPage({
   const admin = criarClienteAdmin();
   const filtroDeStatus = searchParams.status;
 
-  // Consulta leve: só criado_em + status + instagram_scoped_id, pra montar o cabeçalho de cada
-  // dia (contagem de mensagens, pessoas únicas atendidas, quantos com erro) sem baixar mensagem/
-  // resposta/erro_detalhe de cada atendimento — o detalhe de um dia só é buscado (via
-  // /api/atendimentos/dia) quando a pessoa abre o dropdown daquele dia, ver
-  // DiaDeAtendimentosSobDemanda.tsx.
+  // Consulta leve: só criado_em + instagram_scoped_id, pra montar o cabeçalho de cada dia
+  // (contagem de mensagens, pessoas únicas atendidas) sem baixar mensagem/resposta/erro_detalhe de
+  // cada atendimento — o detalhe de um dia só é buscado (via /api/atendimentos/dia) quando a
+  // pessoa abre o dropdown daquele dia, ver DiaDeAtendimentosSobDemanda.tsx. `status` não precisa
+  // vir aqui — o filtro abaixo já filtra na query, não precisa reler o campo depois.
   let consultaLeve = admin
     .from("chatbot_atendimentos")
-    .select("criado_em, status, instagram_scoped_id")
+    .select("criado_em, instagram_scoped_id")
     .eq("account_id", params.id);
 
   if (filtroDeStatus === "respondido" || filtroDeStatus === "erro" || filtroDeStatus === "sem_resposta") {
@@ -53,13 +53,12 @@ export default async function AtendimentosPage({
   // "Atendimentos" = pessoas ÚNICAS atendidas naquele dia (mesmo critério já usado no card de
   // /contas: "X clientes respondidos hoje") — diferente de "mensagens", que é a contagem de
   // linhas em si (uma pessoa pode mandar várias mensagens no mesmo dia).
-  const porDia = new Map<string, { totalMensagens: number; pessoasUnicas: Set<string>; erros: number }>();
+  const porDia = new Map<string, { totalMensagens: number; pessoasUnicas: Set<string> }>();
   for (const linha of leve ?? []) {
     const dia = dataEmSaoPauloISO(linha.criado_em);
-    const atual = porDia.get(dia) ?? { totalMensagens: 0, pessoasUnicas: new Set<string>(), erros: 0 };
+    const atual = porDia.get(dia) ?? { totalMensagens: 0, pessoasUnicas: new Set<string>() };
     atual.totalMensagens += 1;
     atual.pessoasUnicas.add(linha.instagram_scoped_id);
-    if (linha.status === "erro") atual.erros += 1;
     porDia.set(dia, atual);
   }
 
@@ -136,19 +135,16 @@ export default async function AtendimentosPage({
                       </svg>
                       {formatarCabecalhoDoDia(dia)}
                     </span>
-                    <span className="flex items-center gap-2 text-xs text-neutral-500">
-                      <span>
+                    <span className="flex items-center gap-2 text-xs text-neutral-400">
+                      {/* Largura fixa (não só min-width) nos dois — sem isso, "1 atendimento" e
+                          "153 mensagens" empurram o texto pra larguras diferentes em cada linha,
+                          e as datas ficam desalinhadas entre um dia e outro. */}
+                      <span className="flex w-[104px] items-center justify-center whitespace-nowrap rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 [backdrop-filter:blur(10px)] [-webkit-backdrop-filter:blur(10px)]">
                         {resumo.pessoasUnicas.size} {resumo.pessoasUnicas.size === 1 ? "atendimento" : "atendimentos"}
                       </span>
-                      <span className="text-neutral-700">·</span>
-                      <span>
+                      <span className="flex w-[104px] items-center justify-center whitespace-nowrap rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 [backdrop-filter:blur(10px)] [-webkit-backdrop-filter:blur(10px)]">
                         {resumo.totalMensagens} {resumo.totalMensagens === 1 ? "mensagem" : "mensagens"}
                       </span>
-                      {filtroDeStatus !== "erro" && resumo.erros > 0 && (
-                        <span className="rounded-full border border-red-900 bg-red-950 px-2 py-0.5 font-medium text-red-300">
-                          {resumo.erros} {resumo.erros === 1 ? "erro" : "erros"}
-                        </span>
-                      )}
                     </span>
                   </div>
                 }
