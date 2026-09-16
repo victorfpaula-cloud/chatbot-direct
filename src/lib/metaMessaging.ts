@@ -1,45 +1,6 @@
 import crypto from "node:crypto";
-import { AsyncLocalStorage } from "node:async_hooks";
 
 const GRAPH_API_VERSION = "v21.0";
-
-export type MensagemDaPonte =
-  | { tipo: "texto"; texto: string }
-  | { tipo: "botoes"; texto: string; botoes: { titulo: string; payload: string }[] };
-
-/**
- * Ponte temporária com o SendPulse (ver src/app/api/bridge/sendpulse/route.ts): enquanto a Meta
- * não aprova o App do chatbot-direct pra conversar com clientes de verdade (Standard Access só
- * deixa mandar mensagem pra admin/testador do App), o SendPulse continua sendo quem manda a
- * mensagem de verdade pro Direct — o chatbot-direct só decide o QUE responder.
- *
- * Em vez de reescrever `processarMensagemDeReserva` (fluxo de estado com dezenas de chamadas de
- * envio espalhadas) pra devolver texto em vez de mandar direto, essas duas funções de envio
- * conferem se estão rodando dentro de `executarComPonteSendPulse` e, se estiverem, só empilham a
- * mensagem no coletor em vez de chamar a Graph API — o resto do fluxo de reserva não muda uma
- * linha. Fora da ponte (webhook direto da Meta), o comportamento é exatamente o de sempre.
- *
- * O mesmo contexto também carrega o `perfilConhecido` (nome/@usuário que o SendPulse já manda
- * junto da mensagem) — usado por `buscarPerfilDoCliente` abaixo, porque o `instagram_scoped_id`
- * das conversas da ponte é sintético (`sendpulse:...`), não um IGSID de verdade, então a busca na
- * Graph API sempre falharia e cairia no nome genérico "Cliente" (foi exatamente isso que
- * aconteceu na reserva de teste — o nome salvo veio como "Cliente" em vez do nome real).
- */
-type ContextoDaPonte = {
-  mensagens: MensagemDaPonte[];
-  perfilConhecido?: { nome: string; username: string | null };
-};
-
-const armazenamentoDaPonte = new AsyncLocalStorage<ContextoDaPonte>();
-
-export async function executarComPonteSendPulse<T>(
-  perfilConhecido: { nome: string; username: string | null } | undefined,
-  funcao: () => Promise<T>
-): Promise<{ resultado: T; mensagens: MensagemDaPonte[] }> {
-  const contexto: ContextoDaPonte = { mensagens: [], perfilConhecido };
-  const resultado = await armazenamentoDaPonte.run(contexto, funcao);
-  return { resultado, mensagens: contexto.mensagens };
-}
 
 /**
  * Confere a assinatura X-Hub-Signature-256 que a Meta manda em todo webhook, calculada em cima
@@ -75,12 +36,6 @@ export async function enviarMensagemDirect(
   igsidDoCliente: string,
   texto: string
 ): Promise<void> {
-  const contextoDaPonte = armazenamentoDaPonte.getStore();
-  if (contextoDaPonte) {
-    contextoDaPonte.mensagens.push({ tipo: "texto", texto });
-    return;
-  }
-
   const resposta = await fetch(
     `https://graph.facebook.com/${GRAPH_API_VERSION}/me/messages?access_token=${encodeURIComponent(
       tokenDaConta
@@ -123,12 +78,6 @@ export async function enviarMensagemComBotoes(
   texto: string,
   botoes: { titulo: string; payload: string }[]
 ): Promise<void> {
-  const contextoDaPonte = armazenamentoDaPonte.getStore();
-  if (contextoDaPonte) {
-    contextoDaPonte.mensagens.push({ tipo: "botoes", texto, botoes });
-    return;
-  }
-
   const resposta = await fetch(
     `https://graph.facebook.com/${GRAPH_API_VERSION}/me/messages?access_token=${encodeURIComponent(
       tokenDaConta
@@ -163,28 +112,6 @@ export async function enviarMensagemComBotoes(
       `Falha ao enviar mensagem com botões pro Direct (status ${resposta.status}): ${corpoErro}`
     );
   }
-}
-
-/**
- * Junta o que foi coletado por `executarComPonteSendPulse` num único texto pro SendPulse mandar.
- * O construtor de fluxo visual do SendPulse só tem um campo de texto simples pra resposta da
- * ponte (não dá pra montar botão tocável dinâmico a partir de uma resposta de API) — então um
- * passo com botões vira a pergunta seguida da lista das opções em texto puro. Isso funciona sem
- * nenhuma mudança no fluxo de reserva porque `interpretarData`/`interpretarPeriodo`/
- * `interpretarSimNao` (em reservas.ts) já aceitam essas mesmas palavras digitadas livremente, não
- * só o payload do clique — mesma dualidade "digita ou toca" que o fluxo direto pela Meta usa.
- * Se nada foi coletado (bot ficou em silêncio de propósito), devolve null.
- */
-export function formatarMensagensDaPonte(mensagens: MensagemDaPonte[]): string | null {
-  if (mensagens.length === 0) return null;
-
-  return mensagens
-    .map((mensagem) =>
-      mensagem.tipo === "texto"
-        ? mensagem.texto
-        : `${mensagem.texto}\n\n${mensagem.botoes.map((botao) => `• ${botao.titulo}`).join("\n")}`
-    )
-    .join("\n\n");
 }
 
 async function tentarBuscarPerfilDoCliente(
@@ -237,11 +164,6 @@ export async function buscarPerfilDoCliente(
   tokenDaConta: string,
   instagramScopedId: string
 ): Promise<{ nome: string; username: string | null }> {
-  const contextoDaPonte = armazenamentoDaPonte.getStore();
-  if (contextoDaPonte?.perfilConhecido) {
-    return contextoDaPonte.perfilConhecido;
-  }
-
   const primeiraTentativa = await tentarBuscarPerfilDoCliente(tokenDaConta, instagramScopedId);
   if (primeiraTentativa) return primeiraTentativa;
 
@@ -253,8 +175,9 @@ export async function buscarPerfilDoCliente(
 /**
  * Busca a foto de perfil de um cliente pelo @usuário (em vez do ID), usando a "Business Discovery"
  * da própria Graph API — só precisa do token/ID da NOSSA conta, nunca depende da SendPulse. Serve
- * de fallback pra reserva feita pela ponte cujo `sendpulse:<contato_id>` morreu (ex.: contato
- * apagado no painel da SendPulse) mas o @usuário do cliente já estava salvo na reserva.
+ * de fallback pra reserva antiga feita pela ponte (já removida) cujo `sendpulse:<contato_id>`
+ * morreu (ex.: contato apagado no painel da SendPulse) mas o @usuário do cliente já estava salvo
+ * na reserva.
  * Limitação real da Meta: só funciona se a conta do CLIENTE também for Business/Criador de
  * conteúdo — pra conta pessoal comum, a Meta não expõe esse campo e a chamada falha normalmente
  * (cai no null, mesmo comportamento de qualquer outra falha de busca de foto).

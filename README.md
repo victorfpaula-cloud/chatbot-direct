@@ -66,4 +66,8 @@ rotas server-side com a chave de service role).
 3. Atendimento por IA (Gemini) com base de conhecimento, tom de voz e guardrails configuráveis
 4. Palavras-chave especiais (gatilho de reserva, e o que mais for preciso)
 5. Fluxo de reserva completo (capacidade, cutoff de horário, pausa manual, planilha do Google)
-6. Migração das contas do SendPulse, uma de cada vez
+6. ~~Migração das contas do SendPulse, uma de cada vez~~ — concluída em 16/09: a Meta aprovou o App
+   Review, o Victor desligou o fluxo da SendPulse por completo (evitando duplicar mensagem) e a
+   ponte temporária (`src/app/api/bridge/sendpulse/route.ts`) foi removida do código. `src/lib/
+   sendpulseApi.ts` continua existindo só pra servir reserva ANTIGA registrada por aquela ponte
+   (`instagram_scoped_id` no formato `sendpulse:<contato_id>`), nunca atendimento novo.

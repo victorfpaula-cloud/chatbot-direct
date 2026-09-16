@@ -20,11 +20,6 @@ import {
  * sessão de verdade:
  * - `api/webhook/instagram`: quem chama é a Meta, não o navegador do Victor — validado pela
  *   própria assinatura HMAC (`X-Hub-Signature-256`), não por login.
- * - `api/bridge/sendpulse`: quem chama é o SendPulse (ponte temporária, ver
- *   src/app/api/bridge/sendpulse/route.ts) — validado por segredo compartilhado
- *   (`x-bridge-secret`), não por sessão. Sem essa exceção, toda chamada sem sessão caía no
- *   redirecionamento pra `/login` lá embaixo, e como `/login` não aceita POST, virava um 405
- *   confuso pro SendPulse, sem nem chegar no código da ponte.
  * - `/login`: senão ninguém conseguiria nem chegar na tela de login pra entrar.
  *
  * Mesmo padrão de autenticação (Supabase Auth por sessão/cookie) já usado no agendador-stories e
@@ -313,6 +308,6 @@ export const config = {
     // api/r/ (src/app/api/r/[slug]/*): as chamadas fetch que essa mesma página pública faz pro
     // calendário/disponibilidade/confirmação — o navegador do cliente final as dispara direto,
     // sem cookie de sessão nenhum, então também precisam ficar de fora do redirecionamento.
-    "/((?!api/webhook/instagram|api/bridge/sendpulse|api/r/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/|site$).*)",
+    "/((?!api/webhook/instagram|api/r/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/|site$).*)",
   ],
 };
