@@ -39,75 +39,12 @@ function formatarDataCurta(iso: string): string {
   );
 }
 
-// Gráfico de barras simples (mensagens por dia) — SVG puro, sem lib nenhuma. Eixo com grade leve +
-// valor em cima de cada barra (só quando > 0, pra não poluir dia sem mensagem).
-function GraficoDeMensagens({ pontos }: { pontos: { dataISO: string; rotulo: string; total: number }[] }) {
-  const largura = 600;
-  const altura = 170;
-  const margemEsquerda = 12;
-  const margemDireita = 12;
-  const margemBaixo = 24;
-  const margemCima = 20;
-  const areaLargura = largura - margemEsquerda - margemDireita;
-  const areaAltura = altura - margemBaixo - margemCima;
-  const maximo = Math.max(1, ...pontos.map((p) => p.total));
-  const larguraBarra = areaLargura / pontos.length;
-
-  return (
-    <svg viewBox={`0 0 ${largura} ${altura}`} className="w-full" role="img" aria-label="Mensagens por dia">
-      {[0, 0.5, 1].map((f) => {
-        const y = margemCima + areaAltura * (1 - f);
-        return (
-          <line
-            key={f}
-            x1={margemEsquerda}
-            x2={largura - margemDireita}
-            y1={y}
-            y2={y}
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth={1}
-          />
-        );
-      })}
-      {pontos.map((p, i) => {
-        const alturaBarra = (p.total / maximo) * areaAltura;
-        const x = margemEsquerda + i * larguraBarra + larguraBarra * 0.22;
-        const larguraReal = larguraBarra * 0.56;
-        const y = margemCima + areaAltura - alturaBarra;
-        return (
-          <g key={p.dataISO}>
-            <rect
-              x={x}
-              y={p.total > 0 ? y : margemCima + areaAltura - 2}
-              width={larguraReal}
-              height={p.total > 0 ? alturaBarra : 2}
-              rx={2}
-              fill="#6366f1"
-            />
-            {p.total > 0 && pontos.length <= 14 && (
-              <text x={x + larguraReal / 2} y={y - 6} textAnchor="middle" fontSize="10" fill="#e4e4e7">
-                {p.total}
-              </text>
-            )}
-            {pontos.length <= 14 && (
-              <text
-                x={x + larguraReal / 2}
-                y={margemCima + areaAltura + 16}
-                textAnchor="middle"
-                fontSize="10"
-                fill="#71717a"
-              >
-                {p.rotulo}
-              </text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
+function formatarDuracao(segundos: number): string {
+  if (segundos < 60) return `${segundos}s`;
+  const minutos = Math.floor(segundos / 60);
+  const resto = segundos % 60;
+  return resto > 0 ? `${minutos}min ${resto}s` : `${minutos}min`;
 }
-
-type PontoMensagem = { dataISO: string; rotulo: string; total: number };
 
 export default async function RelatoriosPage({
   params,
@@ -127,7 +64,6 @@ export default async function RelatoriosPage({
   const dias = (PERIODOS as readonly number[]).includes(diasBruto) ? diasBruto : 30;
 
   const relatorio = await montarRelatorio(admin, params.id, ultimosDiasEmSaoPauloISO(dias));
-  const pontosDoGrafico: PontoMensagem[] = relatorio.mensagensPorDia;
 
   return (
     <div className="flex flex-col gap-4">
@@ -253,10 +189,48 @@ export default async function RelatoriosPage({
           )}
         </div>
 
-        <div className="mt-2">
-          <p className={CLASSE_AJUDA}>Mensagens por dia</p>
-          <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-            <GraficoDeMensagens pontos={pontosDoGrafico} />
+        <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Média por dia</p>
+            <p className="mt-1 text-2xl font-bold text-neutral-50">{relatorio.mediaMensagensPorDia}</p>
+            <p className="mt-0.5 text-xs text-neutral-500">mensagens/dia</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Dia mais movimentado</p>
+            {relatorio.diaComMaisMensagens ? (
+              <>
+                <p className="mt-1 text-2xl font-bold text-neutral-50">{relatorio.diaComMaisMensagens.total}</p>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  mensagens em {formatarDataCurta(relatorio.diaComMaisMensagens.dataISO)}
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-neutral-500">Sem mensagens no período.</p>
+            )}
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Tempo médio de resposta</p>
+            {relatorio.tempoMedioDeRespostaSegundos !== null ? (
+              <p className="mt-1 text-2xl font-bold text-neutral-50">
+                {formatarDuracao(relatorio.tempoMedioDeRespostaSegundos)}
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-neutral-500">Ainda sem dados.</p>
+            )}
+          </div>
+          <div
+            className={`rounded-xl border border-white/10 px-4 py-3 ${
+              relatorio.totalComErro > 0 ? "bg-red-500/[0.06]" : "bg-white/[0.03]"
+            }`}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Atendimentos com erro</p>
+            <p
+              className={`mt-1 text-2xl font-bold ${
+                relatorio.totalComErro > 0 ? "text-red-400" : "text-neutral-50"
+              }`}
+            >
+              {relatorio.totalComErro}
+            </p>
           </div>
         </div>
       </CartaoDeSecao>

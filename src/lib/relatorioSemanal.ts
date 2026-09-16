@@ -23,6 +23,14 @@ export type Relatorio = {
   totalDias: number;
   totalAtendimentos: number;
   totalMensagens: number;
+  mediaMensagensPorDia: number;
+  diaComMaisMensagens: { dataISO: string; total: number } | null;
+  totalComErro: number;
+  // Segundos entre a mensagem chegar (mensagem_recebida_em) e a gente responder (criado_em) —
+  // média só sobre atendimento respondido de verdade que já tem os dois horários (ver coluna
+  // mensagem_recebida_em em chatbot_atendimentos: nasceu nula, só passa a vir preenchida a partir
+  // de 16/09 — período que cair todo antes disso dá null aqui, não zero).
+  tempoMedioDeRespostaSegundos: number | null;
   mensagensPorDia: ResumoDoDia[];
   atendimentos: AtendimentoAgrupado[];
   reservaHabilitada: boolean;
@@ -138,6 +146,25 @@ export async function montarRelatorio(
     total,
   }));
 
+  const mediaMensagensPorDia = Math.round((totalMensagens / totalDias) * 10) / 10;
+
+  const diaComMaisMensagens = mensagensPorDia.reduce<{ dataISO: string; total: number } | null>(
+    (melhor, dia) => (dia.total > 0 && (!melhor || dia.total > melhor.total) ? { dataISO: dia.dataISO, total: dia.total } : melhor),
+    null
+  );
+
+  const totalComErro = (atendimentosBrutos ?? []).filter((a) => a.status === "erro").length;
+
+  const temposDeResposta = (atendimentosBrutos ?? [])
+    .filter((a) => a.status === "respondido" && a.mensagem_recebida_em)
+    .map((a) => (Date.parse(a.criado_em) - Date.parse(a.mensagem_recebida_em as string)) / 1000)
+    .filter((segundos) => segundos >= 0);
+
+  const tempoMedioDeRespostaSegundos =
+    temposDeResposta.length > 0
+      ? Math.round(temposDeResposta.reduce((soma, s) => soma + s, 0) / temposDeResposta.length)
+      : null;
+
   const reservaHabilitada = config?.reserva_habilitada ?? false;
   let totalReservas: number | null = null;
   let totalPessoasReservas: number | null = null;
@@ -198,6 +225,10 @@ export async function montarRelatorio(
     totalDias,
     totalAtendimentos,
     totalMensagens,
+    mediaMensagensPorDia,
+    diaComMaisMensagens,
+    totalComErro,
+    tempoMedioDeRespostaSegundos,
     mensagensPorDia,
     atendimentos,
     reservaHabilitada,
