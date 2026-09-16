@@ -136,13 +136,25 @@ export function ChavesDeServico({
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-2.5 text-xs font-medium text-neutral-300 [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-2">
           Produtos ativos
-          <span className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-1.5 py-1">
+          <span className="flex items-center gap-1.5">
             {servicosAtivos.length > 0 ? (
               servicosAtivos.map((servico) => (
-                <IconeDoProduto key={servico.chave} chave={servico.chave} className="h-3 w-3 text-indigo-300" />
+                // Bolinha de vidro individual por produto — antes eram ícones soltos dentro de
+                // uma pílula só, meio apertados; separadas assim fica mais fácil bater o olho e
+                // identificar rápido quais produtos estão ligados. Sem backdrop-filter aqui de
+                // propósito (o cartão da conta já tem o dele) — empilhar blur dentro de blur já
+                // deu artefato visual conhecido no Safari/WebKit (mesmo motivo documentado em
+                // AbasDaConta.tsx).
+                <span
+                  key={servico.chave}
+                  title={servico.rotulo}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-indigo-400/40 bg-indigo-500/25 text-white shadow-[0_0_6px_rgba(99,102,241,0.45)]"
+                >
+                  <IconeDoProduto chave={servico.chave} className="h-3.5 w-3.5" />
+                </span>
               ))
             ) : (
-              <span className="px-0.5 text-[10px] text-neutral-600">nenhum</span>
+              <span className="text-[10px] text-neutral-600">nenhum</span>
             )}
           </span>
         </span>

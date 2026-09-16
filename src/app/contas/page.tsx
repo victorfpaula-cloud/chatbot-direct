@@ -103,7 +103,7 @@ function estiloDaConta(id: string) {
 function corDaFaixa(conta: { active: boolean }, stats: EstatisticaDoDia) {
   if (!conta.active) return "bg-red-500/50 shadow-[0_0_14px_2px_rgba(239,68,68,0.55)]";
   if (stats.erros > 0) return "bg-red-500";
-  return "bg-green-500";
+  return "bg-indigo-500";
 }
 
 // Mesmo brilho de fora de sempre + um brilho vermelho por DENTRO só quando pausada — reforça
@@ -399,7 +399,7 @@ export default async function ContasPage({
                 conta.active ? "border-white/15" : "border-red-500/30"
               }`}
             >
-              {/* Faixa colorida no topo do cartão — verde ativa, vermelha (vidro) pausada, vermelha sólida com erro hoje. */}
+              {/* Faixa colorida no topo do cartão — índigo (cor principal) ativa, vermelha (vidro) pausada, vermelha sólida com erro hoje. */}
               <span className={`absolute inset-x-0 top-0 h-1 ${corDaFaixa(conta, stats)}`} />
 
               <div className="flex flex-col px-5 pb-5">
