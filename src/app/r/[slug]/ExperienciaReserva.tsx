@@ -528,17 +528,27 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
     document.addEventListener("keydown", aoTeclarNavegacao);
 
     // ---------- brilhos do fundo: luz índigo à deriva, sozinha, reagindo ao ponteiro ----------
-    // Deslocamento bem mais horizontal que vertical de propósito ("da direita pra esquerda") —
-    // simétrico em volta da posição do CSS (começa deslocado meio "dist" pra DIREITA, termina meio
-    // "dist" pra ESQUERDA), não só indo cada vez mais pra um lado só: a posição base de .o1/.o2/.o3
-    // já nasce puxada pra canto (ver left/right/bottom no CSS), então um vaivém relativo A PARTIR
-    // dali (como era antes) nunca cruzava o centro — ficava preso do mesmo lado o tempo todo.
+    // No celular (tela estreita, pouco espaço pros lados) a deriva vai de CIMA pra BAIXO — no
+    // desktop (tela larga) continua da DIREITA pra ESQUERDA. Em ambos os casos, simétrica em volta
+    // da posição do CSS (começa deslocada meio "dist" numa ponta, termina meio "dist" na outra),
+    // não só indo cada vez mais pra um lado só: a posição base de .o1/.o2/.o3 já nasce puxada pra
+    // canto (ver left/right/bottom no CSS), então um vaivém relativo A PARTIR dali nunca cruzava o
+    // centro — ficava preso do mesmo lado/topo o tempo todo.
+    const ehTelaEstreita = window.matchMedia("(max-width: 640px)").matches;
     function derivaAutonoma(sel: string, dur: number, dist: number) {
-      gsap.fromTo(
-        sel,
-        { x: `+=${dist / 2}` },
-        { x: `-=${dist}`, y: `+=${dist * 0.12}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
-      );
+      if (ehTelaEstreita) {
+        gsap.fromTo(
+          sel,
+          { y: `-=${dist / 2}` },
+          { y: `+=${dist}`, x: `+=${dist * 0.1}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
+        );
+      } else {
+        gsap.fromTo(
+          sel,
+          { x: `+=${dist / 2}` },
+          { x: `-=${dist}`, y: `+=${dist * 0.12}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
+        );
+      }
     }
     function respirar(sel: string, dur: number, ate: number) {
       gsap.to(sel, { scale: ate, opacity: "*=1.15", duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut", delay: Math.random() * dur });
@@ -590,9 +600,12 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
 
     let aoMoverPonteiro: ((e: PointerEvent) => void) | null = null;
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      derivaAutonoma(`.${styles.o1}`, 22, 150);
-      derivaAutonoma(`.${styles.o2}`, 27, 130);
-      derivaAutonoma(`.${styles.o3}`, 18, 110);
+      // Mais rápido que antes (ciclo mais curto) e com um alcance menor (mais sutil) ao mesmo
+      // tempo — pedido explícito: rápido o bastante pra dar pra perceber o movimento acontecendo
+      // ("ar mais tecnológico"), mas sem ficar num vaivém grande e óbvio.
+      derivaAutonoma(`.${styles.o1}`, 12, 90);
+      derivaAutonoma(`.${styles.o2}`, 15, 78);
+      derivaAutonoma(`.${styles.o3}`, 10, 65);
       respirar(`.${styles.o1}`, 8, 1.12);
       respirar(`.${styles.o2}`, 10, 1.16);
       respirar(`.${styles.o3}`, 6.5, 1.2);
