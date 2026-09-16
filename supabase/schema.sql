@@ -193,6 +193,15 @@ alter table chatbot_reservations
   add column if not exists sheet_sincronizado boolean not null default false;
 
 -- ============================================================================
+-- Confirmação de presença ("check-in") pelo funcionário na tela Hoje — marca quando o cliente já
+-- chegou no restaurante, pra tirar o destaque de quem já foi atendido (ver botão "Confirmar"/
+-- "Chegou" em src/app/reservas/reservasCompartilhado.tsx e BotaoConfirmarPresenca.tsx). Nasce
+-- FALSE em toda reserva nova; alternar entre true/false é reversível (clicar em "Chegou" desfaz).
+-- ============================================================================
+alter table chatbot_reservations
+  add column if not exists presenca_confirmada boolean not null default false;
+
+-- ============================================================================
 -- Histórico de atendimentos (tela "Atendimentos" de cada conta) — usado desde a Etapa 3 em
 -- src/lib/atendimentos.ts, mas nunca tinha entrado neste arquivo de schema.
 -- ============================================================================

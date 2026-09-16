@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
   let consulta = admin
     .from("chatbot_reservations")
     .select(
-      "id, instagram_scoped_id, cliente_nome, cliente_instagram_username, data_reserva, periodo, quantidade_pessoas, whatsapp, confirmado_em"
+      "id, instagram_scoped_id, cliente_nome, cliente_instagram_username, data_reserva, periodo, quantidade_pessoas, whatsapp, confirmado_em, presenca_confirmada"
     )
     .eq("account_id", contaId)
     .eq("data_reserva", data)

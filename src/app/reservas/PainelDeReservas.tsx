@@ -207,7 +207,7 @@ export async function PainelDeReservas({
       let consulta = admin
         .from("chatbot_reservations")
         .select(
-          "id, instagram_scoped_id, cliente_nome, cliente_instagram_username, data_reserva, periodo, quantidade_pessoas, whatsapp, confirmado_em, foto_manual_url"
+          "id, instagram_scoped_id, cliente_nome, cliente_instagram_username, data_reserva, periodo, quantidade_pessoas, whatsapp, confirmado_em, foto_manual_url, presenca_confirmada"
         )
         .eq("account_id", contaSelecionada.id)
         .gte("data_reserva", de)

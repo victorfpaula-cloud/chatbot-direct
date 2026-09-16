@@ -1,5 +1,6 @@
 import { FormularioDeEdicaoDeReserva } from "./FormularioDeEdicaoDeReserva";
 import { BotaoExcluirReserva } from "./BotaoExcluirReserva";
+import { BotaoConfirmarPresenca } from "./BotaoConfirmarPresenca";
 
 // Tudo neste arquivo é usado tanto pela tela "Hoje" (Server Component, com dados já carregados)
 // quanto pela tela Antigas/Futuras (o dia é um Client Component que busca os dados sob demanda,
@@ -25,6 +26,8 @@ export type Reserva = {
   // outras telas (Antigas/Futuras) fica undefined de propósito, pra não pesar com reservas em
   // volume bem maior.
   fotoDePerfilUrl?: string | null;
+  // "Check-in" feito pelo funcionário (botão Confirmar/Chegou) — ver BotaoConfirmarPresenca.tsx.
+  presenca_confirmada: boolean;
 };
 
 export function Icone({ path, className }: { path: string; className?: string }) {
@@ -125,6 +128,8 @@ export function CartaoDeReserva({
    * anterior) — não afeta nada visual além disso. */
   indice?: number;
 }) {
+  const confirmado = reserva.presenca_confirmada;
+
   return (
     // Vidro (Liquid Glass): mais escuro/recuado que o card do dia que o envolve — em vez de
     // competir em claridade com ele, fica como se estivesse "afundado" dentro, com só um traço de
@@ -139,8 +144,18 @@ export function CartaoDeReserva({
     // de cima, mesmo ela tendo z-10 — o z-10 só vale DENTRO do contexto do próprio cartão, preso
     // por causa do transform, sem conseguir competir com o cartão vizinho. Erguer o cartão inteiro
     // (não só a caixinha) resolve, porque aí ele já sobe acima do vizinho antes de chegar nela.
+    //
+    // Confirmado (já chegou): perde o tingimento índigo de propósito (fica cinza neutro, "sem
+    // vida") e cai pra 30% de opacidade com blur próprio — pedido do Victor pra quem já chegou
+    // ficar bem mais discreto/em segundo plano, sobrando destaque só pra quem ainda não chegou. O
+    // texto por dentro continua branco/claro (não escurecido à parte): quem apaga tudo por igual é
+    // só a opacidade do cartão, não teria por que apagar duas vezes.
     <div
-      className="animate-entrada relative rounded-2xl border-2 border-indigo-400/15 bg-gradient-to-br from-white/[0.06] to-[#0c0c0f]/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none has-[details[open]]:z-20"
+      className={
+        confirmado
+          ? "animate-entrada relative rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 opacity-30 [backdrop-filter:blur(16px)] [-webkit-backdrop-filter:blur(16px)] motion-reduce:animate-none has-[details[open]]:z-20"
+          : "animate-entrada relative rounded-2xl border-2 border-indigo-400/15 bg-gradient-to-br from-white/[0.06] to-[#0c0c0f]/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none has-[details[open]]:z-20"
+      }
       style={{ animationDelay: `${Math.min(indice * 45, 300)}ms` }}
     >
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
@@ -155,7 +170,13 @@ export function CartaoDeReserva({
             className="h-12 w-12 shrink-0 self-start rounded-full object-cover"
           />
         ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full border border-indigo-400/25 bg-indigo-500/30 text-indigo-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+          <div
+            className={
+              confirmado
+                ? "flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full border border-white/15 bg-white/[0.08] text-white"
+                : "flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full border border-indigo-400/25 bg-indigo-500/30 text-indigo-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+            }
+          >
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -173,7 +194,7 @@ export function CartaoDeReserva({
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold text-neutral-100">
+          <p className={confirmado ? "truncate text-base font-semibold text-white" : "truncate text-base font-semibold text-neutral-100"}>
             {reserva.cliente_nome ?? "Cliente"}
           </p>
 
@@ -182,7 +203,11 @@ export function CartaoDeReserva({
               href={`https://instagram.com/${reserva.cliente_instagram_username}`}
               target="_blank"
               rel="noreferrer"
-              className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-300"
+              className={
+                confirmado
+                  ? "mt-1 flex items-center gap-1.5 text-sm text-white/80"
+                  : "mt-1 flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-300"
+              }
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="shrink-0 text-purple-400/80">
                 <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -198,7 +223,11 @@ export function CartaoDeReserva({
               href={linkDoWhatsapp(reserva.whatsapp)}
               target="_blank"
               rel="noreferrer"
-              className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-300"
+              className={
+                confirmado
+                  ? "mt-1 flex items-center gap-1.5 text-sm text-white/80"
+                  : "mt-1 flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-300"
+              }
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="shrink-0 text-emerald-500/80">
                 <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 3.15L3 21" />
@@ -210,37 +239,64 @@ export function CartaoDeReserva({
 
         {/* Mesmo preenchimento em degradê índigo (+ brilho de topo) dos cards de estatística lá
             em cima, em vez de só uma borda com fundo quase transparente. */}
-        <div className="relative flex shrink-0 min-w-[76px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 before:absolute before:inset-x-[15%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']">
-          <span className="text-lg font-semibold leading-none text-neutral-100">
+        <div
+          className={
+            confirmado
+              ? "relative flex shrink-0 min-w-[76px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3"
+              : "relative flex shrink-0 min-w-[76px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 before:absolute before:inset-x-[15%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']"
+          }
+        >
+          <span className={confirmado ? "text-lg font-semibold leading-none text-white" : "text-lg font-semibold leading-none text-neutral-100"}>
             {reserva.quantidade_pessoas ?? "—"}
           </span>
-          <span className="flex items-center gap-1 text-[10px] font-medium text-neutral-500">
-            <Icone path={CAMINHO_PESSOAS} className="h-3 w-3 text-indigo-400" />
+          <span className={confirmado ? "flex items-center gap-1 text-[10px] font-medium text-white/80" : "flex items-center gap-1 text-[10px] font-medium text-neutral-500"}>
+            <Icone path={CAMINHO_PESSOAS} className={confirmado ? "h-3 w-3 text-white/70" : "h-3 w-3 text-indigo-400"} />
             pessoas
           </span>
         </div>
       </div>
 
-      {/* Editar/Excluir à esquerda (discretos, sem caixa) e o horário de confirmação à direita.
-          Linha no mesmo tom (branco bem suave) dos botõezinhos de ícone (Filtros/Atualizar) —
-          border-neutral-900 de antes praticamente sumia contra o fundo quase preto do card. */}
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/10 pt-3">
-        <div className="flex items-center gap-1">
+      {/* Editar/Excluir à esquerda (só ícone, discretos), "Reservado em" centralizado em duas
+          linhas no meio, e Confirmar/Chegou à direita — alinhado bem embaixo do bloco de pessoas
+          ali em cima, mesmo vidro índigo dele. */}
+      <div
+        className={
+          confirmado
+            ? "mt-3 flex items-center justify-between gap-2 border-t border-white/15 pt-3"
+            : "mt-3 flex items-center justify-between gap-2 border-t border-white/10 pt-3"
+        }
+      >
+        <div className="flex items-center gap-1.5">
           <FormularioDeEdicaoDeReserva
             action={`/api/reservas/${reserva.id}/editar`}
             redirectTo={hrefAtualizar}
             nomeCliente={reserva.cliente_nome ?? "esse cliente"}
             quantidadeAtual={reserva.quantidade_pessoas ?? 1}
+            apagado={confirmado}
           />
           <BotaoExcluirReserva
             action={`/api/reservas/${reserva.id}/excluir`}
             redirectTo={hrefAtualizar}
             nomeCliente={reserva.cliente_nome ?? "esse cliente"}
+            apagado={confirmado}
           />
         </div>
-        <span className="text-[10px] text-neutral-700">
-          confirmada {formatarDataCurta(reserva.confirmado_em)} às {formatarHora(reserva.confirmado_em)}
-        </span>
+
+        <div className="flex flex-col items-center text-center leading-tight">
+          <span className={confirmado ? "text-[8px] uppercase tracking-wide text-white/70" : "text-[8px] uppercase tracking-wide text-neutral-600"}>
+            Reservado em
+          </span>
+          <span className={confirmado ? "mt-0.5 text-[10px] text-white/90" : "mt-0.5 text-[10px] text-neutral-500"}>
+            {formatarDataCurta(reserva.confirmado_em)} às {formatarHora(reserva.confirmado_em)}
+          </span>
+        </div>
+
+        <BotaoConfirmarPresenca
+          action={`/api/reservas/${reserva.id}/confirmar-presenca`}
+          redirectTo={hrefAtualizar}
+          nomeCliente={reserva.cliente_nome ?? "esse cliente"}
+          presencaConfirmada={confirmado}
+        />
       </div>
     </div>
   );

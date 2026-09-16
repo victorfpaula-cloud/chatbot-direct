@@ -7,22 +7,32 @@ export function FormularioDeEdicaoDeReserva({
   redirectTo,
   nomeCliente,
   quantidadeAtual,
+  apagado = false,
 }: {
   action: string;
   redirectTo: string;
   nomeCliente: string;
   quantidadeAtual: number;
+  /** Reserva já confirmada (card desbotado/em vidro) — o botão vira branco pra combinar em vez de
+   * ficar cinza contra um fundo que já quase some. */
+  apagado?: boolean;
 }) {
   const detalhesRef = useRef<HTMLDetailsElement>(null);
 
   return (
     <details ref={detalhesRef} className="relative">
-      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-400 [&::-webkit-details-marker]:hidden hover:bg-neutral-900 hover:text-neutral-200">
+      <summary
+        aria-label="Editar reserva"
+        className={`flex h-[30px] w-[30px] cursor-pointer list-none items-center justify-center rounded-full [&::-webkit-details-marker]:hidden ${
+          apagado
+            ? "bg-white/[0.06] text-white hover:bg-white/10"
+            : "bg-white/[0.04] text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200"
+        }`}
+      >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <path d="M12 20h9" />
           <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
         </svg>
-        Editar
       </summary>
 
       <form
