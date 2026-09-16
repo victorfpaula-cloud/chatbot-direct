@@ -95,12 +95,25 @@ function estiloDaConta(id: string) {
 }
 
 // Cor da faixa no topo do cartão — agora é sobre STATUS, não mais sobre qual conta é: verde
-// enquanto ativa e sem erro hoje, amarela quando pausada, vermelha quando ativa mas teve pelo
-// menos um erro hoje (isso avisa de problema batendo o olho, antes mesmo de entrar na conta).
+// enquanto ativa e sem erro hoje, vermelha (com um pouco de vidro/brilho, não sólida) quando
+// pausada, vermelha sólida quando ativa mas teve pelo menos um erro hoje (isso avisa de problema
+// batendo o olho, antes mesmo de entrar na conta) — antes a pausada usava amarelo, destoando do
+// resto do cartão (borda e badge já eram vermelhos pra esse mesmo estado).
 function corDaFaixa(conta: { active: boolean }, stats: EstatisticaDoDia) {
-  if (!conta.active) return "bg-amber-500";
+  if (!conta.active) return "bg-red-500/50 shadow-[0_0_14px_2px_rgba(239,68,68,0.55)]";
   if (stats.erros > 0) return "bg-red-500";
   return "bg-green-500";
+}
+
+// Mesmo brilho de fora de sempre + um brilho vermelho por DENTRO só quando pausada — reforça
+// visualmente que esse cartão pausado tem realmente algo pra resolver, sem precisar ler o texto.
+// Tailwind exige underscore no lugar de espaço dentro de um valor arbitrário `[...]` — sem isso o
+// próprio build já falha, então underscore aqui não é só estilo, é sintaxe.
+function sombraDoCartao(ativo: boolean): string {
+  const base = "0_18px_40px_-18px_rgba(0,0,0,0.55)";
+  const brilhoDeTopo = "inset_0_1px_0_rgba(255,255,255,0.05)";
+  if (ativo) return `shadow-[${brilhoDeTopo},${base}]`;
+  return `shadow-[${brilhoDeTopo},inset_0_0_60px_-14px_rgba(239,68,68,0.45),${base}]`;
 }
 
 // Meia-noite de hoje, horário de São Paulo, convertida pra um instante UTC — usado como corte
@@ -291,14 +304,18 @@ export default async function ContasPage({
           return (
             <div
               key={conta.id}
-              className={`group relative flex flex-col overflow-hidden rounded-2xl border-2 bg-white/[0.05] pt-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_40px_-18px_rgba(0,0,0,0.55)] transition-all [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] hover:-translate-y-0.5 hover:shadow-xl ${estilo.brilho} ${
+              className={`group relative flex flex-col overflow-hidden rounded-2xl border-2 bg-white/[0.05] pt-6 ${sombraDoCartao(conta.active)} transition-all [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] hover:-translate-y-0.5 hover:shadow-xl ${estilo.brilho} ${
                 conta.active ? "border-white/15" : "border-red-500/30"
               }`}
             >
-              {/* Faixa colorida no topo do cartão — verde ativa, amarela pausada, vermelha com erro hoje. */}
+              {/* Faixa colorida no topo do cartão — verde ativa, vermelha (vidro) pausada, vermelha sólida com erro hoje. */}
               <span className={`absolute inset-x-0 top-0 h-1 ${corDaFaixa(conta, stats)}`} />
 
               <div className="flex flex-col px-5 pb-5">
+                {/* Pausada: tudo aqui dentro fica bem apagado (mesmo espírito do cartão de reserva
+                    já confirmada, "sem vida") — só o essencial pra decidir o que fazer (reativar
+                    ou excluir, logo abaixo, FORA desse wrapper) continua com destaque de verdade. */}
+                <div className={conta.active ? "" : "opacity-50"}>
                 <div className="flex items-center justify-between">
                   <AvatarConta
                     fotoUrl={fotosPorConta.get(conta.id) ?? null}
@@ -381,21 +398,25 @@ export default async function ContasPage({
                   >
                     Configurações gerais
                   </a>
+                </div>
+                </div>
 
-                  <div className="flex gap-2">
-                    <form action="/api/contas/status" method="POST" className="flex-1">
-                      <input type="hidden" name="account_id" value={conta.id} />
-                      <input type="hidden" name="ativar" value={conta.active ? "0" : "1"} />
-                      <BotaoPausar ativo={conta.active} />
-                    </form>
+                {/* Reativar/Excluir ficam FORA do wrapper apagado acima — só um pouco menos
+                    opacos que o normal, pra continuarem sendo o destaque de quem abre um cartão
+                    pausado (é a ação que resolve o problema), mesmo com o resto bem discreto. */}
+                <div className={`mt-2 flex gap-2 ${conta.active ? "" : "opacity-90"}`}>
+                  <form action="/api/contas/status" method="POST" className="flex-1">
+                    <input type="hidden" name="account_id" value={conta.id} />
+                    <input type="hidden" name="ativar" value={conta.active ? "0" : "1"} />
+                    <BotaoPausar ativo={conta.active} />
+                  </form>
 
-                    <a
-                      href={`/contas/${conta.id}/excluir`}
-                      className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-center text-xs font-medium text-neutral-500 hover:border-red-900 hover:bg-red-950/40 hover:text-red-400"
-                    >
-                      Excluir
-                    </a>
-                  </div>
+                  <a
+                    href={`/contas/${conta.id}/excluir`}
+                    className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-center text-xs font-medium text-neutral-500 hover:border-red-900 hover:bg-red-950/40 hover:text-red-400"
+                  >
+                    Excluir
+                  </a>
                 </div>
               </div>
             </div>
