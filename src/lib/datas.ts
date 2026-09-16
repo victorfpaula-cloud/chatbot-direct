@@ -45,3 +45,28 @@ export function limitesDoDiaEmSaoPauloISO(dataISO: string): { inicio: string; fi
   fim.setUTCDate(fim.getUTCDate() + 1);
   return { inicio: inicio.toISOString(), fim: fim.toISOString() };
 }
+
+/** Segunda-feira (YYYY-MM-DD) da semana CIVIL COMPLETA mais recente que já terminou, em termos de
+ * São Paulo — usada pelo relatório semanal (ver relatorioSemanal.ts): tanto o envio automático de
+ * segunda de manhã quanto o botão "gerar agora" no meio da semana relatam sobre a mesma semana
+ * (segunda a domingo) que acabou de passar, nunca a semana em andamento (que ainda não fechou os
+ * números). */
+export function segundaDaSemanaPassadaEmSaoPauloISO(): string {
+  const hoje = hojeEmSaoPauloISO();
+  const [ano, mes, dia] = hoje.split("-").map((v) => parseInt(v, 10));
+  // getUTCDay: 0 = domingo ... 6 = sábado. Distância até a segunda-feira DESSA semana (a que
+  // ainda está em andamento hoje); a semana passada é 7 dias antes dessa.
+  const diaDaSemana = new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay();
+  const deltaParaSegundaDestaSemana = diaDaSemana === 0 ? -6 : 1 - diaDaSemana;
+  return somarDiasISO(hoje, deltaParaSegundaDestaSemana - 7);
+}
+
+/** Início (inclusive) e fim (exclusivo) de uma semana civil de São Paulo (segunda a domingo),
+ * como instantes UTC — `segundaISO` é a segunda-feira dessa semana. */
+export function limitesDaSemanaEmSaoPauloISO(segundaISO: string): { inicio: string; fim: string } {
+  const domingoISO = somarDiasISO(segundaISO, 6);
+  return {
+    inicio: limitesDoDiaEmSaoPauloISO(segundaISO).inicio,
+    fim: limitesDoDiaEmSaoPauloISO(domingoISO).fim,
+  };
+}

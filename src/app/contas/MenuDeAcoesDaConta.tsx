@@ -3,21 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Menu "⋯" com as ações menos usadas do dia a dia (Administração de reservas, Pausar/Reativar,
- * Excluir) — antes cada uma era um botão sempre visível no cartão, o que deixava cartões com
- * reserva habilitada mais altos que os outros (o botão "Administração de reservas" só aparecia
- * pra quem tinha esse produto). Juntando as três num menu, todo cartão fica com a mesma altura
- * de rodapé, tenha reserva ou não — só "Configurações gerais" continua sempre visível como botão,
- * ao lado desse menu.
+ * Menu "⋯" com as ações menos usadas do dia a dia (Administração de reservas, Agendador de
+ * Stories, Pausar/Reativar, Excluir) — antes cada uma era um botão sempre visível no cartão (ou,
+ * no caso do Agendador de Stories, uma aba no menu de cima, que quebrava em duas linhas quando a
+ * conta tinha muitos produtos), o que deixava cartões diferentes entre si dependendo de quais
+ * produtos tinham. Juntando tudo num menu, todo cartão fica com a mesma altura de rodapé — só
+ * "Configurações gerais" continua sempre visível como botão, ao lado desse menu.
  */
 export function MenuDeAcoesDaConta({
   contaId,
   ativo,
   reservaHabilitada,
+  storiesHabilitado,
 }: {
   contaId: string;
   ativo: boolean;
   reservaHabilitada: boolean;
+  storiesHabilitado: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -59,6 +61,19 @@ export function MenuDeAcoesDaConta({
           ) : (
             <span className="block cursor-not-allowed rounded-lg px-3 py-2 text-left text-sm text-neutral-600">
               Administração de reservas
+            </span>
+          )}
+
+          {storiesHabilitado ? (
+            <a
+              href={`/contas/${contaId}/stories`}
+              className="block rounded-lg px-3 py-2 text-left text-sm font-medium text-indigo-200 hover:bg-white/5"
+            >
+              Agendador de Stories
+            </a>
+          ) : (
+            <span className="block cursor-not-allowed rounded-lg px-3 py-2 text-left text-sm text-neutral-600">
+              Agendador de Stories
             </span>
           )}
 

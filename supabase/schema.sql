@@ -206,6 +206,19 @@ alter table chatbot_account_settings
   add column if not exists agendador_stories_habilitado boolean not null default false;
 
 -- ============================================================================
+-- Relatório semanal por e-mail (atendimentos, mensagens e — se essa conta tiver o Agendador de
+-- Stories — Stories publicados na semana). relatorio_email é o destinatário (o cliente dono da
+-- conta, não o Victor); relatorio_habilitado liga o envio automático de toda segunda-feira (ver
+-- /api/cron/relatorio-semanal); relatorio_ultimo_envio_em só guarda "quando foi a última vez" pra
+-- mostrar na tela, não é usado pra decidir se envia de novo (o cron manda uma vez por semana pra
+-- toda conta habilitada, independente desse campo).
+-- ============================================================================
+alter table chatbot_account_settings
+  add column if not exists relatorio_email text,
+  add column if not exists relatorio_habilitado boolean not null default false,
+  add column if not exists relatorio_ultimo_envio_em timestamptz;
+
+-- ============================================================================
 -- Cache da foto de perfil de cada conta (tela /contas) — antes buscava direto na Meta a cada
 -- abertura da tela; agora guarda aqui e só busca de novo quando estiver velha (ver
 -- src/app/contas/page.tsx), já que a foto de perfil de um restaurante quase nunca muda.

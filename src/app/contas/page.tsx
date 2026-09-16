@@ -427,14 +427,17 @@ export default async function ContasPage({
                     </span>
                   </div>
 
-                  {/* min-h reserva o espaço de 2 linhas mesmo quando o nome cabe numa linha só —
-                      assim todo cartão fica com a mesma altura, tenha nome curto ou comprido. Se
-                      o nome for maior que 2 linhas, corta com "..." (line-clamp-2) em vez de
-                      esticar o cartão além da conta. */}
-                  <p className="mt-4 line-clamp-2 min-h-[2.5rem] font-medium leading-tight text-neutral-100">
-                    {conta.page_name}
-                  </p>
-                  <p className="text-sm text-neutral-500">@{conta.instagram_username}</p>
+                  {/* Nome/@usuário levam direto pra Configurações gerais — atalho mais rápido
+                      que sempre ter que descer até o botão do rodapé. min-h reserva o espaço de
+                      2 linhas mesmo quando o nome cabe numa linha só, assim todo cartão fica com
+                      a mesma altura, tenha nome curto ou comprido; se o nome for maior que 2
+                      linhas, corta com "..." (line-clamp-2) em vez de esticar o cartão. */}
+                  <a href={`/contas/${conta.id}/palavras-chave`} className="mt-4 block">
+                    <p className="line-clamp-2 min-h-[2.5rem] font-medium leading-tight text-neutral-100 hover:text-white">
+                      {conta.page_name}
+                    </p>
+                    <p className="text-sm text-neutral-500">@{conta.instagram_username}</p>
+                  </a>
                 </div>
 
                 {/* Faixa 2: métricas de hoje, sempre duas caixinhas do MESMO tamanho lado a lado
@@ -521,7 +524,12 @@ export default async function ContasPage({
                   >
                     Configurações gerais
                   </a>
-                  <MenuDeAcoesDaConta contaId={conta.id} ativo={conta.active} reservaHabilitada={servicos.reserva} />
+                  <MenuDeAcoesDaConta
+                    contaId={conta.id}
+                    ativo={conta.active}
+                    reservaHabilitada={servicos.reserva}
+                    storiesHabilitado={servicos.stories}
+                  />
                 </div>
               </div>
             </div>
