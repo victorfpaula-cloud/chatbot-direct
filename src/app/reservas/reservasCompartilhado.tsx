@@ -153,10 +153,17 @@ export function CartaoDeReserva({
     <div
       className={
         confirmado
-          ? "animate-entrada relative rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 opacity-30 [backdrop-filter:blur(16px)] [-webkit-backdrop-filter:blur(16px)] motion-reduce:animate-none has-[details[open]]:z-20"
+          ? "animate-entrada relative rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 [backdrop-filter:blur(16px)] [-webkit-backdrop-filter:blur(16px)] motion-reduce:animate-none has-[details[open]]:z-20"
           : "animate-entrada relative rounded-2xl border-2 border-indigo-400/15 bg-gradient-to-br from-white/[0.06] to-[#0c0c0f]/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none has-[details[open]]:z-20"
       }
-      style={{ animationDelay: `${Math.min(indice * 45, 300)}ms` }}
+      style={{
+        animationDelay: `${Math.min(indice * 45, 300)}ms`,
+        // Via inline style (não classe opacity-30) e bem mais baixo do que 30% — atrás desse
+        // cartão não tem preto puro (é o vidro claro do cartão do dia, com os borrões coloridos do
+        // fundo passando atrás dele), então uma opacidade "normal" ainda ficava bem visível/branca
+        // demais. 0.15 contra esse fundo mais claro é que realmente "desaparece".
+        ...(confirmado ? { opacity: 0.15 } : {}),
+      }}
     >
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
           pessoas, alinhados no centro — @usuário e WhatsApp uma embaixo da outra, em vez de

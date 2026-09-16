@@ -27,31 +27,47 @@ export function BotaoConfirmarPresenca({
   presencaConfirmada: boolean;
 }) {
   const [modalAberto, setModalAberto] = useState(false);
+  // Essa ação é um POST de formulário de verdade (navegação de página inteira, não fetch) — como
+  // o app instalado (standalone) não mostra a barra de carregamento do navegador, sem isso o
+  // toque não dava NENHUM feedback até a próxima página terminar de chegar, parecendo travado.
+  const [enviando, setEnviando] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const rodaGirando = enviando &&
+    createPortal(
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+        <div className="h-11 w-11 animate-spin rounded-full border-[3px] border-white/15 border-t-indigo-400" />
+      </div>,
+      document.body
+    );
 
   // Já chegou: clicar em "Chegou" desfaz na hora, sem popup — só o "Confirmar" inicial precisa de
   // confirmação (pra não marcar alguém como chegado sem querer); desfazer não tem esse risco.
   if (presencaConfirmada) {
     return (
-      <form ref={formRef} action={action} method="POST" className="contents">
-        <input type="hidden" name="redirect_to" value={redirectTo} />
-        <button type="submit" className={CLASSE_SELO_CHEGOU}>
-          <Icone path={CAMINHO_CHECK} className="h-3 w-3" />
-          Chegou
-        </button>
-      </form>
+      <>
+        <form ref={formRef} action={action} method="POST" className="contents" onSubmit={() => setEnviando(true)}>
+          <input type="hidden" name="redirect_to" value={redirectTo} />
+          <button type="submit" className={CLASSE_SELO_CHEGOU}>
+            <Icone path={CAMINHO_CHECK} className="h-3 w-3" />
+            Chegou
+          </button>
+        </form>
+        {rodaGirando}
+      </>
     );
   }
 
   return (
     <>
-      <form ref={formRef} action={action} method="POST" className="contents">
+      <form ref={formRef} action={action} method="POST" className="contents" onSubmit={() => setEnviando(true)}>
         <input type="hidden" name="redirect_to" value={redirectTo} />
         <button type="button" onClick={() => setModalAberto(true)} className={CLASSE_BOTAO_CONFIRMAR}>
           <Icone path={CAMINHO_CHECK} className="h-3 w-3 text-indigo-400" />
           Confirmar
         </button>
       </form>
+      {rodaGirando}
 
       {modalAberto &&
         createPortal(
