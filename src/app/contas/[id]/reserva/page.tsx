@@ -2,6 +2,7 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { Interruptor } from "@/app/contas/Interruptor";
 import DatasBloqueadasEditor from "./DatasBloqueadasEditor";
 import CorDeDestaqueEditor from "./CorDeDestaqueEditor";
+import LinkExternoEditor from "../LinkExternoEditor";
 import { MENSAGEM_LEMBRETE_PADRAO } from "@/lib/lembreteDeReserva";
 import {
   CLASSE_CAMPO,
@@ -38,11 +39,12 @@ export default async function ReservaConfigPage({
     .eq("account_id", params.id)
     .maybeSingle();
 
-  // Cor de destaque da reserva externa mora em chatbot_accounts (junto da cor extraída
-  // automaticamente do logo), não em chatbot_account_settings como o resto dessa tela.
+  // Cor de destaque e slug (link externo) moram em chatbot_accounts, não em
+  // chatbot_account_settings como o resto dessa tela — slug é a MESMA coluna editável também
+  // pela aba Agendamento (ver LinkExternoEditor.tsx), não uma cópia separada por serviço.
   const { data: conta } = await admin
     .from("chatbot_accounts")
-    .select("cor_destaque_manual")
+    .select("cor_destaque_manual, slug")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -139,6 +141,17 @@ export default async function ReservaConfigPage({
           <p className={CLASSE_AJUDA}>
             Pode escrever mais de uma variação separada por vírgula.
           </p>
+        </div>
+
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Link de acesso do cliente</p>
+          <p className={CLASSE_AJUDA}>
+            Endereço que você manda pro cliente pra ele reservar direto (fora do Instagram) — a
+            mesma conta pode editar esse link por aqui ou pela aba Agendamento, é sempre um só.
+          </p>
+          <div className="mt-3">
+            <LinkExternoEditor valorInicial={conta?.slug ?? null} />
+          </div>
         </div>
 
         <div className={CLASSE_SECAO}>

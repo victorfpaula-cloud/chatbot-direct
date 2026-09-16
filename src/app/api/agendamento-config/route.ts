@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { DIAS_DA_SEMANA_PADRAO, type CampoPersonalizado, type HorarioDoDia } from "@/lib/agendamentos";
+import { normalizarSlug } from "@/lib/slug";
 
 const INTERVALOS_VALIDOS = [30, 60, 90, 120];
 
@@ -46,7 +47,28 @@ export async function POST(request: NextRequest) {
     []
   ).filter((c) => c.pergunta.trim().length > 0);
 
+  const slugBruto = formData.get("slug")?.toString().trim() ?? "";
+  const slug = slugBruto ? normalizarSlug(slugBruto) : null;
+
   const admin = criarClienteAdmin();
+
+  // slug (link externo) mora em chatbot_accounts, não em chatbot_account_settings como o resto
+  // dessa tela — é a MESMA coluna que a aba Reserva também escreve (ver /api/reserva-config), uma
+  // conta, um link só, editável de qualquer uma das duas telas.
+  const { error: erroDoSlug } = await admin.from("chatbot_accounts").update({ slug }).eq("id", accountId);
+
+  if (erroDoSlug) {
+    // 23505 = unique_violation — outra conta já usa esse mesmo slug.
+    const mensagem =
+      erroDoSlug.code === "23505"
+        ? "Esse link já está sendo usado por outra conta — escolha outro."
+        : erroDoSlug.message;
+    console.error("Falha ao salvar link externo:", erroDoSlug);
+    return NextResponse.redirect(
+      new URL(`/contas/${accountId}/agendamento?erro=${encodeURIComponent(mensagem)}`, request.url)
+    );
+  }
+
   const { error } = await admin.from("chatbot_account_settings").upsert(
     {
       account_id: accountId,

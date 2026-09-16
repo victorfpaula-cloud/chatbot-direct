@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { normalizarSlug } from "@/lib/slug";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -37,6 +38,9 @@ export async function POST(request: NextRequest) {
   const corDestaqueManualBruta = formData.get("cor_destaque_manual")?.toString().trim() ?? "";
   const corDestaqueManual = /^#[0-9a-fA-F]{6}$/.test(corDestaqueManualBruta) ? corDestaqueManualBruta : null;
 
+  const slugBruto = formData.get("slug")?.toString().trim() ?? "";
+  const slug = slugBruto ? normalizarSlug(slugBruto) : null;
+
   const limiteNormalBruto = formData.get("reserva_limite_normal")?.toString().trim();
   const limiteMaximoBruto = formData.get("reserva_limite_maximo")?.toString().trim();
   const limiteMaximoJantarBruto = formData.get("reserva_limite_maximo_jantar")?.toString().trim();
@@ -54,17 +58,24 @@ export async function POST(request: NextRequest) {
 
   const admin = criarClienteAdmin();
 
-  // Cor de destaque mora em chatbot_accounts (junto da cor extraída automaticamente do logo),
-  // não em chatbot_account_settings como o resto dos campos dessa tela — atualização separada.
-  const { error: erroDaCor } = await admin
+  // Cor de destaque e slug (link externo) moram em chatbot_accounts, não em
+  // chatbot_account_settings como o resto dos campos dessa tela — atualização separada. slug é a
+  // MESMA coluna que a aba Agendamento também escreve (ver /api/agendamento-config) — uma conta,
+  // um link só, editável de qualquer uma das duas telas.
+  const { error: erroDaConta } = await admin
     .from("chatbot_accounts")
-    .update({ cor_destaque_manual: corDestaqueManual })
+    .update({ cor_destaque_manual: corDestaqueManual, slug })
     .eq("id", accountId);
 
-  if (erroDaCor) {
-    console.error("Falha ao salvar cor de destaque:", erroDaCor);
+  if (erroDaConta) {
+    // 23505 = unique_violation — outra conta já usa esse mesmo slug.
+    const mensagem =
+      erroDaConta.code === "23505"
+        ? "Esse link já está sendo usado por outra conta — escolha outro."
+        : erroDaConta.message;
+    console.error("Falha ao salvar cor de destaque/link externo:", erroDaConta);
     return NextResponse.redirect(
-      new URL(`/contas/${accountId}/reserva?erro=${encodeURIComponent(erroDaCor.message)}`, request.url)
+      new URL(`/contas/${accountId}/reserva?erro=${encodeURIComponent(mensagem)}`, request.url)
     );
   }
 

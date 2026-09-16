@@ -3,6 +3,7 @@ import { Interruptor } from "@/app/contas/Interruptor";
 import DatasBloqueadasEditor from "../reserva/DatasBloqueadasEditor";
 import HorariosSemanaEditor from "./HorariosSemanaEditor";
 import CamposPersonalizadosEditor from "./CamposPersonalizadosEditor";
+import LinkExternoEditor from "../LinkExternoEditor";
 import { buscarConfigAgendamento, DIAS_DA_SEMANA_PADRAO } from "@/lib/agendamentos";
 import {
   CLASSE_CAMPO,
@@ -61,6 +62,11 @@ export default async function AgendamentoConfigPage({
     );
   }
 
+  // slug (link externo) mora em chatbot_accounts, não em chatbot_account_settings como o resto
+  // dessa tela — é a MESMA coluna editável também pela aba Reserva (ver LinkExternoEditor.tsx),
+  // não uma cópia separada por serviço.
+  const { data: conta } = await admin.from("chatbot_accounts").select("slug").eq("id", params.id).maybeSingle();
+
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -113,6 +119,17 @@ export default async function AgendamentoConfigPage({
             Pode escrever mais de uma variação separada por vírgula. Diferente da palavra-chave de
             Reserva — os dois fluxos nunca se confundem.
           </p>
+        </div>
+
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Link de acesso do cliente</p>
+          <p className={CLASSE_AJUDA}>
+            Endereço que você manda pro cliente pra ele agendar direto (fora do Instagram) — a
+            mesma conta pode editar esse link por aqui ou pela aba Reserva, é sempre um só.
+          </p>
+          <div className="mt-3">
+            <LinkExternoEditor valorInicial={conta?.slug ?? null} />
+          </div>
         </div>
 
         <div className={CLASSE_SECAO}>
