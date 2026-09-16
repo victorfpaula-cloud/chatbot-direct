@@ -226,8 +226,16 @@ export default async function RelatoriosPage({
           {relatorio.reservaHabilitada && (
             <div className="rounded-xl border border-white/10 bg-emerald-500/[0.06] px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Reservas</p>
-              <p className="mt-1 text-2xl font-bold text-neutral-50">{relatorio.totalReservas}</p>
-              <p className="mt-0.5 text-xs text-neutral-500">{relatorio.totalPessoasReservas} pessoas</p>
+              <div className="mt-1 flex items-baseline gap-4">
+                <div>
+                  <p className="text-2xl font-bold text-neutral-50">{relatorio.totalReservas}</p>
+                  <p className="mt-0.5 text-xs text-neutral-500">reservas</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-neutral-50">{relatorio.totalPessoasReservas}</p>
+                  <p className="mt-0.5 text-xs text-neutral-500">pessoas</p>
+                </div>
+              </div>
             </div>
           )}
           {relatorio.storiesHabilitado && relatorio.storiesConectado && (
