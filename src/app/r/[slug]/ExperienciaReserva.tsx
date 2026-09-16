@@ -528,21 +528,59 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
     document.addEventListener("keydown", aoTeclarNavegacao);
 
     // ---------- brilhos do fundo: luz índigo à deriva, sozinha, reagindo ao ponteiro ----------
-    // Deslocamento bem mais horizontal que vertical de propósito (pedido: "da direita pra
-    // esquerda") — vai e volta devagar (yoyo infinito, sem nenhum salto/reset visível), então lê
-    // como uma deriva contínua pro lado, não uma diagonal solta.
+    // Deslocamento bem mais horizontal que vertical de propósito ("da direita pra esquerda") —
+    // simétrico em volta da posição do CSS (começa deslocado meio "dist" pra DIREITA, termina meio
+    // "dist" pra ESQUERDA), não só indo cada vez mais pra um lado só: a posição base de .o1/.o2/.o3
+    // já nasce puxada pra canto (ver left/right/bottom no CSS), então um vaivém relativo A PARTIR
+    // dali (como era antes) nunca cruzava o centro — ficava preso do mesmo lado o tempo todo.
     function derivaAutonoma(sel: string, dur: number, dist: number) {
-      gsap.to(sel, { x: `-=${dist}`, y: `+=${dist * 0.12}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" });
+      gsap.fromTo(
+        sel,
+        { x: `+=${dist / 2}` },
+        { x: `-=${dist}`, y: `+=${dist * 0.12}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
+      );
     }
     function respirar(sel: string, dur: number, ate: number) {
       gsap.to(sel, { scale: ate, opacity: "*=1.15", duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut", delay: Math.random() * dur });
     }
-    // Gira o matiz (hue-rotate) do próprio brilho, alternando pra outros tons vizinhos da MESMA
-    // paleta (não troca de cor de verdade, só "gira a roda de cores" um pouco pra cada lado) — o
-    // "blur(4vmax)" continua junto na mesma string pra não perder o desfoque já aplicado por CSS
-    // quando o GSAP passa a controlar o filter inline. Duração diferente da deriva de posição de
-    // propósito, pra cor e posição nunca baterem exatamente juntas (fica mais orgânico).
-    function derivaDeCor(sel: string, dur: number, graus: number) {
+
+    // ---------- deriva de cor: gira o matiz até pousar sempre na família vermelho->laranja ----------
+    // hue-rotate desloca a partir da cor de ORIGEM de cada brilho, que muda por conta (extraída do
+    // logo do restaurante, ver corDoLogo.ts) — um grau fixo (ex.: sempre "+22deg") passeia por tons
+    // completamente diferentes dependendo de onde a cor começa. Em vez de chutar um grau fixo, mede
+    // o matiz de verdade (convertendo a cor computada pra HSL) e calcula a rotação exata pra
+    // pousar num matiz-ALVO absoluto — assim sempre fica entre vermelho e laranja (nunca escorrega
+    // pro amarelo), não importa a cor de origem daquela conta.
+    function matizDaCor(corCss: string): number | null {
+      const el = document.createElement("div");
+      el.style.color = corCss;
+      raiz!.appendChild(el);
+      const rgb = getComputedStyle(el).color;
+      raiz!.removeChild(el);
+      const m = rgb.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)/);
+      if (!m) return null;
+      const r = parseInt(m[1], 10) / 255;
+      const g = parseInt(m[2], 10) / 255;
+      const b = parseInt(m[3], 10) / 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      if (max === min) return 0;
+      const d = max - min;
+      let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h *= 60;
+      return h < 0 ? h + 360 : h;
+    }
+    // Menor caminho até o matiz-alvo (nunca mais que meia volta, pra sempre ser a rotação mais curta).
+    function rotacaoAte(origemGraus: number, alvoGraus: number): number {
+      let diff = (alvoGraus - origemGraus) % 360;
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+      return diff;
+    }
+    function derivaDeCor(sel: string, dur: number, corBaseCss: string, matizAlvo: number) {
+      const origem = matizDaCor(corBaseCss);
+      if (origem === null) return;
+      const graus = rotacaoAte(origem, matizAlvo);
       gsap.fromTo(
         sel,
         { filter: "blur(4vmax) hue-rotate(0deg)" },
@@ -558,9 +596,19 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       respirar(`.${styles.o1}`, 8, 1.12);
       respirar(`.${styles.o2}`, 10, 1.16);
       respirar(`.${styles.o3}`, 6.5, 1.2);
-      derivaDeCor(`.${styles.o1}`, 15, 22);
-      derivaDeCor(`.${styles.o2}`, 19, -26);
-      derivaDeCor(`.${styles.o3}`, 12, 18);
+
+      // Cor de origem de cada brilho: lê a variável de verdade (pode vir sobrescrita por conta, ver
+      // corDoLogo.ts) e cai pro mesmo valor padrão do CSS quando não há paleta customizada.
+      const estiloRaiz = getComputedStyle(raiz);
+      const corGlow1 = estiloRaiz.getPropertyValue("--glow-1").trim() || "rgba(99, 102, 241, 0.5)";
+      const corGlow2 = estiloRaiz.getPropertyValue("--glow-2").trim() || "rgba(129, 140, 248, 0.4)";
+      const corGlow3 = estiloRaiz.getPropertyValue("--glow-3").trim() || "rgba(199, 207, 251, 0.32)";
+      // Três matizes-alvo dentro da MESMA família vermelho->laranja (0°-30° no círculo de cores),
+      // nunca chegando nos ~50-60° onde já é amarelo — cada brilho pousa num tom levemente
+      // diferente pra não ficarem todos sincronizados na mesma cor exata.
+      derivaDeCor(`.${styles.o1}`, 15, corGlow1, 8);
+      derivaDeCor(`.${styles.o2}`, 19, corGlow2, 355);
+      derivaDeCor(`.${styles.o3}`, 12, corGlow3, 20);
 
       gsap.to(`.${styles.ctaHalo}`, { scale: 1.4, opacity: 0, duration: 1.5, repeat: -1, ease: "power1.out" });
       gsap.to(`.${styles.ctaSeta}`, { x: 5, duration: 0.8, yoyo: true, repeat: -1, ease: "sine.inOut" });
