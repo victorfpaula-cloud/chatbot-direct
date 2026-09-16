@@ -87,19 +87,27 @@ function formatarPeriodoExtenso(inicioISO: string, fimISO: string): string {
 // renderiza de forma confiável na maioria dos clientes de e-mail (Gmail, Outlook etc.), que cortam
 // boa parte de CSS moderno e não confiam em SVG inline. Cada barra é uma célula colorida com
 // largura em %, ao lado do rótulo do dia e do valor.
+//
+// Duas pegadinhas clássicas de e-mail HTML que já pegaram a gente uma vez (relatório de teste do
+// Único Sushi Bar saiu com toda barra do mesmo tamanho, ignorando a % de cada uma): sem
+// `table-layout:fixed` no <table> de cada barra, o cliente de e-mail é livre pra ignorar a largura
+// em % (layout automático baseado em conteúdo) — e cor/largura postas só via CSS `style` em
+// <table>/<td> não é respeitada por todo cliente (por isso também `bgcolor`/`width` como atributo
+// HTML puro, não só `style`, no trilho (cinza) e na barra preenchida (índigo) de cada linha.
 function montarGraficoDeBarrasHTML(pontos: { rotulo: string; total: number }[]): string {
   const maximo = Math.max(1, ...pontos.map((p) => p.total));
   const linhas = pontos
     .map((p) => {
       const larguraPct = Math.round((p.total / maximo) * 100);
+      const larguraRestante = 100 - larguraPct;
       return `
         <tr>
           <td style="padding:4px 10px 4px 0; font-size:12px; color:#a1a1aa; width:36px;">${p.rotulo}</td>
           <td style="padding:4px 0;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#1f1f27; border-radius:4px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed; width:100%;">
               <tr>
-                <td style="background:#6366f1; border-radius:4px; width:${larguraPct}%; height:14px; font-size:0;">&nbsp;</td>
-                <td></td>
+                <td width="${larguraPct}%" bgcolor="#6366f1" style="background:#6366f1; width:${larguraPct}%; height:14px; font-size:0; line-height:14px;">&nbsp;</td>
+                <td width="${larguraRestante}%" bgcolor="#1f1f27" style="background:#1f1f27; width:${larguraRestante}%; height:14px; font-size:0; line-height:14px;">&nbsp;</td>
               </tr>
             </table>
           </td>
@@ -139,9 +147,23 @@ export async function enviarRelatorioSemanal(
       ? `<td style="padding:0 0 0 16px;"><p style="margin:0; font-size:12px; color:#a1a1aa;">STORIES PUBLICADOS</p><p style="margin:2px 0 0; font-size:26px; font-weight:700; color:#f5f5f7;">${relatorio.totalStoriesPublicados}</p></td>`
       : "";
 
-  const html = `
+  // `color-scheme`/`supported-color-schemes` travados em "only light" de propósito: sem isso, o
+  // Apple Mail (confirmado no teste real do Único Sushi Bar) reinterpreta um e-mail com fundo quase
+  // preto como "feito pra modo claro" e reescreve as cores sozinho — trocando o cartão escuro por
+  // um fundo branco, exatamente o "desconfigurado" que apareceu no teste. Isso trava o design nas
+  // cores que a gente escolheu, nas duas aparências (claro/escuro) do celular de quem recebe.
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<meta name="supported-color-schemes" content="only light">
+<title>Relatório — ${relatorio.contaNome}</title>
+</head>
+<body style="margin:0; padding:0; background:#050509;" bgcolor="#050509">
     <div style="background:#050509; padding:28px 20px; font-family:Helvetica,Arial,sans-serif;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px; margin:0 auto; background:#0d0d13; border:1px solid #1f1f27; border-radius:16px; overflow:hidden;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0d0d13" style="max-width:520px; margin:0 auto; background:#0d0d13; border:1px solid #1f1f27; border-radius:16px; overflow:hidden;">
         <tr><td style="padding:24px 24px 4px;">
           <p style="margin:0; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#818cf8;">Relatório de desempenho</p>
           <h1 style="margin:6px 0 0; font-size:20px; color:#f5f5f7;">${relatorio.contaNome}</h1>
@@ -165,7 +187,9 @@ export async function enviarRelatorioSemanal(
           <p style="margin:0; font-size:11px; color:#52525b;">Relatório automático do Chatbot Direct.</p>
         </td></tr>
       </table>
-    </div>`;
+    </div>
+</body>
+</html>`;
 
   try {
     const resposta = await fetch(RESEND_API_URL, {
