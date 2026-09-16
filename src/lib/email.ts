@@ -16,7 +16,7 @@ const RESEND_API_URL = "https://api.resend.com/emails";
 // onboarding@resend.dev padrão da Resend, que só entregava pro e-mail dono da própria conta
 // Resend — não dava pra mandar relatório pra e-mail arbitrário de cliente. Agora entrega
 // normalmente pra qualquer destinatário.
-const REMETENTE = "Chatbot Direct <relatorios@automesa.com.br>";
+const REMETENTE = "AutoMesa <relatorios@automesa.com.br>";
 
 export async function enviarEmailDeReclamacao(dados: {
   contaNome: string;
@@ -304,7 +304,7 @@ export async function enviarRelatorioSemanal(
     <div style="background:#f4f4f5; padding:24px 16px; font-family:Helvetica,Arial,sans-serif;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px; margin:0 auto;">
         <tr><td style="background:#4f46e5; padding:20px 24px; border-radius:16px 16px 0 0;" bgcolor="#4f46e5">
-          <p style="margin:0; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#e0e7ff;">Relatório de desempenho</p>
+          <p style="margin:0; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#e0e7ff;">Relatório de atendimentos e Stories</p>
           <h1 style="margin:4px 0 0; font-size:20px; color:#ffffff;">${relatorio.contaNome}</h1>
           <p style="margin:2px 0 0; font-size:13px; color:#c7d2fe;">${periodo}</p>
         </td></tr>
@@ -324,7 +324,7 @@ export async function enviarRelatorioSemanal(
           </div>
         </td></tr>
         <tr><td style="background:#ffffff; padding:20px 24px 24px; border-radius:0 0 16px 16px;" bgcolor="#ffffff">
-          <p style="margin:0; font-size:11px; color:#a1a1aa;">Relatório automático do Chatbot Direct.</p>
+          <p style="margin:0; font-size:11px; color:#a1a1aa;">Relatório automático do AutoMesa.</p>
         </td></tr>
       </table>
     </div>
