@@ -328,7 +328,11 @@ export default async function ContasPage({
   const avisoFalhaWebhook = searchParams.aviso === "falha_ao_inscrever_webhook";
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
+    // max-w cresce nos breakpoints maiores (tablet/desktop) — no celular já ficava bom do jeito
+    // que era, mas no iPad e desktop sobrava muita borda vazia dos lados com só max-w-4xl fixo,
+    // e os cards ficavam mais estreitos que precisavam (nome de conta comprida, tipo "Dona
+    // Baunilha Doceria e Cafeteria Sorocaba", quebrava em 2 linhas apertadas à toa).
+    <main className="mx-auto max-w-4xl px-6 py-10 md:max-w-5xl lg:max-w-6xl xl:max-w-7xl">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Contas conectadas</h1>
