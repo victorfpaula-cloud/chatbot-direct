@@ -32,7 +32,7 @@ export default async function PalavrasChavePage({
   ]);
 
   // Chatbot Direct desligado nessa conta (chavinha "Direct" em /contas) — mesmo espírito das
-  // telas de Reserva/Agendamento/Busca Automática: some a configuração, só mostra o jeito de
+  // telas de Reserva/Agendamento/Busca ao Vivo: some a configuração, só mostra o jeito de
   // ligar de novo. `!== false` (não `?? true`) porque config pode vir null numa conta muito nova
   // ainda sem linha de configuração — nesse caso o padrão é ligado, igual sempre foi.
   if (config?.chatbot_direct_habilitado === false) {

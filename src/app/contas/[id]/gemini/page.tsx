@@ -27,7 +27,7 @@ export default async function GeminiConfigPage({
     .maybeSingle();
 
   // Chatbot Direct desligado nessa conta (chavinha "Direct" em /contas) — mesmo espírito das
-  // telas de Reserva/Agendamento/Busca Automática. Ver comentário igual em palavras-chave/page.tsx.
+  // telas de Reserva/Agendamento/Busca ao Vivo. Ver comentário igual em palavras-chave/page.tsx.
   if (config?.chatbot_direct_habilitado === false) {
     return (
       <div className="flex flex-col gap-4">

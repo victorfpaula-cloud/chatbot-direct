@@ -4,7 +4,7 @@
  * Chavinha (toggle switch) genérica de ligar/desligar um serviço por conta — substitui
  * BotaoAtivarReservas/BotaoAtivarAgendamento (um botão de texto cada, quase idênticos) por um
  * componente só, reaproveitado tanto nos cartõezinhos de /contas quanto no cabeçalho de cada
- * aba de serviço (Reserva/Agendamento/Busca Automática). Sempre um <button type="submit"> dentro
+ * aba de serviço (Reserva/Agendamento/Busca ao Vivo). Sempre um <button type="submit"> dentro
  * de um <form> já montado por quem usa esse componente — o clique dispara a navegação de
  * página inteira de sempre (POST + redirect), sem JS extra pra "otimista" atualizar o visual.
  */

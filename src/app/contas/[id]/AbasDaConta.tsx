@@ -7,7 +7,7 @@ const ABAS_POR_SERVICO = [
   { segmento: "gemini", rotulo: "Gemini", chave: "directHabilitado" as const },
   { segmento: "reserva", rotulo: "Reserva", chave: "reservaHabilitada" as const },
   { segmento: "agendamento", rotulo: "Agendamento", chave: "agendamentoHabilitado" as const },
-  { segmento: "busca", rotulo: "Busca Automática", chave: "buscaHabilitada" as const },
+  { segmento: "busca", rotulo: "Busca ao Vivo", chave: "buscaHabilitada" as const },
 ];
 
 const ABAS_FINAIS = [
@@ -18,7 +18,7 @@ const ABAS_FINAIS = [
 
 /**
  * Menu de abas de cada conta, agora ESCONDENDO a aba de um serviço (Direct/Reserva/Agendamento/
- * Busca Automática) quando ele está desligado naquela conta — antes as abas apareciam sempre,
+ * Busca ao Vivo) quando ele está desligado naquela conta — antes as abas apareciam sempre,
  * pra toda conta, mesmo numa que nunca vai usar reserva nem agendamento (ex: uma conta só de
  * atendimento automático) — isso é exatamente o "muito rolo" que o Victor reportou. Palavras-
  * chave/Gemini entraram no mesmo grupo condicional (chave "directHabilitado"): existe conta que

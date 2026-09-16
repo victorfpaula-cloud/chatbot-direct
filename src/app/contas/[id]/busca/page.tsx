@@ -33,7 +33,7 @@ export default async function BuscaConfigPage({
     return (
       <div className="flex flex-col gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-neutral-50">Busca Automática</h2>
+          <h2 className="text-xl font-semibold text-neutral-50">Busca ao Vivo</h2>
           <p className="mt-1.5 text-sm text-neutral-400">
             Consulta periódica a um site externo (ex: programação de um cinema) pra responder o
             cliente com informação sempre atualizada, sem precisar navegar no site a cada pergunta.
@@ -42,14 +42,14 @@ export default async function BuscaConfigPage({
 
         <div className={CLASSE_ESTADO_DESLIGADO}>
           <p className="text-sm text-neutral-400">
-            Busca Automática está desativada pra essa conta — a configuração fica escondida até
+            Busca ao Vivo está desativada pra essa conta — a configuração fica escondida até
             você ativar.
           </p>
           <form action="/api/contas/busca-status" method="POST">
             <input type="hidden" name="account_id" value={params.id} />
             <input type="hidden" name="habilitar" value="1" />
             <input type="hidden" name="redirect_to" value={`/contas/${params.id}/busca`} />
-            <Interruptor ligado={false} rotulo="Ativar Busca Automática" />
+            <Interruptor ligado={false} rotulo="Ativar Busca ao Vivo" />
           </form>
         </div>
       </div>
@@ -60,7 +60,7 @@ export default async function BuscaConfigPage({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-neutral-50">Busca Automática</h2>
+          <h2 className="text-xl font-semibold text-neutral-50">Busca ao Vivo</h2>
           <p className="mt-1.5 text-sm text-neutral-400">
             Consulta periódica a um site externo (ex: programação de um cinema) pra responder o
             cliente com informação sempre atualizada, sem precisar navegar no site a cada pergunta.
@@ -73,7 +73,7 @@ export default async function BuscaConfigPage({
           <Interruptor
             ligado={true}
             rotulo="Busca ativa"
-            mensagemConfirmarDesligar="Tem certeza que deseja desativar a Busca Automática nessa conta? A configuração fica escondida até você ativar de novo."
+            mensagemConfirmarDesligar="Tem certeza que deseja desativar a Busca ao Vivo nessa conta? A configuração fica escondida até você ativar de novo."
           />
         </form>
       </div>

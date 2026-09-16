@@ -241,12 +241,6 @@ export default async function ContasPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <a
-            href="/reservas"
-            className="rounded-lg border border-violet-700 bg-violet-950/60 px-3 py-1.5 text-xs font-medium text-violet-200 [backdrop-filter:blur(14px)_url(#vidro-abas-contas)] [-webkit-backdrop-filter:blur(14px)_url(#vidro-abas-contas)] hover:border-violet-500 hover:bg-violet-950"
-          >
-            Reservas
-          </a>
           <BotaoSair />
         </div>
       </div>
@@ -297,8 +291,8 @@ export default async function ContasPage({
           return (
             <div
               key={conta.id}
-              className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white/[0.05] pt-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_40px_-18px_rgba(0,0,0,0.55)] transition-all [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] hover:-translate-y-0.5 hover:shadow-xl ${estilo.brilho} ${
-                conta.active ? "border-white/10" : "border-red-500/25"
+              className={`group relative flex flex-col overflow-hidden rounded-2xl border-2 bg-white/[0.05] pt-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_40px_-18px_rgba(0,0,0,0.55)] transition-all [backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] [-webkit-backdrop-filter:blur(20px)_url(#vidro-cartao-contas)] hover:-translate-y-0.5 hover:shadow-xl ${estilo.brilho} ${
+                conta.active ? "border-white/15" : "border-red-500/30"
               }`}
             >
               {/* Faixa colorida no topo do cartão — verde ativa, amarela pausada, vermelha com erro hoje. */}
@@ -356,20 +350,6 @@ export default async function ContasPage({
                   )}
                 </a>
 
-                {/* Atalho direto pra tela de reservas JÁ nessa conta (?conta=...) — sem isso, o
-                    botão "Reservas" lá em cima sempre caía na primeira conta com reserva ativada
-                    (não existia como pedir uma conta específica de lá), inútil assim que tiver
-                    mais de um cliente usando esse serviço. Só aparece quando reserva está
-                    ligada nessa conta — pra quem não usa, some igual à aba correspondente. */}
-                {servicos.reserva && (
-                  <a
-                    href={`/reservas?conta=${conta.id}`}
-                    className="mt-3 block w-full rounded-lg border border-violet-700 bg-violet-950/60 px-3 py-1.5 text-center text-xs font-medium text-violet-200 [backdrop-filter:blur(14px)_url(#vidro-abas-contas)] [-webkit-backdrop-filter:blur(14px)_url(#vidro-abas-contas)] hover:border-violet-500 hover:bg-violet-950"
-                  >
-                    Administração de reservas
-                  </a>
-                )}
-
                 <div className="mt-4">
                   <ChavesDeServico
                     contaId={conta.id}
@@ -381,6 +361,20 @@ export default async function ContasPage({
                 </div>
 
                 <div className="mt-4 flex flex-col gap-2">
+                  {/* Atalho direto pra tela de reservas JÁ nessa conta (?conta=...) — sem isso, o
+                      antigo botão "Reservas" lá em cima sempre caía na primeira conta com reserva
+                      ativada (não existia como pedir uma conta específica de lá), inútil assim que
+                      tiver mais de um cliente usando esse serviço. Só aparece quando reserva está
+                      ligada nessa conta — pra quem não usa, some igual à aba correspondente. */}
+                  {servicos.reserva && (
+                    <a
+                      href={`/reservas?conta=${conta.id}`}
+                      className="w-full rounded-lg border border-violet-700 bg-violet-950/60 px-3 py-1.5 text-center text-xs font-medium text-violet-200 [backdrop-filter:blur(14px)_url(#vidro-abas-contas)] [-webkit-backdrop-filter:blur(14px)_url(#vidro-abas-contas)] hover:border-violet-500 hover:bg-violet-950"
+                    >
+                      Administração de reservas
+                    </a>
+                  )}
+
                   <a
                     href={`/contas/${conta.id}/palavras-chave`}
                     className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-center text-xs font-medium text-neutral-300 hover:bg-white/10"

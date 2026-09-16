@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 
-// Liga/desliga o serviço "Busca Automática" de uma conta — mesmo espírito de
+// Liga/desliga o serviço "Busca ao Vivo" de uma conta — mesmo espírito de
 // /api/contas/reservas-status e /api/contas/agendamento-status (ver comentários lá).
 export async function POST(request: NextRequest) {
   const formData = await request.formData();

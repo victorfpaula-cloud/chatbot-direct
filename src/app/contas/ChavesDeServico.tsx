@@ -6,7 +6,7 @@ const SERVICOS = [
     rotulo: "Direct",
     action: "/api/contas/direct-status",
     mensagemConfirmarDesligar:
-      "Tem certeza que deseja desativar o Chatbot Direct nessa conta? O bot para de responder por palavra-chave/Gemini — Reserva, Agendamento e Busca Automática continuam funcionando normalmente se estiverem ligados.",
+      "Tem certeza que deseja desativar o Chatbot Direct nessa conta? O bot para de responder por palavra-chave/Gemini — Reserva, Agendamento e Busca ao Vivo continuam funcionando normalmente se estiverem ligados.",
   },
   {
     chave: "reserva" as const,
@@ -24,16 +24,66 @@ const SERVICOS = [
   },
   {
     chave: "busca" as const,
-    rotulo: "Busca Automática",
+    rotulo: "Busca ao Vivo",
     action: "/api/contas/busca-status",
     mensagemConfirmarDesligar:
-      "Tem certeza que deseja desativar a Busca Automática nessa conta? A configuração fica escondida até você ativar de novo.",
+      "Tem certeza que deseja desativar a Busca ao Vivo nessa conta? A configuração fica escondida até você ativar de novo.",
   },
 ];
 
+type ChaveDeServico = (typeof SERVICOS)[number]["chave"];
+
+// Um ícone por produto — usado tanto na lista aberta do dropdown quanto (só dos que estiverem
+// ligados) na própria linha do "Produtos ativos", no lugar do contador "2/4" de antes.
+function IconeDoProduto({ chave, className }: { chave: ChaveDeServico; className?: string }) {
+  const comum = {
+    viewBox: "0 0 24 24",
+    fill: "none" as const,
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    className,
+    "aria-hidden": true as const,
+  };
+
+  switch (chave) {
+    case "direct":
+      // Balão de chat — palavra-chave + Gemini.
+      return (
+        <svg {...comum}>
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+        </svg>
+      );
+    case "reserva":
+      // Ticket — mesmo desenho usado em toda a área de /reservas (CAMINHO_TICKET).
+      return (
+        <svg {...comum}>
+          <path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4V9z" />
+        </svg>
+      );
+    case "agendamento":
+      // Calendário — mesmo desenho usado no cabeçalho de cada dia em /reservas.
+      return (
+        <svg {...comum}>
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
+        </svg>
+      );
+    case "busca":
+      // Lupa — busca no site externo.
+      return (
+        <svg {...comum}>
+          <circle cx="11" cy="11" r="7" />
+          <path d="M21 21l-4.3-4.3" />
+        </svg>
+      );
+  }
+}
+
 /**
- * Dropdown "Produtos" no cartão da conta em /contas, com uma chavinha por serviço — Direct
- * (palavra-chave + Gemini), Reserva, Agendamento e Busca Automática. Direct é separado do
+ * Dropdown "Produtos ativos" no cartão da conta em /contas, com uma chavinha por serviço —
+ * Direct (palavra-chave + Gemini), Reserva, Agendamento e Busca ao Vivo. Direct é separado do
  * "Pausar" (que desliga TUDO junto): existe conta que contrata só Reserva sem contratar o
  * Chatbot Direct, então precisa dar pra desligar cada um por si. Cada linha já POSTa pra rota de
  * status de sempre (mesmas rotas usadas dentro de cada aba), só mudando de onde é disparado —
@@ -52,22 +102,28 @@ export function ChavesDeServico({
   agendamentoHabilitado: boolean;
   buscaHabilitada: boolean;
 }) {
-  const estadoPorChave: Record<(typeof SERVICOS)[number]["chave"], boolean> = {
+  const estadoPorChave: Record<ChaveDeServico, boolean> = {
     direct: directHabilitado,
     reserva: reservaHabilitada,
     agendamento: agendamentoHabilitado,
     busca: buscaHabilitada,
   };
 
-  const quantidadeAtiva = Object.values(estadoPorChave).filter(Boolean).length;
+  const servicosAtivos = SERVICOS.filter((servico) => estadoPorChave[servico.chave]);
 
   return (
     <details className="group rounded-xl border border-white/10 bg-black/20">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-2.5 text-xs font-medium text-neutral-300 [&::-webkit-details-marker]:hidden">
-        <span className="flex items-center gap-1.5">
-          Produtos
-          <span className="rounded-full border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-neutral-400">
-            {quantidadeAtiva}/{SERVICOS.length}
+        <span className="flex items-center gap-2">
+          Produtos ativos
+          <span className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-1.5 py-1">
+            {servicosAtivos.length > 0 ? (
+              servicosAtivos.map((servico) => (
+                <IconeDoProduto key={servico.chave} chave={servico.chave} className="h-3 w-3 text-indigo-300" />
+              ))
+            ) : (
+              <span className="px-0.5 text-[10px] text-neutral-600">nenhum</span>
+            )}
           </span>
         </span>
         <svg
@@ -98,7 +154,10 @@ export function ChavesDeServico({
               <input type="hidden" name="account_id" value={contaId} />
               <input type="hidden" name="habilitar" value={ligado ? "0" : "1"} />
               <input type="hidden" name="redirect_to" value="/contas" />
-              <span className={`text-xs ${ligado ? "text-neutral-200" : "text-neutral-500"}`}>{servico.rotulo}</span>
+              <span className={`flex items-center gap-1.5 text-xs ${ligado ? "text-neutral-200" : "text-neutral-500"}`}>
+                <IconeDoProduto chave={servico.chave} className="h-3.5 w-3.5" />
+                {servico.rotulo}
+              </span>
               <Interruptor ligado={ligado} mensagemConfirmarDesligar={servico.mensagemConfirmarDesligar} />
             </form>
           );
