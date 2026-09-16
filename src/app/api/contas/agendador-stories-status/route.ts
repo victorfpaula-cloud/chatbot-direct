@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { criarClienteAgendadorStories } from "@/lib/supabase/agendadorStories";
 
 /**
  * Liga/desliga o serviço "Agendador de Stories" de uma conta — mesmo espírito de
  * /api/contas/busca-status (ver comentários lá), com um passo a mais: além de marcar o flag aqui
- * no chatbot-direct, também espelha pro OUTRO projeto (agendador-stories), atualizando
- * `accounts.is_active` por lá — sem isso, desligar aqui só escondia a aba, mas o motor de
- * publicação de lá continuava postando Stories sozinho.
+ * no chatbot-direct, também espelha `accounts.is_active` (tabela do Agendador de Stories, app
+ * separado mas que vive no MESMO projeto Supabase — sem isso, desligar aqui só escondia a aba, mas
+ * o motor de publicação de lá continuava postando Stories sozinho.
  *
- * A sincronização com o outro banco é best-effort: se a integração ainda não estiver configurada
- * (faltam as variáveis de ambiente) ou essa conta ainda não tiver sido conectada lá, a chavinha
- * continua funcionando normalmente aqui — só não tem o que espelhar do outro lado ainda.
+ * A sincronização é best-effort: se essa conta ainda não tiver sido conectada lá (nenhuma linha em
+ * `accounts` com esse instagram_user_id), a chavinha continua funcionando normalmente aqui — só não
+ * tem o que espelhar ainda.
  */
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -38,23 +37,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL(`${voltarPara}?erro=falha_ao_ativar_stories`, request.url));
   }
 
-  const clienteRemoto = criarClienteAgendadorStories();
-  if (clienteRemoto) {
-    const { data: conta } = await admin
-      .from("chatbot_accounts")
-      .select("instagram_user_id")
-      .eq("id", accountId)
-      .maybeSingle();
+  const { data: conta } = await admin
+    .from("chatbot_accounts")
+    .select("instagram_user_id")
+    .eq("id", accountId)
+    .maybeSingle();
 
-    if (conta?.instagram_user_id) {
-      const { error: erroRemoto } = await clienteRemoto
-        .from("accounts")
-        .update({ is_active: habilitar })
-        .eq("ig_user_id", conta.instagram_user_id);
+  if (conta?.instagram_user_id) {
+    const { error: erroStories } = await admin
+      .from("accounts")
+      .update({ is_active: habilitar })
+      .eq("ig_user_id", conta.instagram_user_id);
 
-      if (erroRemoto) {
-        console.error("Falha ao sincronizar status com o Agendador de Stories:", erroRemoto);
-      }
+    if (erroStories) {
+      console.error("Falha ao sincronizar status com o Agendador de Stories:", erroStories);
     }
   }
 

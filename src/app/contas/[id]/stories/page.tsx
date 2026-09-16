@@ -1,5 +1,4 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { agendadorStoriesConfigurado, criarClienteAgendadorStories } from "@/lib/supabase/agendadorStories";
 import { Interruptor } from "@/app/contas/Interruptor";
 import { CartaoDeSecao } from "../CartaoDeSecao";
 import { CLASSE_ESTADO_DESLIGADO, CLASSE_AJUDA } from "../estilosDeCampo";
@@ -65,38 +64,17 @@ export default async function StoriesPage({ params }: { params: { id: string } }
     );
   }
 
-  // Integração ainda não configurada nesse ambiente (faltam as variáveis de ambiente do outro
-  // projeto Supabase) — a chavinha acima já liga o produto normalmente, só o status detalhado
-  // depende dessas variáveis existirem.
-  if (!agendadorStoriesConfigurado()) {
-    return (
-      <div className="flex flex-col gap-4">
-        {cabecalho}
-        <div className={CLASSE_ESTADO_DESLIGADO}>
-          <p className="text-sm text-neutral-400">
-            A integração com o Agendador de Stories ainda não foi configurada nesse ambiente —
-            faltam as variáveis <code className="text-neutral-300">AGENDADOR_STORIES_SUPABASE_URL</code> e{" "}
-            <code className="text-neutral-300">AGENDADOR_STORIES_SUPABASE_SERVICE_ROLE_KEY</code>.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const clienteRemoto = criarClienteAgendadorStories()!;
   const igUserId = conta?.instagram_user_id;
 
-  const { data: contaRemota } = igUserId
-    ? await clienteRemoto
-        .from("accounts")
-        .select("id, ig_username, is_active")
-        .eq("ig_user_id", igUserId)
-        .maybeSingle()
+  // accounts/schedule_slots/publish_log são do Agendador de Stories (app separado, mas vive no
+  // MESMO projeto Supabase) — casando pelo instagram_user_id, sem tabela de mapeamento própria.
+  const { data: contaStories } = igUserId
+    ? await admin.from("accounts").select("id, ig_username, is_active").eq("ig_user_id", igUserId).maybeSingle()
     : { data: null };
 
   // Conta existe aqui mas ainda não foi conectada lá — precisa passar pelo fluxo de OAuth do
   // Facebook do outro app antes de aparecer aqui (não dá pra pular isso, é exigência do Meta).
-  if (!contaRemota) {
+  if (!contaStories) {
     return (
       <div className="flex flex-col gap-4">
         {cabecalho}
@@ -113,11 +91,11 @@ export default async function StoriesPage({ params }: { params: { id: string } }
   }
 
   const [{ data: horarios }, { data: publicacoes }] = await Promise.all([
-    clienteRemoto.from("schedule_slots").select("day_of_week").eq("account_id", contaRemota.id).eq("is_active", true),
-    clienteRemoto
+    admin.from("schedule_slots").select("day_of_week").eq("account_id", contaStories.id).eq("is_active", true),
+    admin
       .from("publish_log")
       .select("status, scheduled_for, error_message")
-      .eq("account_id", contaRemota.id)
+      .eq("account_id", contaStories.id)
       .order("scheduled_for", { ascending: false })
       .limit(5),
   ]);
@@ -144,11 +122,11 @@ export default async function StoriesPage({ params }: { params: { id: string } }
       </div>
 
       <p className="text-sm text-neutral-400">
-        Conectada como <span className="text-neutral-200">@{contaRemota.ig_username ?? "—"}</span> no
+        Conectada como <span className="text-neutral-200">@{contaStories.ig_username ?? "—"}</span> no
         Agendador de Stories.
       </p>
 
-      {!contaRemota.is_active && (
+      {!contaStories.is_active && (
         <div className="rounded-xl border border-amber-800/50 bg-amber-950/40 px-4 py-2.5 text-sm text-amber-300">
           Está pausado diretamente no Agendador de Stories (fora daqui) — quem manda no "postar ou
           não" nesse momento é o app de lá, mesmo com o produto ligado aqui.

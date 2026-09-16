@@ -195,12 +195,12 @@ alter table chatbot_account_settings
 
 -- ============================================================================
 -- Mesmo espírito de reserva_habilitada/busca_automatica_habilitada, agora pro "Agendador de
--- Stories" — app SEPARADO (projeto Next.js/Supabase próprio, agendador-stories/) que publica
--- Stories do Instagram sozinho em horários recorrentes. O chatbot-direct não guarda os horários
--- nem as artes (isso mora só no outro app) — essa chavinha só liga/desliga o PRODUTO aqui pra
--- efeito de dashboard/aba, e a rota /api/contas/agendador-stories-status espelha o valor lá no
--- outro banco (accounts.is_active), casando as contas pelo instagram_user_id (mesmo valor nos
--- dois projetos, é o ID real da conta do Instagram — ver src/lib/supabase/agendadorStories.ts).
+-- Stories" — app Next.js SEPARADO (agendador-stories/) que publica Stories do Instagram sozinho em
+-- horários recorrentes, mas que vive no MESMO projeto Supabase (tabelas accounts/schedule_slots/
+-- publish_log, sem prefixo chatbot_). O chatbot-direct não guarda horários nem artes (isso mora só
+-- no outro app) — essa chavinha só liga/desliga o PRODUTO aqui pra efeito de dashboard/aba, e a
+-- rota /api/contas/agendador-stories-status espelha o valor em accounts.is_active, casando as
+-- contas pelo instagram_user_id (= accounts.ig_user_id, mesmo ID real do Instagram nos dois apps).
 -- ============================================================================
 alter table chatbot_account_settings
   add column if not exists agendador_stories_habilitado boolean not null default false;
