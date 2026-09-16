@@ -242,27 +242,33 @@ export async function enviarRelatorioSemanal(
   </table>`;
 
   // Stories publicados por dia — só entra se a conta tiver o Agendador de Stories conectado.
+  // Grade de 3 colunas (dia + quantidade em cada caixinha) — informação pequena, não precisa de
+  // tabela de lista longa igual Atendimentos detalhados; pedido do Victor pra ficar mais compacto.
+  const COLUNAS_STORIES = 3;
   const secaoStories =
     relatorio.storiesHabilitado && relatorio.storiesConectado
-      ? `<tr><td style="padding:20px 24px 0;">
+      ? `<tr><td style="background:#ffffff; padding:20px 24px 0;" bgcolor="#ffffff">
           <p style="margin:0 0 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#71717a;">Stories publicados por dia</p>
           ${
             !relatorio.storiesPorDia || relatorio.storiesPorDia.length === 0
               ? `<p style="margin:0; font-size:13px; color:#71717a;">Nenhum Story publicado nesse período.</p>`
-              : `<div style="border:1px solid #e4e4e7; border-radius:10px; overflow:hidden;">
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-                    <tr style="background:#f4f4f5;">
-                      <th align="left" style="padding:6px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Dia</th>
-                      <th align="right" style="padding:6px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Publicados</th>
-                    </tr>
-                    ${relatorio.storiesPorDia
-                      .map(
-                        (s) =>
-                          `<tr><td style="padding:6px 10px; border-top:1px solid #e4e4e7; font-size:12px; color:#27272a;">${formatarDataCurtaEmail(s.dataISO)}</td><td style="padding:6px 10px; border-top:1px solid #e4e4e7; font-size:12px; color:#27272a; text-align:right; font-weight:700;">${s.total}</td></tr>`
-                      )
-                      .join("")}
-                  </table>
-                </div>`
+              : Array.from({ length: Math.ceil(relatorio.storiesPorDia.length / COLUNAS_STORIES) }, (_, linha) => {
+                  const grupo = relatorio.storiesPorDia!.slice(linha * COLUNAS_STORIES, linha * COLUNAS_STORIES + COLUNAS_STORIES);
+                  const celulas = grupo
+                    .map(
+                      (s, i) =>
+                        `<td width="${Math.floor(100 / COLUNAS_STORIES)}%" style="padding:0 ${i < grupo.length - 1 ? "8px" : "0"} 8px 0;">
+                          <div style="border:1px solid #e4e4e7; border-radius:8px; padding:6px 10px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                              <td style="font-size:12px; color:#52525b;">${formatarDataCurtaEmail(s.dataISO)}</td>
+                              <td align="right" style="font-size:12px; font-weight:700; color:#18181b;">${s.total}</td>
+                            </tr></table>
+                          </div>
+                        </td>`
+                    )
+                    .join("");
+                  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${celulas}</tr></table>`;
+                }).join("")
           }
         </td></tr>`
       : "";
@@ -296,7 +302,8 @@ export async function enviarRelatorioSemanal(
         <tr><td style="background:#ffffff; padding:0 24px;" bgcolor="#ffffff">
           ${linhaDeQuadradinhos(quadradinhosSecundarios)}
         </td></tr>
-        <tr><td style="background:#ffffff; padding:8px 24px 0;" bgcolor="#ffffff">
+        ${secaoStories}
+        <tr><td style="background:#ffffff; padding:20px 24px 0;" bgcolor="#ffffff">
           <p style="margin:0 0 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#71717a;">
             Atendimentos detalhados
           </p>
@@ -304,7 +311,6 @@ export async function enviarRelatorioSemanal(
             ${tabelaAtendimentos}
           </div>
         </td></tr>
-        ${secaoStories}
         <tr><td style="background:#ffffff; padding:20px 24px 24px; border-radius:0 0 16px 16px;" bgcolor="#ffffff">
           <p style="margin:0; font-size:11px; color:#a1a1aa;">Relatório automático do Chatbot Direct.</p>
         </td></tr>
