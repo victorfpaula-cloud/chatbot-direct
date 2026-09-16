@@ -74,6 +74,22 @@
   background-size: 3px 3px;
 }
 
+/* Trama bem fina, tipo tecido/linho — por trás do vidro, não decorando por cima dele. Some
+   completamente onde o brilho não alcança (mix-blend-mode: overlay não faz nada sobre preto puro)
+   e só aparece de leve nas áreas já iluminadas pelos brilhos de fundo, dando uma sensação de
+   "superfície de mesa" por trás do vidro em vez de um gradiente completamente liso. */
+.tecido {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.5) 0px, rgba(255, 255, 255, 0.5) 1px, transparent 1px, transparent 4px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.5) 0px, rgba(255, 255, 255, 0.5) 1px, transparent 1px, transparent 4px);
+}
+
 .progresso {
   position: fixed;
   top: 0;

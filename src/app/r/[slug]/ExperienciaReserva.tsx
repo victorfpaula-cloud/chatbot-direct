@@ -614,6 +614,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
             <div className={`${styles.brilhoOrbe} ${styles.o2}`} />
           </div>
         </div>
+        <div className={styles.tecido} />
         <div className={styles.grao} />
         <div className={styles.palco}>
           <div className={styles.fechadoCartao}>
@@ -641,6 +642,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
           <div className={`${styles.brilhoOrbe} ${styles.o3}`} />
         </div>
       </div>
+      <div className={styles.tecido} />
       <div className={styles.grao} />
       <div className={styles.progresso}>
         <div className={styles.progressoBarra} />
