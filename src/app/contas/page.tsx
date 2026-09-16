@@ -356,6 +356,20 @@ export default async function ContasPage({
                   )}
                 </a>
 
+                {/* Atalho direto pra tela de reservas JÁ nessa conta (?conta=...) — sem isso, o
+                    botão "Reservas" lá em cima sempre caía na primeira conta com reserva ativada
+                    (não existia como pedir uma conta específica de lá), inútil assim que tiver
+                    mais de um cliente usando esse serviço. Só aparece quando reserva está
+                    ligada nessa conta — pra quem não usa, some igual à aba correspondente. */}
+                {servicos.reserva && (
+                  <a
+                    href={`/reservas?conta=${conta.id}`}
+                    className="mt-3 block w-full rounded-lg border border-violet-700 bg-violet-950/60 px-3 py-1.5 text-center text-xs font-medium text-violet-200 [backdrop-filter:blur(14px)_url(#vidro-abas-contas)] [-webkit-backdrop-filter:blur(14px)_url(#vidro-abas-contas)] hover:border-violet-500 hover:bg-violet-950"
+                  >
+                    Administração de reservas
+                  </a>
+                )}
+
                 <div className="mt-4">
                   <ChavesDeServico
                     contaId={conta.id}
