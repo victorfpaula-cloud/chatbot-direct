@@ -379,7 +379,7 @@ export default async function ContasPage({
                     href={`/contas/${conta.id}/palavras-chave`}
                     className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-center text-xs font-medium text-neutral-300 hover:bg-white/10"
                   >
-                    Configurar atendimento
+                    Configurações gerais
                   </a>
 
                   <div className="flex gap-2">
