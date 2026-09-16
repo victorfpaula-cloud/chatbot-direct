@@ -529,28 +529,31 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
 
     // ---------- brilhos do fundo: luz índigo à deriva, sozinha, reagindo ao ponteiro ----------
     // No celular (tela estreita, pouco espaço pros lados) a deriva vai de CIMA pra BAIXO — no
-    // desktop (tela larga) continua da DIREITA pra ESQUERDA. Em ambos os casos, simétrica em volta
-    // da posição do CSS (começa deslocada meio "dist" numa ponta, termina meio "dist" na outra),
-    // não só indo cada vez mais pra um lado só: a posição base de .o1/.o2/.o3 já nasce puxada pra
-    // canto (ver left/right/bottom no CSS), então um vaivém relativo A PARTIR dali nunca cruzava o
-    // centro — ficava preso do mesmo lado/topo o tempo todo.
+    // desktop/tablet (tela larga) continua da DIREITA pra ESQUERDA. Em ambos os casos, simétrica em
+    // volta da posição do CSS (começa deslocada numa ponta, termina na outra), não só indo cada vez
+    // mais pra um lado só — a posição base de .o1/.o2/.o3 já nasce puxada pra canto (ver
+    // left/right/bottom no CSS), então um vaivém relativo A PARTIR dali nunca cruzava o centro.
+    //
+    // Alcance em PORCENTAGEM da tela (não pixel fixo) de propósito — um número fixo de pixels que
+    // parecia razoável num celular ficava insignificante numa tela bem maior (ex.: iPad deitado, ou
+    // desktop): o brilho continuava "preso" do mesmo lado só porque o deslocamento era pequeno
+    // demais perto do tamanho real da tela. Em % do próprio eixo (altura no celular, largura no
+    // desktop/tablet), o cruzamento de ponta a ponta sempre acontece, não importa o tamanho da tela.
     const ehTelaEstreita = window.matchMedia("(max-width: 640px)").matches;
-    function derivaAutonoma(sel: string, dur: number, dist: number) {
+    function derivaAutonoma(sel: string, dur: number, percentual: number) {
       if (ehTelaEstreita) {
-        // No celular o brilho nasce bem mais alto que a tela (top: -Nvmax no CSS, um diâmetro
-        // gigante) — um deslocamento do mesmo tamanho usado no desktop mal saía do canto onde já
-        // nasce. Triplicado só aqui, na vertical, pra realmente atravessar uma fatia boa da tela.
-        const alcanceVertical = dist * 3;
+        const alcance = window.innerHeight * (percentual / 100);
         gsap.fromTo(
           sel,
-          { y: `-=${alcanceVertical / 2}` },
-          { y: `+=${alcanceVertical}`, x: `+=${dist * 0.15}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
+          { y: `-=${alcance / 2}` },
+          { y: `+=${alcance}`, x: `+=${alcance * 0.08}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
         );
       } else {
+        const alcance = window.innerWidth * (percentual / 100);
         gsap.fromTo(
           sel,
-          { x: `+=${dist / 2}` },
-          { x: `-=${dist}`, y: `+=${dist * 0.12}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
+          { x: `+=${alcance / 2}` },
+          { x: `-=${alcance}`, y: `+=${alcance * 0.08}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
         );
       }
     }
@@ -610,10 +613,11 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
 
     let aoMoverPonteiro: ((e: PointerEvent) => void) | null = null;
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      // Mais rápido ainda que a rodada anterior — pedido explícito de dar pra ver acontecendo.
-      derivaAutonoma(`.${styles.o1}`, 7, 90);
-      derivaAutonoma(`.${styles.o2}`, 9, 78);
-      derivaAutonoma(`.${styles.o3}`, 6, 65);
+      // Mais rápido e mais fluido ainda que a rodada anterior — o segundo parâmetro agora é
+      // PORCENTAGEM da tela (altura no celular, largura no desktop/tablet), não pixel fixo.
+      derivaAutonoma(`.${styles.o1}`, 6, 70);
+      derivaAutonoma(`.${styles.o2}`, 7.5, 58);
+      derivaAutonoma(`.${styles.o3}`, 5, 80);
       respirar(`.${styles.o1}`, 8, 1.12);
       respirar(`.${styles.o2}`, 10, 1.16);
       respirar(`.${styles.o3}`, 6.5, 1.2);
