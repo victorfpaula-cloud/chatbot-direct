@@ -25,7 +25,7 @@ export function FormularioDeEdicaoDeReserva({
         aria-label="Editar reserva"
         className={`flex h-[30px] w-[30px] cursor-pointer list-none items-center justify-center rounded-full [&::-webkit-details-marker]:hidden ${
           apagado
-            ? "bg-white/[0.06] text-white hover:bg-white/10"
+            ? "bg-white/[0.02] text-white/20 hover:bg-white/10 hover:text-white/60"
             : "bg-white/[0.04] text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200"
         }`}
       >

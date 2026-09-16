@@ -145,25 +145,22 @@ export function CartaoDeReserva({
     // por causa do transform, sem conseguir competir com o cartão vizinho. Erguer o cartão inteiro
     // (não só a caixinha) resolve, porque aí ele já sobe acima do vizinho antes de chegar nela.
     //
-    // Confirmado (já chegou): perde o tingimento índigo de propósito (fica cinza neutro, "sem
-    // vida") e cai pra 30% de opacidade com blur próprio — pedido do Victor pra quem já chegou
-    // ficar bem mais discreto/em segundo plano, sobrando destaque só pra quem ainda não chegou. O
-    // texto por dentro continua branco/claro (não escurecido à parte): quem apaga tudo por igual é
-    // só a opacidade do cartão, não teria por que apagar duas vezes.
+    // Confirmado (já chegou): fica um vidro fosco ESCURO — não um cartão translúcido com
+    // opacidade baixa. Essa foi a primeira tentativa (opacity: 0.15 no cartão inteiro) e não
+    // funcionou: opacity mistura com o que tem ATRÁS, que aqui é o vidro claro do cartão do dia
+    // (+ os borrões coloridos do fundo passando atrás dele) — baixar a opacidade só deixava tudo
+    // mais CLARO, nunca mais escuro, então nunca "desaparecia" de verdade. A cor escura agora vem
+    // do próprio preenchimento do cartão (bg-black/60, não transparente-pra-revelar-o-que-tem-atrás),
+    // e o texto por dentro é escurecido à parte (branco em alpha baixo) — assim ele realmente funde
+    // com esse fundo escuro próprio, em vez de depender de quão claro ou escuro o resto da tela
+    // por trás dele por acaso está.
     <div
       className={
         confirmado
-          ? "animate-entrada relative rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 [backdrop-filter:blur(16px)] [-webkit-backdrop-filter:blur(16px)] motion-reduce:animate-none has-[details[open]]:z-20"
+          ? "animate-entrada relative rounded-2xl border border-white/5 bg-black/60 px-4 py-4 [backdrop-filter:blur(20px)] [-webkit-backdrop-filter:blur(20px)] motion-reduce:animate-none has-[details[open]]:z-20"
           : "animate-entrada relative rounded-2xl border-2 border-indigo-400/15 bg-gradient-to-br from-white/[0.06] to-[#0c0c0f]/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_14px_30px_-16px_rgba(0,0,0,0.6)] before:absolute before:inset-x-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-[''] motion-reduce:animate-none has-[details[open]]:z-20"
       }
-      style={{
-        animationDelay: `${Math.min(indice * 45, 300)}ms`,
-        // Via inline style (não classe opacity-30) e bem mais baixo do que 30% — atrás desse
-        // cartão não tem preto puro (é o vidro claro do cartão do dia, com os borrões coloridos do
-        // fundo passando atrás dele), então uma opacidade "normal" ainda ficava bem visível/branca
-        // demais. 0.15 contra esse fundo mais claro é que realmente "desaparece".
-        ...(confirmado ? { opacity: 0.15 } : {}),
-      }}
+      style={{ animationDelay: `${Math.min(indice * 45, 300)}ms` }}
     >
       {/* Identidade do cliente (nome, @usuário com selo do Instagram, WhatsApp) + o bloco de
           pessoas, alinhados no centro — @usuário e WhatsApp uma embaixo da outra, em vez de
@@ -180,7 +177,7 @@ export function CartaoDeReserva({
           <div
             className={
               confirmado
-                ? "flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full border border-white/15 bg-white/[0.08] text-white"
+                ? "flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full border border-white/5 bg-white/[0.03] text-white/30"
                 : "flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-full border border-indigo-400/25 bg-indigo-500/30 text-indigo-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
             }
           >
@@ -201,7 +198,7 @@ export function CartaoDeReserva({
         )}
 
         <div className="min-w-0 flex-1">
-          <p className={confirmado ? "truncate text-base font-semibold text-white" : "truncate text-base font-semibold text-neutral-100"}>
+          <p className={confirmado ? "truncate text-base font-semibold text-white/30" : "truncate text-base font-semibold text-neutral-100"}>
             {reserva.cliente_nome ?? "Cliente"}
           </p>
 
@@ -212,7 +209,7 @@ export function CartaoDeReserva({
               rel="noreferrer"
               className={
                 confirmado
-                  ? "mt-1 flex items-center gap-1.5 text-sm text-white/80"
+                  ? "mt-1 flex items-center gap-1.5 text-sm text-white/20"
                   : "mt-1 flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-300"
               }
             >
@@ -232,7 +229,7 @@ export function CartaoDeReserva({
               rel="noreferrer"
               className={
                 confirmado
-                  ? "mt-1 flex items-center gap-1.5 text-sm text-white/80"
+                  ? "mt-1 flex items-center gap-1.5 text-sm text-white/20"
                   : "mt-1 flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-300"
               }
             >
@@ -249,15 +246,15 @@ export function CartaoDeReserva({
         <div
           className={
             confirmado
-              ? "relative flex shrink-0 min-w-[76px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3"
+              ? "relative flex shrink-0 min-w-[76px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3"
               : "relative flex shrink-0 min-w-[76px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-4 py-3 before:absolute before:inset-x-[15%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']"
           }
         >
-          <span className={confirmado ? "text-lg font-semibold leading-none text-white" : "text-lg font-semibold leading-none text-neutral-100"}>
+          <span className={confirmado ? "text-lg font-semibold leading-none text-white/30" : "text-lg font-semibold leading-none text-neutral-100"}>
             {reserva.quantidade_pessoas ?? "—"}
           </span>
-          <span className={confirmado ? "flex items-center gap-1 text-[10px] font-medium text-white/80" : "flex items-center gap-1 text-[10px] font-medium text-neutral-500"}>
-            <Icone path={CAMINHO_PESSOAS} className={confirmado ? "h-3 w-3 text-white/70" : "h-3 w-3 text-indigo-400"} />
+          <span className={confirmado ? "flex items-center gap-1 text-[10px] font-medium text-white/20" : "flex items-center gap-1 text-[10px] font-medium text-neutral-500"}>
+            <Icone path={CAMINHO_PESSOAS} className={confirmado ? "h-3 w-3 text-white/20" : "h-3 w-3 text-indigo-400"} />
             pessoas
           </span>
         </div>
@@ -269,7 +266,7 @@ export function CartaoDeReserva({
       <div
         className={
           confirmado
-            ? "mt-3 flex items-center justify-between gap-2 border-t border-white/15 pt-3"
+            ? "mt-3 flex items-center justify-between gap-2 border-t border-white/5 pt-3"
             : "mt-3 flex items-center justify-between gap-2 border-t border-white/10 pt-3"
         }
       >
@@ -290,10 +287,10 @@ export function CartaoDeReserva({
         </div>
 
         <div className="flex flex-col items-center text-center leading-tight">
-          <span className={confirmado ? "text-[8px] uppercase tracking-wide text-white/70" : "text-[8px] uppercase tracking-wide text-neutral-600"}>
+          <span className={confirmado ? "text-[8px] uppercase tracking-wide text-white/15" : "text-[8px] uppercase tracking-wide text-neutral-600"}>
             Reservado em
           </span>
-          <span className={confirmado ? "mt-0.5 text-[10px] text-white/90" : "mt-0.5 text-[10px] text-neutral-500"}>
+          <span className={confirmado ? "mt-0.5 text-[10px] text-white/25" : "mt-0.5 text-[10px] text-neutral-500"}>
             {formatarDataCurta(reserva.confirmado_em)} às {formatarHora(reserva.confirmado_em)}
           </span>
         </div>

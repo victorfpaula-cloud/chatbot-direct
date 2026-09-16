@@ -12,8 +12,11 @@ const CAMINHO_CHECK = "M20 6L9 17l-5-5";
 // (rounded-xl/rounded-2xl), um botão arredondado sozinho ali destoava.
 const CLASSE_BOTAO_CONFIRMAR =
   "flex shrink-0 items-center gap-1 rounded-[10px] border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-neutral-900 px-2.5 py-1.5 text-[10px] font-medium text-neutral-200";
+// Bem apagado de propósito (não branco/destacado) — esse selo só aparece dentro do cartão já
+// confirmado, que agora é um vidro fosco escuro; um selo brilhante ali chamaria atenção de novo
+// bem no lugar que devia estar sumindo.
 const CLASSE_SELO_CHEGOU =
-  "flex shrink-0 items-center gap-1 rounded-[10px] border border-white/20 bg-white/[0.06] px-2.5 py-1.5 text-[10px] font-medium text-white";
+  "flex shrink-0 items-center gap-1 rounded-[10px] border border-white/5 bg-white/[0.02] px-2.5 py-1.5 text-[10px] font-medium text-white/25";
 
 export function BotaoConfirmarPresenca({
   action,

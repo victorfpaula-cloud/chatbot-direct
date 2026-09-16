@@ -30,7 +30,7 @@ export function BotaoExcluirReserva({
         type="submit"
         aria-label="Excluir reserva"
         className={`flex h-[30px] w-[30px] items-center justify-center rounded-full hover:bg-red-950/40 hover:text-red-400 ${
-          apagado ? "bg-white/[0.06] text-white" : "bg-white/[0.04] text-neutral-400"
+          apagado ? "bg-white/[0.02] text-white/20" : "bg-white/[0.04] text-neutral-400"
         }`}
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
