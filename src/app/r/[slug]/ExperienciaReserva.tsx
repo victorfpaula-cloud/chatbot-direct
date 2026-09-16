@@ -528,21 +528,39 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
     document.addEventListener("keydown", aoTeclarNavegacao);
 
     // ---------- brilhos do fundo: luz índigo à deriva, sozinha, reagindo ao ponteiro ----------
+    // Deslocamento bem mais horizontal que vertical de propósito (pedido: "da direita pra
+    // esquerda") — vai e volta devagar (yoyo infinito, sem nenhum salto/reset visível), então lê
+    // como uma deriva contínua pro lado, não uma diagonal solta.
     function derivaAutonoma(sel: string, dur: number, dist: number) {
-      gsap.to(sel, { x: `+=${dist}`, y: `+=${dist * 0.6}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" });
+      gsap.to(sel, { x: `-=${dist}`, y: `+=${dist * 0.12}`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" });
     }
     function respirar(sel: string, dur: number, ate: number) {
       gsap.to(sel, { scale: ate, opacity: "*=1.15", duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut", delay: Math.random() * dur });
     }
+    // Gira o matiz (hue-rotate) do próprio brilho, alternando pra outros tons vizinhos da MESMA
+    // paleta (não troca de cor de verdade, só "gira a roda de cores" um pouco pra cada lado) — o
+    // "blur(4vmax)" continua junto na mesma string pra não perder o desfoque já aplicado por CSS
+    // quando o GSAP passa a controlar o filter inline. Duração diferente da deriva de posição de
+    // propósito, pra cor e posição nunca baterem exatamente juntas (fica mais orgânico).
+    function derivaDeCor(sel: string, dur: number, graus: number) {
+      gsap.fromTo(
+        sel,
+        { filter: "blur(4vmax) hue-rotate(0deg)" },
+        { filter: `blur(4vmax) hue-rotate(${graus}deg)`, duration: dur, yoyo: true, repeat: -1, ease: "sine.inOut" }
+      );
+    }
 
     let aoMoverPonteiro: ((e: PointerEvent) => void) | null = null;
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      derivaAutonoma(`.${styles.o1}`, 16, 85);
-      derivaAutonoma(`.${styles.o2}`, 19, -70);
-      derivaAutonoma(`.${styles.o3}`, 13, 60);
+      derivaAutonoma(`.${styles.o1}`, 22, 150);
+      derivaAutonoma(`.${styles.o2}`, 27, 130);
+      derivaAutonoma(`.${styles.o3}`, 18, 110);
       respirar(`.${styles.o1}`, 8, 1.12);
       respirar(`.${styles.o2}`, 10, 1.16);
       respirar(`.${styles.o3}`, 6.5, 1.2);
+      derivaDeCor(`.${styles.o1}`, 15, 22);
+      derivaDeCor(`.${styles.o2}`, 19, -26);
+      derivaDeCor(`.${styles.o3}`, 12, 18);
 
       gsap.to(`.${styles.ctaHalo}`, { scale: 1.4, opacity: 0, duration: 1.5, repeat: -1, ease: "power1.out" });
       gsap.to(`.${styles.ctaSeta}`, { x: 5, duration: 0.8, yoyo: true, repeat: -1, ease: "sine.inOut" });
