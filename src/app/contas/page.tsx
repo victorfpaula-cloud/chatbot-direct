@@ -170,7 +170,7 @@ export default async function ContasPage({
       ? admin
           .from("chatbot_account_settings")
           .select(
-            "account_id, chatbot_direct_habilitado, reserva_habilitada, agendamento_habilitado, busca_automatica_habilitada"
+            "account_id, chatbot_direct_habilitado, reserva_habilitada, agendamento_habilitado, busca_automatica_habilitada, agendador_stories_habilitado"
           )
           .in("account_id", idsDasContas)
       : Promise.resolve({
@@ -180,6 +180,7 @@ export default async function ContasPage({
             reserva_habilitada: boolean;
             agendamento_habilitado: boolean;
             busca_automatica_habilitada: boolean;
+            agendador_stories_habilitado: boolean;
           }[],
         }),
   ]);
@@ -192,6 +193,7 @@ export default async function ContasPage({
         reserva: c.reserva_habilitada,
         agendamento: c.agendamento_habilitado,
         busca: c.busca_automatica_habilitada,
+        stories: c.agendador_stories_habilitado,
       },
     ])
   );
@@ -299,6 +301,7 @@ export default async function ContasPage({
             reserva: false,
             agendamento: false,
             busca: false,
+            stories: false,
           };
 
           return (
@@ -374,6 +377,7 @@ export default async function ContasPage({
                     reservaHabilitada={servicos.reserva}
                     agendamentoHabilitado={servicos.agendamento}
                     buscaHabilitada={servicos.busca}
+                    storiesHabilitado={servicos.stories}
                   />
                 </div>
 

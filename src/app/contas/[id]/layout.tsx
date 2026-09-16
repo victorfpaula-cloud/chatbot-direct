@@ -16,7 +16,9 @@ export default async function ContaLayout({
     admin.from("chatbot_accounts").select("id, page_name, instagram_username").eq("id", params.id).maybeSingle(),
     admin
       .from("chatbot_account_settings")
-      .select("chatbot_direct_habilitado, reserva_habilitada, agendamento_habilitado, busca_automatica_habilitada")
+      .select(
+        "chatbot_direct_habilitado, reserva_habilitada, agendamento_habilitado, busca_automatica_habilitada, agendador_stories_habilitado"
+      )
       .eq("account_id", params.id)
       .maybeSingle(),
   ]);
@@ -39,6 +41,7 @@ export default async function ContaLayout({
               reservaHabilitada={config?.reserva_habilitada ?? false}
               agendamentoHabilitado={config?.agendamento_habilitado ?? false}
               buscaHabilitada={config?.busca_automatica_habilitada ?? false}
+              storiesHabilitado={config?.agendador_stories_habilitado ?? false}
             />
 
             <div className="mt-6">{children}</div>

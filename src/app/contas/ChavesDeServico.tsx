@@ -29,6 +29,13 @@ const SERVICOS = [
     mensagemConfirmarDesligar:
       "Tem certeza que deseja desativar a Busca ao Vivo nessa conta? A configuração fica escondida até você ativar de novo.",
   },
+  {
+    chave: "stories" as const,
+    rotulo: "Agendador de Stories",
+    action: "/api/contas/agendador-stories-status",
+    mensagemConfirmarDesligar:
+      "Tem certeza que deseja desativar o Agendador de Stories nessa conta? Isso pausa a publicação automática de Stories lá no outro app também.",
+  },
 ];
 
 type ChaveDeServico = (typeof SERVICOS)[number]["chave"];
@@ -78,12 +85,21 @@ function IconeDoProduto({ chave, className }: { chave: ChaveDeServico; className
           <path d="M21 21l-4.3-4.3" />
         </svg>
       );
+    case "stories":
+      // Câmera — publicação automática de Stories (app separado, Agendador de Stories).
+      return (
+        <svg {...comum}>
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+          <circle cx="12" cy="13" r="4" />
+        </svg>
+      );
   }
 }
 
 /**
  * Dropdown "Produtos ativos" no cartão da conta em /contas, com uma chavinha por serviço —
- * Direct (palavra-chave + Gemini), Reserva, Agendamento e Busca ao Vivo. Direct é separado do
+ * Direct (palavra-chave + Gemini), Reserva, Agendamento, Busca ao Vivo e Agendador de Stories
+ * (esse último é um app separado — ver src/lib/supabase/agendadorStories.ts). Direct é separado do
  * "Pausar" (que desliga TUDO junto): existe conta que contrata só Reserva sem contratar o
  * Chatbot Direct, então precisa dar pra desligar cada um por si. Cada linha já POSTa pra rota de
  * status de sempre (mesmas rotas usadas dentro de cada aba), só mudando de onde é disparado —
@@ -95,18 +111,21 @@ export function ChavesDeServico({
   reservaHabilitada,
   agendamentoHabilitado,
   buscaHabilitada,
+  storiesHabilitado,
 }: {
   contaId: string;
   directHabilitado: boolean;
   reservaHabilitada: boolean;
   agendamentoHabilitado: boolean;
   buscaHabilitada: boolean;
+  storiesHabilitado: boolean;
 }) {
   const estadoPorChave: Record<ChaveDeServico, boolean> = {
     direct: directHabilitado,
     reserva: reservaHabilitada,
     agendamento: agendamentoHabilitado,
     busca: buscaHabilitada,
+    stories: storiesHabilitado,
   };
 
   const servicosAtivos = SERVICOS.filter((servico) => estadoPorChave[servico.chave]);

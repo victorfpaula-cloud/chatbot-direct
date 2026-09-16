@@ -8,6 +8,7 @@ const ABAS_POR_SERVICO = [
   { segmento: "reserva", rotulo: "Reserva", chave: "reservaHabilitada" as const },
   { segmento: "agendamento", rotulo: "Agendamento", chave: "agendamentoHabilitado" as const },
   { segmento: "busca", rotulo: "Busca ao Vivo", chave: "buscaHabilitada" as const },
+  { segmento: "stories", rotulo: "Agendador de Stories", chave: "storiesHabilitado" as const },
 ];
 
 const ABAS_FINAIS = [
@@ -18,7 +19,7 @@ const ABAS_FINAIS = [
 
 /**
  * Menu de abas de cada conta, agora ESCONDENDO a aba de um serviço (Direct/Reserva/Agendamento/
- * Busca ao Vivo) quando ele está desligado naquela conta — antes as abas apareciam sempre,
+ * Busca ao Vivo/Agendador de Stories) quando ele está desligado naquela conta — antes as abas apareciam sempre,
  * pra toda conta, mesmo numa que nunca vai usar reserva nem agendamento (ex: uma conta só de
  * atendimento automático) — isso é exatamente o "muito rolo" que o Victor reportou. Palavras-
  * chave/Gemini entraram no mesmo grupo condicional (chave "directHabilitado"): existe conta que
@@ -32,15 +33,23 @@ export default function AbasDaConta({
   reservaHabilitada,
   agendamentoHabilitado,
   buscaHabilitada,
+  storiesHabilitado,
 }: {
   contaId: string;
   directHabilitado: boolean;
   reservaHabilitada: boolean;
   agendamentoHabilitado: boolean;
   buscaHabilitada: boolean;
+  storiesHabilitado: boolean;
 }) {
   const pathname = usePathname();
-  const flags = { directHabilitado, reservaHabilitada, agendamentoHabilitado, buscaHabilitada };
+  const flags = {
+    directHabilitado,
+    reservaHabilitada,
+    agendamentoHabilitado,
+    buscaHabilitada,
+    storiesHabilitado,
+  };
 
   const abas = [...ABAS_POR_SERVICO.filter((aba) => flags[aba.chave]), ...ABAS_FINAIS];
 
