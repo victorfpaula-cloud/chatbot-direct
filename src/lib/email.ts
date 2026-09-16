@@ -110,32 +110,40 @@ function escaparHtml(texto: string): string {
 }
 
 // Um "quadradinho" de métrica — mesmo conceito visual da tela /contas/[id]/relatorios (rótulo
-// pequeno em cima, número grande embaixo), remontado em div simples (funciona nos clientes de
-// e-mail modernos: Gmail, Apple Mail, Outlook.com — não precisa do truque de tabela aninhada).
-function quadradinho(rotulo: string, corpoHtml: string, opts?: { bg?: string; borda?: string }): string {
-  const bg = opts?.bg ?? "#fafafa";
-  const borda = opts?.borda ?? "#e4e4e7";
-  // height:100% pra preencher a <td> inteira (linhaDeQuadradinhos já garante que toda célula da
-  // mesma linha tem a mesma altura — comportamento nativo de <table> — mas sem isso essa div só
-  // ficava do tamanho do próprio conteúdo, e Reservas/Stories (que têm uma linha a mais de legenda)
-  // saíam visivelmente maiores que os quadradinhos vizinhos com só um número.
-  return `<div style="border:1px solid ${borda}; border-radius:10px; padding:10px 12px; background:${bg}; height:100%; box-sizing:border-box;" bgcolor="${bg}">
-    <p style="margin:0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#71717a;">${rotulo}</p>
-    ${corpoHtml}
-  </div>`;
+// pequeno em cima, número grande embaixo). Só monta os dados aqui — quem desenha de verdade é
+// linhaDeQuadradinhos, colocando cada um numa <td> própria.
+type DadosDoQuadradinho = { rotulo: string; corpoHtml: string; bg?: string; borda?: string };
+function quadradinho(rotulo: string, corpoHtml: string, opts?: { bg?: string; borda?: string }): DadosDoQuadradinho {
+  return { rotulo, corpoHtml, bg: opts?.bg, borda: opts?.borda };
 }
 
 // Uma linha de quadradinhos lado a lado — número de colunas se ajusta ao que tem pra mostrar (ex.:
 // Reservas/Stories só aparecem quando a conta tem esse produto contratado).
-function linhaDeQuadradinhos(celulas: string[]): string {
+//
+// Borda/fundo/padding vão DIRETO na <td>, nunca numa <div> por dentro dela: uma <div> só fica do
+// tamanho do próprio conteúdo (mesmo com height:100% — não funciona sem a <td> ter uma altura
+// explícita em pixel, e ela nunca tem), então Reservas/Stories (com uma linha a mais de legenda) ou
+// um rótulo que quebra em duas linhas (ex.: "TEMPO MÉDIO DE RESPOSTA") saíam visivelmente maiores
+// que os vizinhos — reportado com print de verdade mostrando as caixas de altura diferente. A <td>
+// em si SEMPRE tem a mesma altura que as outras da mesma linha (regra nativa de toda <table>, sem
+// precisar de nenhum CSS extra), então o quadradinho fica automaticamente do mesmo tamanho.
+// O espaçamento entre eles é uma <td> vazia de 8px (mais confiável em cliente de e-mail do que
+// border-spacing ou margin, que não existe em <td>).
+function linhaDeQuadradinhos(celulas: DadosDoQuadradinho[]): string {
   const larguraPct = Math.floor(100 / celulas.length);
+  const ESPACADOR = `<td width="8" style="font-size:0; line-height:0;">&nbsp;</td>`;
   const tds = celulas
-    .map(
-      (c, i) =>
-        `<td width="${larguraPct}%" style="padding:0 ${i < celulas.length - 1 ? "8px" : "0"} 10px 0; vertical-align:top;">${c}</td>`
-    )
+    .map((c, i) => {
+      const bg = c.bg ?? "#fafafa";
+      const borda = c.borda ?? "#e4e4e7";
+      const td = `<td width="${larguraPct}%" valign="top" bgcolor="${bg}" style="background:${bg}; border:1px solid ${borda}; border-radius:10px; padding:10px 12px;">
+        <p style="margin:0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#71717a;">${c.rotulo}</p>
+        ${c.corpoHtml}
+      </td>`;
+      return i < celulas.length - 1 ? td + ESPACADOR : td;
+    })
     .join("");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${tds}</tr></table>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed; margin-bottom:10px;"><tr>${tds}</tr></table>`;
 }
 
 const NUMERO_GRANDE = 'style="margin:4px 0 0; font-size:21px; font-weight:800; color:#18181b;"';
