@@ -184,19 +184,6 @@ export async function enviarRelatorioSemanal(
       )
     );
   }
-  if (relatorio.storiesHabilitado && relatorio.storiesConectado) {
-    const erroLinha =
-      (relatorio.totalStoriesComErro ?? 0) > 0
-        ? `<p style="margin:1px 0 0; font-size:10px; font-weight:600; color:#b91c1c;">${relatorio.totalStoriesComErro} com erro</p>`
-        : "";
-    quadradinhosPrincipais.push(
-      quadradinho("Stories publicados", `<p ${NUMERO_GRANDE}>${relatorio.totalStoriesPublicados}</p>${erroLinha}`, {
-        bg: "#fffbeb",
-        borda: "#fde68a",
-      })
-    );
-  }
-
   // Linha 2 — os quatro indicadores que substituíram o gráfico de barras na tela (que só fazia
   // sentido em período de até 14 dias — em 15/30 dias virava barra sem nenhum rótulo).
   const diaMaisMovimentadoHtml = relatorio.diaComMaisMensagens
@@ -214,18 +201,27 @@ export async function enviarRelatorioSemanal(
     quadradinho("Tempo médio de resposta", tempoMedioHtml),
   ];
 
-  // "Atendimentos com erro" saiu da grade apertada de 4 colunas e virou uma faixa própria, larga —
-  // sobrava pouco espaço pra esse quadradinho dividir com os outros três, e é justamente o dado que
-  // mais precisa chamar atenção quando > 0.
-  const corErro = relatorio.totalComErro > 0 ? "#b91c1c" : "#18181b";
-  const faixaDeErro = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;"><tr>
-    <td bgcolor="${relatorio.totalComErro > 0 ? "#fef2f2" : "#fafafa"}" style="background:${relatorio.totalComErro > 0 ? "#fef2f2" : "#fafafa"}; border:1px solid ${relatorio.totalComErro > 0 ? "#fecaca" : "#e4e4e7"}; border-radius:10px; padding:10px 14px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Atendimentos com erro</td>
-        <td align="right" style="font-size:19px; font-weight:800; color:${corErro};">${relatorio.totalComErro}</td>
-      </tr></table>
-    </td>
-  </tr></table>`;
+  // Stories publicados saiu da grade apertada de 4 colunas lá em cima e virou essa faixa própria,
+  // larga — serve de "cabeçalho" pra grade de dia a dia que vem logo embaixo dela (ver secaoStories),
+  // então nem precisa mais repetir "Stories publicados por dia" como texto separado.
+  const faixaDeStories =
+    relatorio.storiesHabilitado && relatorio.storiesConectado
+      ? `<tr><td style="background:#ffffff; padding:0 24px;" bgcolor="#ffffff">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;"><tr>
+            <td bgcolor="#fffbeb" style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px 14px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Stories publicados</td>
+                <td align="right" style="font-size:19px; font-weight:800; color:#18181b;">${relatorio.totalStoriesPublicados}</td>
+              </tr></table>
+              ${
+                (relatorio.totalStoriesComErro ?? 0) > 0
+                  ? `<p style="margin:2px 0 0; font-size:10px; font-weight:600; color:#b91c1c; text-align:right;">${relatorio.totalStoriesComErro} com erro</p>`
+                  : ""
+              }
+            </td>
+          </tr></table>
+        </td></tr>`
+      : "";
 
   // Atendimentos detalhados — mesma "lista telefônica" da tela, um cliente por linha.
   const linhasDeAtendimento =
@@ -267,8 +263,7 @@ export async function enviarRelatorioSemanal(
   const COLUNAS_STORIES = 3;
   const secaoStories =
     relatorio.storiesHabilitado && relatorio.storiesConectado
-      ? `<tr><td style="background:#ffffff; padding:20px 24px 0;" bgcolor="#ffffff">
-          <p style="margin:0 0 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#71717a;">Stories publicados por dia — ${relatorio.totalStoriesPublicados} no período</p>
+      ? `<tr><td style="background:#ffffff; padding:0 24px 0;" bgcolor="#ffffff">
           ${
             !relatorio.storiesPorDia || relatorio.storiesPorDia.length === 0
               ? `<p style="margin:0; font-size:13px; color:#71717a;">Nenhum Story publicado nesse período.</p>`
@@ -321,8 +316,8 @@ export async function enviarRelatorioSemanal(
         </td></tr>
         <tr><td style="background:#ffffff; padding:0 24px;" bgcolor="#ffffff">
           ${linhaDeQuadradinhos(quadradinhosSecundarios)}
-          ${faixaDeErro}
         </td></tr>
+        ${faixaDeStories}
         ${secaoStories}
         <tr><td style="background:#ffffff; padding:20px 24px 0;" bgcolor="#ffffff">
           <p style="margin:0 0 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#71717a;">
