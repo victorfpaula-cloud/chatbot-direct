@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { montarRelatorioSemanal } from "@/lib/relatorioSemanal";
+import { montarRelatorio } from "@/lib/relatorioSemanal";
 import { enviarRelatorioSemanal } from "@/lib/email";
-import { segundaDaSemanaPassadaEmSaoPauloISO } from "@/lib/datas";
+import { ultimosDiasTerminandoOntemEmSaoPauloISO } from "@/lib/datas";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Disparado pelo Cron da Vercel toda segunda-feira de manhã (ver vercel.json) — manda o relatório
- * semanal (segunda a domingo que acabou de passar) pro e-mail cadastrado em toda conta que ligou
- * "Enviar automaticamente" em /contas/[id]/relatorios.
+ * dos últimos 7 dias (terminando ontem, domingo — a semana que acabou de passar) pro e-mail
+ * cadastrado em toda conta que ligou "Enviar automaticamente" em /contas/[id]/relatorios.
  *
  * Mesma proteção por Authorization/CRON_SECRET de /api/cron/lembrete-reservas (ver comentário lá).
  * Uma conta falhando (Resend fora do ar, e-mail inválido, etc.) não pode travar o envio das
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   }
 
   const admin = criarClienteAdmin();
-  const segundaISO = segundaDaSemanaPassadaEmSaoPauloISO();
+  const periodo = ultimosDiasTerminandoOntemEmSaoPauloISO(7);
 
   const { data: contasHabilitadas } = await admin
     .from("chatbot_account_settings")
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   for (const config of contasHabilitadas ?? []) {
     if (!config.relatorio_email) continue;
     try {
-      const relatorio = await montarRelatorioSemanal(admin, config.account_id, segundaISO);
+      const relatorio = await montarRelatorio(admin, config.account_id, periodo);
       const resultado = await enviarRelatorioSemanal(config.relatorio_email, relatorio);
       resultados.push({ accountId: config.account_id, ...resultado });
 
@@ -53,5 +53,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, semana: segundaISO, resultados });
+  return NextResponse.json({ ok: true, periodo, resultados });
 }

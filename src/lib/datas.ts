@@ -46,27 +46,29 @@ export function limitesDoDiaEmSaoPauloISO(dataISO: string): { inicio: string; fi
   return { inicio: inicio.toISOString(), fim: fim.toISOString() };
 }
 
-/** Segunda-feira (YYYY-MM-DD) da semana CIVIL COMPLETA mais recente que já terminou, em termos de
- * São Paulo — usada pelo relatório semanal (ver relatorioSemanal.ts): tanto o envio automático de
- * segunda de manhã quanto o botão "gerar agora" no meio da semana relatam sobre a mesma semana
- * (segunda a domingo) que acabou de passar, nunca a semana em andamento (que ainda não fechou os
- * números). */
-export function segundaDaSemanaPassadaEmSaoPauloISO(): string {
-  const hoje = hojeEmSaoPauloISO();
-  const [ano, mes, dia] = hoje.split("-").map((v) => parseInt(v, 10));
-  // getUTCDay: 0 = domingo ... 6 = sábado. Distância até a segunda-feira DESSA semana (a que
-  // ainda está em andamento hoje); a semana passada é 7 dias antes dessa.
-  const diaDaSemana = new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay();
-  const deltaParaSegundaDestaSemana = diaDaSemana === 0 ? -6 : 1 - diaDaSemana;
-  return somarDiasISO(hoje, deltaParaSegundaDestaSemana - 7);
+/** Início e fim (YYYY-MM-DD, os dois em termos de São Paulo, os dois INCLUSIVOS) dos últimos
+ * `dias` dias, terminando HOJE — usada pelo seletor de período (7/15/30 dias) na tela de
+ * relatórios e pelo botão "gerar agora": faz sentido incluir o que já aconteceu hoje até o
+ * momento em que a pessoa está olhando. */
+export function ultimosDiasEmSaoPauloISO(dias: number): { inicioISO: string; fimISO: string } {
+  const fimISO = hojeEmSaoPauloISO();
+  return { inicioISO: somarDiasISO(fimISO, -(dias - 1)), fimISO };
 }
 
-/** Início (inclusive) e fim (exclusivo) de uma semana civil de São Paulo (segunda a domingo),
- * como instantes UTC — `segundaISO` é a segunda-feira dessa semana. */
-export function limitesDaSemanaEmSaoPauloISO(segundaISO: string): { inicio: string; fim: string } {
-  const domingoISO = somarDiasISO(segundaISO, 6);
+/** Mesma ideia, mas terminando ONTEM — hoje ainda não fechou, então nunca teria os números
+ * completos. Usada pelo envio automático de segunda de manhã (relata os últimos 7 dias já
+ * fechados, ou seja a semana que acabou de passar). */
+export function ultimosDiasTerminandoOntemEmSaoPauloISO(dias: number): { inicioISO: string; fimISO: string } {
+  const fimISO = somarDiasISO(hojeEmSaoPauloISO(), -1);
+  return { inicioISO: somarDiasISO(fimISO, -(dias - 1)), fimISO };
+}
+
+/** Início (inclusive) e fim (exclusivo) de um período de dias civis de São Paulo, como instantes
+ * UTC — `inicioISO`/`fimISO` são os dois extremos do período (os dois INCLUSIVOS, em termos de
+ * São Paulo). */
+export function limitesDoPeriodoEmSaoPauloISO(inicioISO: string, fimISO: string): { inicio: string; fim: string } {
   return {
-    inicio: limitesDoDiaEmSaoPauloISO(segundaISO).inicio,
-    fim: limitesDoDiaEmSaoPauloISO(domingoISO).fim,
+    inicio: limitesDoDiaEmSaoPauloISO(inicioISO).inicio,
+    fim: limitesDoDiaEmSaoPauloISO(fimISO).fim,
   };
 }

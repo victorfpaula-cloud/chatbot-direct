@@ -21,6 +21,11 @@ export async function registrarAtendimento(
     tokenDaConta: string;
     idDoCliente: string;
     mensagemRecebida: string;
+    // Horário em que a mensagem chegou de verdade (timestamp da Meta no webhook, ou o instante em
+    // que a ponte do SendPulse recebeu a chamada) — ISO. Junto com `criado_em` (gravado agora,
+    // depois da resposta já ter sido enviada) dá pra ver o relatório mostrar quanto tempo o bot
+    // levou pra responder.
+    mensagemRecebidaEm: string;
     tipoResposta: TipoRespostaAtendimento;
     respostaEnviada: string | null;
     status: StatusAtendimento;
@@ -41,6 +46,7 @@ export async function registrarAtendimento(
       cliente_nome: perfil.nome,
       cliente_username: perfil.username,
       mensagem_recebida: dados.mensagemRecebida,
+      mensagem_recebida_em: dados.mensagemRecebidaEm,
       tipo_resposta: dados.tipoResposta,
       resposta_enviada: dados.respostaEnviada,
       status: dados.status,

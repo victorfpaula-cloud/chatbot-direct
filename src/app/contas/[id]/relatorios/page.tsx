@@ -1,6 +1,6 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { montarRelatorioSemanal } from "@/lib/relatorioSemanal";
-import { segundaDaSemanaPassadaEmSaoPauloISO } from "@/lib/datas";
+import { montarRelatorio } from "@/lib/relatorioSemanal";
+import { ultimosDiasEmSaoPauloISO } from "@/lib/datas";
 import { CartaoDeSecao } from "../CartaoDeSecao";
 import {
   CLASSE_CAMPO,
@@ -13,6 +13,14 @@ import {
 } from "../estilosDeCampo";
 
 export const dynamic = "force-dynamic";
+
+const PERIODOS = [7, 15, 30] as const;
+
+function formatarHora(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).format(
+    new Date(iso)
+  );
+}
 
 function formatarDataHora(iso: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -31,9 +39,9 @@ function formatarDataCurta(iso: string): string {
   );
 }
 
-// Gráfico de barras simples (mensagens por dia da semana) — SVG puro, sem lib nenhuma. Eixo com
-// grade leve + valor em cima de cada barra (só quando > 0, pra não poluir dia sem mensagem).
-function GraficoDeMensagens({ pontos }: { pontos: { rotulo: string; total: number }[] }) {
+// Gráfico de barras simples (mensagens por dia) — SVG puro, sem lib nenhuma. Eixo com grade leve +
+// valor em cima de cada barra (só quando > 0, pra não poluir dia sem mensagem).
+function GraficoDeMensagens({ pontos }: { pontos: { dataISO: string; rotulo: string; total: number }[] }) {
   const largura = 600;
   const altura = 170;
   const margemEsquerda = 12;
@@ -46,7 +54,7 @@ function GraficoDeMensagens({ pontos }: { pontos: { rotulo: string; total: numbe
   const larguraBarra = areaLargura / pontos.length;
 
   return (
-    <svg viewBox={`0 0 ${largura} ${altura}`} className="w-full" role="img" aria-label="Mensagens por dia da semana">
+    <svg viewBox={`0 0 ${largura} ${altura}`} className="w-full" role="img" aria-label="Mensagens por dia">
       {[0, 0.5, 1].map((f) => {
         const y = margemCima + areaAltura * (1 - f);
         return (
@@ -67,29 +75,31 @@ function GraficoDeMensagens({ pontos }: { pontos: { rotulo: string; total: numbe
         const larguraReal = larguraBarra * 0.56;
         const y = margemCima + areaAltura - alturaBarra;
         return (
-          <g key={p.rotulo}>
+          <g key={p.dataISO}>
             <rect
               x={x}
               y={p.total > 0 ? y : margemCima + areaAltura - 2}
               width={larguraReal}
               height={p.total > 0 ? alturaBarra : 2}
-              rx={3}
+              rx={2}
               fill="#6366f1"
             />
-            {p.total > 0 && (
+            {p.total > 0 && pontos.length <= 14 && (
               <text x={x + larguraReal / 2} y={y - 6} textAnchor="middle" fontSize="10" fill="#e4e4e7">
                 {p.total}
               </text>
             )}
-            <text
-              x={x + larguraReal / 2}
-              y={margemCima + areaAltura + 16}
-              textAnchor="middle"
-              fontSize="10"
-              fill="#71717a"
-            >
-              {p.rotulo}
-            </text>
+            {pontos.length <= 14 && (
+              <text
+                x={x + larguraReal / 2}
+                y={margemCima + areaAltura + 16}
+                textAnchor="middle"
+                fontSize="10"
+                fill="#71717a"
+              >
+                {p.rotulo}
+              </text>
+            )}
           </g>
         );
       })}
@@ -97,12 +107,14 @@ function GraficoDeMensagens({ pontos }: { pontos: { rotulo: string; total: numbe
   );
 }
 
+type PontoMensagem = { dataISO: string; rotulo: string; total: number };
+
 export default async function RelatoriosPage({
   params,
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { erro?: string; salvo?: string; enviado?: string };
+  searchParams: { erro?: string; salvo?: string; enviado?: string; dias?: string };
 }) {
   const admin = criarClienteAdmin();
   const { data: config } = await admin
@@ -111,17 +123,37 @@ export default async function RelatoriosPage({
     .eq("account_id", params.id)
     .maybeSingle();
 
-  const relatorio = await montarRelatorioSemanal(admin, params.id, segundaDaSemanaPassadaEmSaoPauloISO());
+  const diasBruto = parseInt(searchParams.dias ?? "30", 10);
+  const dias = (PERIODOS as readonly number[]).includes(diasBruto) ? diasBruto : 30;
+
+  const relatorio = await montarRelatorio(admin, params.id, ultimosDiasEmSaoPauloISO(dias));
+  const pontosDoGrafico: PontoMensagem[] = relatorio.mensagensPorDia;
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-semibold text-neutral-50">Relatórios</h2>
-        <p className="mt-1.5 text-sm text-neutral-400">
-          Um resumo semanal (segunda a domingo) de atendimentos, mensagens
-          {relatorio.storiesHabilitado ? " e Stories publicados" : ""} — cadastre um e-mail pra
-          receber automaticamente toda segunda-feira, ou mande na hora pelo botão abaixo.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold text-neutral-50">Relatórios</h2>
+          <p className="mt-1.5 text-sm text-neutral-400">
+            Atendimentos, mensagens{relatorio.reservaHabilitada ? ", reservas" : ""}
+            {relatorio.storiesHabilitado ? " e Stories publicados" : ""} — cadastre um e-mail pra
+            receber automaticamente toda segunda-feira, ou mande na hora pelo botão abaixo.
+          </p>
+        </div>
+
+        <div className="flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+          {PERIODOS.map((p) => (
+            <a
+              key={p}
+              href={`/contas/${params.id}/relatorios?dias=${p}`}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                p === dias ? "bg-indigo-500 text-white" : "text-neutral-400 hover:text-neutral-200"
+              }`}
+            >
+              {p} dias
+            </a>
+          ))}
+        </div>
       </div>
 
       {searchParams.salvo && <div className={CLASSE_AVISO_SALVO}>Configuração salva.</div>}
@@ -151,7 +183,7 @@ export default async function RelatoriosPage({
               defaultChecked={config?.relatorio_habilitado ?? false}
               className={CLASSE_CHECKBOX}
             />
-            Enviar automaticamente toda segunda-feira de manhã
+            Enviar automaticamente toda segunda-feira de manhã (últimos 7 dias)
           </label>
 
           {config?.relatorio_ultimo_envio_em && (
@@ -167,21 +199,22 @@ export default async function RelatoriosPage({
 
         <form action="/api/contas/relatorio-enviar" method="POST" className="mt-1">
           <input type="hidden" name="account_id" value={params.id} />
+          <input type="hidden" name="dias" value={dias} />
           <button
             type="submit"
             className="rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-neutral-200 transition hover:border-white/25 hover:bg-white/10"
           >
-            Enviar agora (semana de {formatarDataCurta(relatorio.segundaISO)} a{" "}
-            {formatarDataCurta(relatorio.domingoISO)})
+            Enviar agora (últimos {dias} dias — {formatarDataCurta(relatorio.inicioISO)} a{" "}
+            {formatarDataCurta(relatorio.fimISO)})
           </button>
         </form>
       </CartaoDeSecao>
 
       <CartaoDeSecao
         titulo="Prévia do relatório"
-        descricao={`Semana de ${formatarDataCurta(relatorio.segundaISO)} a ${formatarDataCurta(relatorio.domingoISO)} — mesmos dados que vão no e-mail.`}
+        descricao={`Últimos ${dias} dias — ${formatarDataCurta(relatorio.inicioISO)} a ${formatarDataCurta(relatorio.fimISO)} — mesmos dados que vão no e-mail.`}
       >
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Atendimentos</p>
             <p className="mt-1 text-2xl font-bold text-neutral-50">{relatorio.totalAtendimentos}</p>
@@ -190,8 +223,15 @@ export default async function RelatoriosPage({
             <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Mensagens</p>
             <p className="mt-1 text-2xl font-bold text-neutral-50">{relatorio.totalMensagens}</p>
           </div>
+          {relatorio.reservaHabilitada && (
+            <div className="rounded-xl border border-white/10 bg-emerald-500/[0.06] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Reservas</p>
+              <p className="mt-1 text-2xl font-bold text-neutral-50">{relatorio.totalReservas}</p>
+              <p className="mt-0.5 text-xs text-neutral-500">{relatorio.totalPessoasReservas} pessoas</p>
+            </div>
+          )}
           {relatorio.storiesHabilitado && relatorio.storiesConectado && (
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <div className="rounded-xl border border-white/10 bg-amber-500/[0.06] px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
                 Stories publicados
               </p>
@@ -208,22 +248,27 @@ export default async function RelatoriosPage({
         <div className="mt-2">
           <p className={CLASSE_AJUDA}>Mensagens por dia</p>
           <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-            <GraficoDeMensagens pontos={relatorio.mensagensPorDia} />
+            <GraficoDeMensagens pontos={pontosDoGrafico} />
           </div>
         </div>
       </CartaoDeSecao>
 
-      <CartaoDeSecao titulo="Atendimentos da semana" descricao={`${relatorio.totalMensagens} mensagens no total.`}>
+      <CartaoDeSecao
+        titulo="Atendimentos detalhados"
+        descricao={`${relatorio.totalAtendimentos} clientes · ${relatorio.totalMensagens} mensagens no total — horário da primeira mensagem de cada cliente e da nossa resposta.`}
+      >
         {relatorio.atendimentos.length === 0 ? (
-          <p className={CLASSE_AJUDA}>Nenhum atendimento nessa semana.</p>
+          <p className={CLASSE_AJUDA}>Nenhum atendimento nesse período.</p>
         ) : (
-          <div className="max-h-80 overflow-y-auto rounded-xl border border-white/10">
+          <div className="max-h-96 overflow-y-auto rounded-xl border border-white/10">
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 bg-neutral-950/95 text-[11px] uppercase tracking-wide text-neutral-500">
                 <tr>
                   <th className="px-3 py-2 font-semibold">Cliente</th>
-                  <th className="px-3 py-2 font-semibold">Quando</th>
-                  <th className="px-3 py-2 font-semibold">Status</th>
+                  <th className="px-3 py-2 font-semibold">Dia</th>
+                  <th className="px-3 py-2 font-semibold">Mensagem</th>
+                  <th className="px-3 py-2 font-semibold">Resposta</th>
+                  <th className="px-3 py-2 text-right font-semibold">Mensagens</th>
                 </tr>
               </thead>
               <tbody>
@@ -232,21 +277,18 @@ export default async function RelatoriosPage({
                     <td className="px-3 py-2 text-neutral-200">
                       {a.clienteNome ?? "Cliente"}
                       {a.clienteUsername ? <span className="text-neutral-500"> · @{a.clienteUsername}</span> : null}
+                      {a.teveErro && (
+                        <span className="ml-2 rounded-full border border-red-900 bg-red-950 px-1.5 py-0.5 text-[10px] text-red-300">
+                          erro
+                        </span>
+                      )}
                     </td>
-                    <td className="px-3 py-2 text-neutral-400">{formatarDataHora(a.criadoEm)}</td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`rounded-full border px-2 py-0.5 text-xs ${
-                          a.status === "erro"
-                            ? "border-red-900 bg-red-950 text-red-300"
-                            : a.status === "respondido"
-                              ? "border-green-900 bg-green-950 text-green-300"
-                              : "border-neutral-700 bg-neutral-900 text-neutral-400"
-                        }`}
-                      >
-                        {a.status}
-                      </span>
+                    <td className="whitespace-nowrap px-3 py-2 text-neutral-400">{formatarDataCurta(a.diaISO)}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-neutral-400">
+                      {a.horarioMensagem ? formatarHora(a.horarioMensagem) : "—"}
                     </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-neutral-400">{formatarHora(a.horarioResposta)}</td>
+                    <td className="px-3 py-2 text-right text-neutral-300">{a.totalMensagens}</td>
                   </tr>
                 ))}
               </tbody>
@@ -257,28 +299,23 @@ export default async function RelatoriosPage({
 
       {relatorio.storiesHabilitado && relatorio.storiesConectado && (
         <CartaoDeSecao
-          titulo="Stories publicados na semana"
+          titulo="Stories publicados por dia"
           descricao={`${relatorio.totalStoriesPublicados} publicados${(relatorio.totalStoriesComErro ?? 0) > 0 ? `, ${relatorio.totalStoriesComErro} com erro` : ""}.`}
         >
-          {!relatorio.publicacoesDeStories || relatorio.publicacoesDeStories.length === 0 ? (
-            <p className={CLASSE_AJUDA}>Nenhum Story programado nessa semana.</p>
+          {!relatorio.storiesPorDia || relatorio.storiesPorDia.length === 0 ? (
+            <p className={CLASSE_AJUDA}>Nenhum Story publicado nesse período.</p>
           ) : (
-            <ul className="flex flex-col gap-2">
-              {relatorio.publicacoesDeStories.map((p, i) => (
-                <li key={i} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm">
-                  <span className="text-neutral-300">{formatarDataCurta(p.dataAgendada)}</span>
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-xs ${
-                      p.status === "success"
-                        ? "border-green-900 bg-green-950 text-green-300"
-                        : "border-red-900 bg-red-950 text-red-300"
-                    }`}
-                  >
-                    {p.status === "success" ? "Publicado" : "Erro"}
-                  </span>
-                </li>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {relatorio.storiesPorDia.map((s) => (
+                <div
+                  key={s.dataISO}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm"
+                >
+                  <span className="text-neutral-300">{formatarDataCurta(s.dataISO)}</span>
+                  <span className="font-semibold text-neutral-100">{s.total}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </CartaoDeSecao>
       )}

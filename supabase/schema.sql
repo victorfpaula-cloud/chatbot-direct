@@ -266,6 +266,15 @@ create table if not exists chatbot_atendimentos (
   criado_em timestamptz not null default now()
 );
 
+-- Horário em que a mensagem do cliente chegou de verdade (timestamp da Meta no webhook, ou o
+-- instante em que a ponte do SendPulse recebeu a chamada) — `criado_em` já representa "quando
+-- terminamos de responder" (a linha só é inserta depois do envio da resposta, ver
+-- registrarAtendimento em src/lib/atendimentos.ts), então os dois juntos dão o intervalo real
+-- entre a mensagem chegar e a gente responder. Nasce nulo pra atendimento antigo, gravado a partir
+-- daqui em diante.
+alter table chatbot_atendimentos
+  add column if not exists mensagem_recebida_em timestamptz;
+
 create index if not exists chatbot_atendimentos_account_idx
   on chatbot_atendimentos(account_id, criado_em desc);
 

@@ -79,6 +79,12 @@ async function processarEventoDeMensagem(admin: ReturnType<typeof criarClienteAd
   const idDoCliente: string | undefined = evento?.sender?.id;
   const idDaContaRecebendo: string | undefined = evento?.recipient?.id;
   const textoDaMensagem: string | undefined = mensagem.text;
+  // A Meta manda o horário de verdade (epoch em ms) em todo evento de messaging — usa ele como
+  // "quando a mensagem chegou"; `new Date()` aqui só é um fallback (nunca deveria faltar na
+  // prática) pra não deixar a coluna nula à toa.
+  const mensagemRecebidaEm: string = evento?.timestamp
+    ? new Date(Number(evento.timestamp)).toISOString()
+    : new Date().toISOString();
 
   if (!idDaMensagem || !idDoCliente || !idDaContaRecebendo) {
     return;
@@ -144,6 +150,7 @@ async function processarEventoDeMensagem(admin: ReturnType<typeof criarClienteAd
     tokenDaConta: conta.access_token,
     idDoCliente,
     mensagemRecebida: descricaoDaMensagemRecebida,
+    mensagemRecebidaEm,
     tipoResposta,
     respostaEnviada: respostaResumo,
     status: erroOcorrido ? "erro" : tipoResposta === "sem_resposta" ? "sem_resposta" : "respondido",

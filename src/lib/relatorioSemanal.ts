@@ -1,34 +1,38 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { dataEmSaoPauloISO, limitesDaSemanaEmSaoPauloISO, somarDiasISO } from "@/lib/datas";
+import { dataEmSaoPauloISO, limitesDoPeriodoEmSaoPauloISO, somarDiasISO } from "@/lib/datas";
 
 export type ResumoDoDia = { dataISO: string; rotulo: string; total: number };
 
-export type AtendimentoDoRelatorio = {
+export type AtendimentoAgrupado = {
   clienteNome: string | null;
   clienteUsername: string | null;
-  criadoEm: string;
-  status: string;
+  diaISO: string;
+  horarioMensagem: string | null;
+  horarioResposta: string;
+  totalMensagens: number;
+  teveErro: boolean;
 };
 
-export type PublicacaoDeStoryDoRelatorio = {
-  dataAgendada: string;
-  status: string;
-};
+export type StoriesPorDia = { dataISO: string; total: number };
 
-export type RelatorioSemanal = {
+export type Relatorio = {
   contaId: string;
   contaNome: string;
-  segundaISO: string;
-  domingoISO: string;
+  inicioISO: string;
+  fimISO: string;
+  totalDias: number;
   totalAtendimentos: number;
   totalMensagens: number;
   mensagensPorDia: ResumoDoDia[];
-  atendimentos: AtendimentoDoRelatorio[];
+  atendimentos: AtendimentoAgrupado[];
+  reservaHabilitada: boolean;
+  totalReservas: number | null;
+  totalPessoasReservas: number | null;
   storiesHabilitado: boolean;
   storiesConectado: boolean;
   totalStoriesPublicados: number | null;
   totalStoriesComErro: number | null;
-  publicacoesDeStories: PublicacaoDeStoryDoRelatorio[] | null;
+  storiesPorDia: StoriesPorDia[] | null;
 };
 
 function rotuloDoDia(dataISO: string): string {
@@ -41,50 +45,91 @@ function rotuloDoDia(dataISO: string): string {
 }
 
 /**
- * Monta o relatório semanal (atendimentos, mensagens e — se a conta tiver o Agendador de Stories
- * — Stories publicados) de uma conta, pra uma semana civil de São Paulo (segunda a domingo).
- * Usado tanto pela tela de preview (/contas/[id]/relatorios) quanto pelo envio de e-mail (manual
- * ou pelo cron semanal) — um lugar só calculando os números, pra nunca a tela mostrar um valor e
- * o e-mail mandar outro.
+ * Monta o relatório (atendimentos, mensagens, reservas e — se a conta tiver o Agendador de
+ * Stories — Stories publicados) de uma conta, pra um período de dias civis de São Paulo
+ * (`inicioISO`/`fimISO` inclusivos dos dois lados). Usado tanto pela tela de preview
+ * (/contas/[id]/relatorios) quanto pelo envio de e-mail (manual ou pelo cron semanal) — um lugar
+ * só calculando os números, pra nunca a tela mostrar um valor e o e-mail mandar outro.
  */
-export async function montarRelatorioSemanal(
+export async function montarRelatorio(
   admin: ReturnType<typeof criarClienteAdmin>,
   contaId: string,
-  segundaISO: string
-): Promise<RelatorioSemanal> {
-  const domingoISO = somarDiasISO(segundaISO, 6);
-  const { inicio, fim } = limitesDaSemanaEmSaoPauloISO(segundaISO);
+  periodo: { inicioISO: string; fimISO: string }
+): Promise<Relatorio> {
+  const { inicioISO, fimISO } = periodo;
+  const totalDias = Math.round((Date.parse(fimISO) - Date.parse(inicioISO)) / (24 * 60 * 60 * 1000)) + 1;
+  const { inicio, fim } = limitesDoPeriodoEmSaoPauloISO(inicioISO, fimISO);
 
   const [{ data: conta }, { data: config }, { data: atendimentosBrutos }] = await Promise.all([
     admin.from("chatbot_accounts").select("page_name, instagram_user_id").eq("id", contaId).maybeSingle(),
-    admin.from("chatbot_account_settings").select("agendador_stories_habilitado").eq("account_id", contaId).maybeSingle(),
+    admin
+      .from("chatbot_account_settings")
+      .select("agendador_stories_habilitado, reserva_habilitada")
+      .eq("account_id", contaId)
+      .maybeSingle(),
     admin
       .from("chatbot_atendimentos")
-      .select("instagram_scoped_id, cliente_nome, cliente_username, criado_em, status")
+      .select("instagram_scoped_id, cliente_nome, cliente_username, criado_em, mensagem_recebida_em, status")
       .eq("account_id", contaId)
       .gte("criado_em", inicio)
       .lt("criado_em", fim)
-      .order("criado_em", { ascending: false }),
+      .order("criado_em", { ascending: true }),
   ]);
 
-  const atendimentos: AtendimentoDoRelatorio[] = (atendimentosBrutos ?? []).map((a) => ({
-    clienteNome: a.cliente_nome,
-    clienteUsername: a.cliente_username,
-    criadoEm: a.criado_em,
-    status: a.status,
-  }));
-
-  const totalMensagens = atendimentos.length;
+  const totalMensagens = (atendimentosBrutos ?? []).length;
   // "Atendimentos" = pessoas ÚNICAS (mesmo critério de sempre — ver /contas/[id]/atendimentos),
-  // não linhas: uma pessoa pode ter trocado várias mensagens na mesma semana.
+  // não linhas: uma pessoa pode ter trocado várias mensagens no período.
   const totalAtendimentos = new Set((atendimentosBrutos ?? []).map((a) => a.instagram_scoped_id)).size;
 
-  const porDia = new Map<string, number>();
-  for (let i = 0; i < 7; i++) {
-    porDia.set(somarDiasISO(segundaISO, i), 0);
+  // Agrupado por cliente — "lista telefônica": uma linha por pessoa, com a primeira mensagem que
+  // ela mandou no período e a resposta que demos pra ela (pra dar pra ver o tempo entre as duas),
+  // mais quantas mensagens no total. A query já veio ordenada por criado_em ascendente, então a
+  // PRIMEIRA linha de cada cliente que aparece é sempre a mais antiga dele no período.
+  type LinhaAtendimento = NonNullable<typeof atendimentosBrutos>[number];
+  type ClienteAgregado = {
+    nome: string | null;
+    username: string | null;
+    primeira: LinhaAtendimento;
+    total: number;
+    teveErro: boolean;
+  };
+
+  const porCliente = new Map<string, ClienteAgregado>();
+  for (const a of atendimentosBrutos ?? []) {
+    const atual = porCliente.get(a.instagram_scoped_id);
+    if (!atual) {
+      porCliente.set(a.instagram_scoped_id, {
+        nome: a.cliente_nome,
+        username: a.cliente_username,
+        primeira: a,
+        total: 1,
+        teveErro: a.status === "erro",
+      });
+    } else {
+      atual.total += 1;
+      if (a.status === "erro") atual.teveErro = true;
+    }
   }
-  for (const a of atendimentos) {
-    const dia = dataEmSaoPauloISO(a.criadoEm);
+
+  const atendimentos: AtendimentoAgrupado[] = Array.from(porCliente.values())
+    .map((c) => ({
+      clienteNome: c.nome,
+      clienteUsername: c.username,
+      diaISO: dataEmSaoPauloISO(c.primeira.criado_em),
+      horarioMensagem: c.primeira.mensagem_recebida_em,
+      horarioResposta: c.primeira.criado_em,
+      totalMensagens: c.total,
+      teveErro: c.teveErro,
+    }))
+    // Mais recente primeiro, mesmo critério já usado na tela de Atendimentos.
+    .sort((a, b) => (a.horarioResposta < b.horarioResposta ? 1 : -1));
+
+  const porDia = new Map<string, number>();
+  for (let i = 0; i < totalDias; i++) {
+    porDia.set(somarDiasISO(inicioISO, i), 0);
+  }
+  for (const a of atendimentosBrutos ?? []) {
+    const dia = dataEmSaoPauloISO(a.criado_em);
     porDia.set(dia, (porDia.get(dia) ?? 0) + 1);
   }
   const mensagensPorDia: ResumoDoDia[] = Array.from(porDia.entries()).map(([dataISO, total]) => ({
@@ -93,11 +138,27 @@ export async function montarRelatorioSemanal(
     total,
   }));
 
+  const reservaHabilitada = config?.reserva_habilitada ?? false;
+  let totalReservas: number | null = null;
+  let totalPessoasReservas: number | null = null;
+
+  if (reservaHabilitada) {
+    const { data: reservasBrutas } = await admin
+      .from("chatbot_reservations")
+      .select("quantidade_pessoas")
+      .eq("account_id", contaId)
+      .gte("confirmado_em", inicio)
+      .lt("confirmado_em", fim);
+
+    totalReservas = (reservasBrutas ?? []).length;
+    totalPessoasReservas = (reservasBrutas ?? []).reduce((soma, r) => soma + (r.quantidade_pessoas ?? 0), 0);
+  }
+
   const storiesHabilitado = config?.agendador_stories_habilitado ?? false;
   let storiesConectado = false;
   let totalStoriesPublicados: number | null = null;
   let totalStoriesComErro: number | null = null;
-  let publicacoesDeStories: PublicacaoDeStoryDoRelatorio[] | null = null;
+  let storiesPorDia: StoriesPorDia[] | null = null;
 
   if (storiesHabilitado && conta?.instagram_user_id) {
     const { data: contaStories } = await admin
@@ -112,32 +173,40 @@ export async function montarRelatorioSemanal(
         .from("publish_log")
         .select("scheduled_for, status")
         .eq("account_id", contaStories.id)
-        .gte("scheduled_for", segundaISO)
-        .lte("scheduled_for", domingoISO)
-        .order("scheduled_for", { ascending: false });
+        .gte("scheduled_for", inicioISO)
+        .lte("scheduled_for", fimISO);
 
-      publicacoesDeStories = (publicacoesBrutas ?? []).map((p) => ({
-        dataAgendada: p.scheduled_for,
-        status: p.status,
-      }));
-      totalStoriesPublicados = publicacoesDeStories.filter((p) => p.status === "success").length;
-      totalStoriesComErro = publicacoesDeStories.filter((p) => p.status === "error").length;
+      totalStoriesPublicados = (publicacoesBrutas ?? []).filter((p) => p.status === "success").length;
+      totalStoriesComErro = (publicacoesBrutas ?? []).filter((p) => p.status === "error").length;
+
+      const diasComStories = new Map<string, number>();
+      for (const p of publicacoesBrutas ?? []) {
+        if (p.status !== "success") continue;
+        diasComStories.set(p.scheduled_for, (diasComStories.get(p.scheduled_for) ?? 0) + 1);
+      }
+      storiesPorDia = Array.from(diasComStories.entries())
+        .map(([dataISO, total]) => ({ dataISO, total }))
+        .sort((a, b) => (a.dataISO < b.dataISO ? 1 : -1));
     }
   }
 
   return {
     contaId,
     contaNome: conta?.page_name ?? "",
-    segundaISO,
-    domingoISO,
+    inicioISO,
+    fimISO,
+    totalDias,
     totalAtendimentos,
     totalMensagens,
     mensagensPorDia,
     atendimentos,
+    reservaHabilitada,
+    totalReservas,
+    totalPessoasReservas,
     storiesHabilitado,
     storiesConectado,
     totalStoriesPublicados,
     totalStoriesComErro,
-    publicacoesDeStories,
+    storiesPorDia,
   };
 }

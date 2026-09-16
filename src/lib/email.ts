@@ -1,4 +1,4 @@
-import type { RelatorioSemanal } from "@/lib/relatorioSemanal";
+import type { Relatorio } from "@/lib/relatorioSemanal";
 
 // Envio de e-mail via Resend (REST API pura, sem SDK) — mesmo padrão já usado nos projetos irmãos
 // agendador-stories e ShoppingHub (ver src/lib/email.ts de lá). Usado só pra avisar o Victor
@@ -69,16 +69,16 @@ export async function enviarEmailDeReclamacao(dados: {
   }
 }
 
-function formatarPeriodoExtenso(segundaISO: string, domingoISO: string): string {
+function formatarPeriodoExtenso(inicioISO: string, fimISO: string): string {
   const formatarDia = (iso: string) => {
     const [ano, mes, dia] = iso.split("-").map((v) => parseInt(v, 10));
     return new Date(Date.UTC(ano, mes - 1, dia, 12));
   };
   const inicio = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", day: "2-digit", month: "long" }).format(
-    formatarDia(segundaISO)
+    formatarDia(inicioISO)
   );
   const fim = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", day: "2-digit", month: "long", year: "numeric" }).format(
-    formatarDia(domingoISO)
+    formatarDia(fimISO)
   );
   return `${inicio} a ${fim}`;
 }
@@ -112,21 +112,27 @@ function montarGraficoDeBarrasHTML(pontos: { rotulo: string; total: number }[]):
 }
 
 /**
- * Envia o relatório semanal de uma conta pro e-mail cadastrado nela — usado tanto pelo botão
- * "Enviar agora" (/contas/[id]/relatorios) quanto pelo cron de toda segunda-feira. Ao contrário de
- * enviarEmailDeReclamacao (que nunca lança e nunca informa quem chamou), essa função DEVOLVE o
- * resultado: o botão manual precisa mostrar pro Victor se realmente funcionou (ver aviso sobre a
- * restrição do remetente onboarding@resend.dev logo ali em cima).
+ * Envia o relatório de uma conta (período de N dias — 7/15/30, ver seletor em
+ * /contas/[id]/relatorios) pro e-mail cadastrado nela — usado tanto pelo botão "Enviar agora"
+ * quanto pelo cron de toda segunda-feira. Ao contrário de enviarEmailDeReclamacao (que nunca
+ * lança e nunca informa quem chamou), essa função DEVOLVE o resultado: o botão manual precisa
+ * mostrar pro Victor se realmente funcionou (ver aviso sobre a restrição do remetente
+ * onboarding@resend.dev logo ali em cima).
  */
 export async function enviarRelatorioSemanal(
   destinatario: string,
-  relatorio: RelatorioSemanal
+  relatorio: Relatorio
 ): Promise<{ sucesso: boolean; erro?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { sucesso: false, erro: "RESEND_API_KEY não configurada nesse ambiente." };
 
-  const periodo = formatarPeriodoExtenso(relatorio.segundaISO, relatorio.domingoISO);
+  const periodo = formatarPeriodoExtenso(relatorio.inicioISO, relatorio.fimISO);
   const grafico = montarGraficoDeBarrasHTML(relatorio.mensagensPorDia.map((p) => ({ rotulo: p.rotulo, total: p.total })));
+
+  const linhaReservas =
+    relatorio.reservaHabilitada && relatorio.totalReservas !== null
+      ? `<td style="padding:0 0 0 16px;"><p style="margin:0; font-size:12px; color:#a1a1aa;">RESERVAS</p><p style="margin:2px 0 0; font-size:26px; font-weight:700; color:#f5f5f7;">${relatorio.totalReservas}</p></td>`
+      : "";
 
   const linhaStories =
     relatorio.storiesHabilitado && relatorio.storiesConectado
@@ -137,7 +143,7 @@ export async function enviarRelatorioSemanal(
     <div style="background:#050509; padding:28px 20px; font-family:Helvetica,Arial,sans-serif;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px; margin:0 auto; background:#0d0d13; border:1px solid #1f1f27; border-radius:16px; overflow:hidden;">
         <tr><td style="padding:24px 24px 4px;">
-          <p style="margin:0; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#818cf8;">Relatório semanal</p>
+          <p style="margin:0; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#818cf8;">Relatório de desempenho</p>
           <h1 style="margin:6px 0 0; font-size:20px; color:#f5f5f7;">${relatorio.contaNome}</h1>
           <p style="margin:4px 0 20px; font-size:13px; color:#71717a;">${periodo}</p>
         </td></tr>
@@ -146,6 +152,7 @@ export async function enviarRelatorioSemanal(
             <tr>
               <td><p style="margin:0; font-size:12px; color:#a1a1aa;">ATENDIMENTOS</p><p style="margin:2px 0 0; font-size:26px; font-weight:700; color:#f5f5f7;">${relatorio.totalAtendimentos}</p></td>
               <td style="padding:0 0 0 16px;"><p style="margin:0; font-size:12px; color:#a1a1aa;">MENSAGENS</p><p style="margin:2px 0 0; font-size:26px; font-weight:700; color:#f5f5f7;">${relatorio.totalMensagens}</p></td>
+              ${linhaReservas}
               ${linhaStories}
             </tr>
           </table>
@@ -174,7 +181,7 @@ export async function enviarRelatorioSemanal(
         // responder o relatório, cai aqui (mesmo e-mail que já recebe os avisos de reclamação),
         // não se perde no vazio. Omitido se ALERT_EMAIL não estiver configurada.
         reply_to: process.env.ALERT_EMAIL || undefined,
-        subject: `Relatório semanal — ${relatorio.contaNome} (${periodo})`,
+        subject: `Relatório — ${relatorio.contaNome} (${periodo})`,
         html,
       }),
       cache: "no-store",

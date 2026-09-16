@@ -31,6 +31,9 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: NextRequest) {
+  // O SendPulse não manda um timestamp próprio no corpo — esse é o instante mais próximo possível
+  // de "quando a mensagem chegou" que temos aqui (logo na entrada, antes de qualquer processamento).
+  const mensagemRecebidaEm = new Date().toISOString();
   const segredoRecebido = request.headers.get("x-bridge-secret");
   const segredoEsperado = process.env.SENDPULSE_BRIDGE_SECRET;
 
@@ -137,6 +140,7 @@ export async function POST(request: NextRequest) {
     tokenDaConta: conta.access_token,
     idDoCliente,
     mensagemRecebida: descricaoDaMensagemRecebida,
+    mensagemRecebidaEm,
     tipoResposta: resultado.tipoResposta,
     respostaEnviada: respostaFinal,
     status: resultado.erroOcorrido
