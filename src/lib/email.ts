@@ -83,41 +83,59 @@ function formatarPeriodoExtenso(inicioISO: string, fimISO: string): string {
   return `${inicio} a ${fim}`;
 }
 
-// Gráfico de barras em tabela HTML (não SVG/CSS) — técnica antiga mas de propósito: é a única que
-// renderiza de forma confiável na maioria dos clientes de e-mail (Gmail, Outlook etc.), que cortam
-// boa parte de CSS moderno e não confiam em SVG inline. Cada barra é uma célula colorida com
-// largura em %, ao lado do rótulo do dia e do valor.
-//
-// Duas pegadinhas clássicas de e-mail HTML que já pegaram a gente uma vez (relatório de teste do
-// Único Sushi Bar saiu com toda barra do mesmo tamanho, ignorando a % de cada uma): sem
-// `table-layout:fixed` no <table> de cada barra, o cliente de e-mail é livre pra ignorar a largura
-// em % (layout automático baseado em conteúdo) — e cor/largura postas só via CSS `style` em
-// <table>/<td> não é respeitada por todo cliente (por isso também `bgcolor`/`width` como atributo
-// HTML puro, não só `style`, no trilho (cinza) e na barra preenchida (índigo) de cada linha.
-function montarGraficoDeBarrasHTML(pontos: { rotulo: string; total: number }[]): string {
-  const maximo = Math.max(1, ...pontos.map((p) => p.total));
-  const linhas = pontos
-    .map((p) => {
-      const larguraPct = Math.round((p.total / maximo) * 100);
-      const larguraRestante = 100 - larguraPct;
-      return `
-        <tr>
-          <td style="padding:4px 10px 4px 0; font-size:12px; color:#a1a1aa; width:36px;">${p.rotulo}</td>
-          <td style="padding:4px 0;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed; width:100%;">
-              <tr>
-                <td width="${larguraPct}%" bgcolor="#6366f1" style="background:#6366f1; width:${larguraPct}%; height:14px; font-size:0; line-height:14px;">&nbsp;</td>
-                <td width="${larguraRestante}%" bgcolor="#1f1f27" style="background:#1f1f27; width:${larguraRestante}%; height:14px; font-size:0; line-height:14px;">&nbsp;</td>
-              </tr>
-            </table>
-          </td>
-          <td style="padding:4px 0 4px 10px; font-size:12px; color:#f5f5f7; text-align:right; width:28px;">${p.total}</td>
-        </tr>`;
-    })
-    .join("");
-
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${linhas}</table>`;
+function formatarDataCurtaEmail(iso: string): string {
+  const [ano, mes, dia] = iso.split("-").map((v) => parseInt(v, 10));
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit" }).format(
+    new Date(Date.UTC(ano, mes - 1, dia, 12))
+  );
 }
+
+function formatarHoraEmail(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).format(
+    new Date(iso)
+  );
+}
+
+function formatarDuracaoEmail(segundos: number): string {
+  if (segundos < 60) return `${segundos}s`;
+  const minutos = Math.floor(segundos / 60);
+  const resto = segundos % 60;
+  return resto > 0 ? `${minutos}min ${resto}s` : `${minutos}min`;
+}
+
+// Nome/@usuário vêm da Graph API do Instagram (dado de fora) — escapa antes de colocar no HTML do
+// e-mail pra um nome com "&"/"<"/">" nunca quebrar a tabela.
+function escaparHtml(texto: string): string {
+  return texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// Um "quadradinho" de métrica — mesmo conceito visual da tela /contas/[id]/relatorios (rótulo
+// pequeno em cima, número grande embaixo), remontado em div simples (funciona nos clientes de
+// e-mail modernos: Gmail, Apple Mail, Outlook.com — não precisa do truque de tabela aninhada).
+function quadradinho(rotulo: string, corpoHtml: string, opts?: { bg?: string; borda?: string }): string {
+  const bg = opts?.bg ?? "#fafafa";
+  const borda = opts?.borda ?? "#e4e4e7";
+  return `<div style="border:1px solid ${borda}; border-radius:10px; padding:10px 12px; background:${bg};" bgcolor="${bg}">
+    <p style="margin:0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#71717a;">${rotulo}</p>
+    ${corpoHtml}
+  </div>`;
+}
+
+// Uma linha de quadradinhos lado a lado — número de colunas se ajusta ao que tem pra mostrar (ex.:
+// Reservas/Stories só aparecem quando a conta tem esse produto contratado).
+function linhaDeQuadradinhos(celulas: string[]): string {
+  const larguraPct = Math.floor(100 / celulas.length);
+  const tds = celulas
+    .map(
+      (c, i) =>
+        `<td width="${larguraPct}%" style="padding:0 ${i < celulas.length - 1 ? "8px" : "0"} 10px 0; vertical-align:top;">${c}</td>`
+    )
+    .join("");
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${tds}</tr></table>`;
+}
+
+const NUMERO_GRANDE = 'style="margin:4px 0 0; font-size:21px; font-weight:800; color:#18181b;"';
+const LEGENDA_PEQUENA = 'style="margin:1px 0 0; font-size:10px; color:#71717a;"';
 
 /**
  * Envia o relatório de uma conta (período de N dias — 7/15/30, ver seletor em
@@ -135,23 +153,126 @@ export async function enviarRelatorioSemanal(
   if (!apiKey) return { sucesso: false, erro: "RESEND_API_KEY não configurada nesse ambiente." };
 
   const periodo = formatarPeriodoExtenso(relatorio.inicioISO, relatorio.fimISO);
-  const grafico = montarGraficoDeBarrasHTML(relatorio.mensagensPorDia.map((p) => ({ rotulo: p.rotulo, total: p.total })));
 
-  const linhaReservas =
-    relatorio.reservaHabilitada && relatorio.totalReservas !== null
-      ? `<td style="padding:0 0 0 16px;"><p style="margin:0; font-size:12px; color:#a1a1aa;">RESERVAS</p><p style="margin:2px 0 0; font-size:26px; font-weight:700; color:#f5f5f7;">${relatorio.totalReservas}</p></td>`
-      : "";
+  // Linha 1 — os mesmos totais do topo da tela de relatórios (Reservas/Stories só aparecem se a
+  // conta tiver esse produto contratado, por isso a lista é montada dinamicamente).
+  const quadradinhosPrincipais = [
+    quadradinho("Atendimentos", `<p ${NUMERO_GRANDE}>${relatorio.totalAtendimentos}</p>`),
+    quadradinho("Mensagens", `<p ${NUMERO_GRANDE}>${relatorio.totalMensagens}</p>`),
+  ];
+  if (relatorio.reservaHabilitada && relatorio.totalReservas !== null) {
+    quadradinhosPrincipais.push(
+      quadradinho(
+        "Reservas",
+        `<table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="padding-right:14px;"><p ${NUMERO_GRANDE}>${relatorio.totalReservas}</p><p ${LEGENDA_PEQUENA}>reservas</p></td>
+          <td><p ${NUMERO_GRANDE}>${relatorio.totalPessoasReservas}</p><p ${LEGENDA_PEQUENA}>pessoas</p></td>
+        </tr></table>`,
+        { bg: "#ecfdf5", borda: "#a7f3d0" }
+      )
+    );
+  }
+  if (relatorio.storiesHabilitado && relatorio.storiesConectado) {
+    const erroLinha =
+      (relatorio.totalStoriesComErro ?? 0) > 0
+        ? `<p style="margin:1px 0 0; font-size:10px; font-weight:600; color:#b91c1c;">${relatorio.totalStoriesComErro} com erro</p>`
+        : "";
+    quadradinhosPrincipais.push(
+      quadradinho("Stories publicados", `<p ${NUMERO_GRANDE}>${relatorio.totalStoriesPublicados}</p>${erroLinha}`, {
+        bg: "#fffbeb",
+        borda: "#fde68a",
+      })
+    );
+  }
 
-  const linhaStories =
+  // Linha 2 — os quatro indicadores que substituíram o gráfico de barras na tela (que só fazia
+  // sentido em período de até 14 dias — em 15/30 dias virava barra sem nenhum rótulo).
+  const diaMaisMovimentadoHtml = relatorio.diaComMaisMensagens
+    ? `<p ${NUMERO_GRANDE}>${relatorio.diaComMaisMensagens.total}</p><p ${LEGENDA_PEQUENA}>mensagens em ${formatarDataCurtaEmail(relatorio.diaComMaisMensagens.dataISO)}</p>`
+    : `<p style="margin:4px 0 0; font-size:12px; color:#71717a;">Sem mensagens no período.</p>`;
+
+  const tempoMedioHtml =
+    relatorio.tempoMedioDeRespostaSegundos !== null
+      ? `<p ${NUMERO_GRANDE}>${formatarDuracaoEmail(relatorio.tempoMedioDeRespostaSegundos)}</p>`
+      : `<p style="margin:4px 0 0; font-size:12px; color:#71717a;">Ainda sem dados.</p>`;
+
+  const quadradinhosSecundarios = [
+    quadradinho("Média por dia", `<p ${NUMERO_GRANDE}>${relatorio.mediaMensagensPorDia}</p><p ${LEGENDA_PEQUENA}>mensagens/dia</p>`),
+    quadradinho("Dia mais movimentado", diaMaisMovimentadoHtml),
+    quadradinho("Tempo médio de resposta", tempoMedioHtml),
+    quadradinho(
+      "Atendimentos com erro",
+      `<p style="margin:4px 0 0; font-size:21px; font-weight:800; color:${relatorio.totalComErro > 0 ? "#b91c1c" : "#18181b"};">${relatorio.totalComErro}</p>`,
+      relatorio.totalComErro > 0 ? { bg: "#fef2f2", borda: "#fecaca" } : undefined
+    ),
+  ];
+
+  // Atendimentos detalhados — mesma "lista telefônica" da tela, um cliente por linha.
+  const linhasDeAtendimento =
+    relatorio.atendimentos.length === 0
+      ? `<tr><td colspan="5" style="padding:14px; font-size:13px; color:#71717a;">Nenhum atendimento nesse período.</td></tr>`
+      : relatorio.atendimentos
+          .map((a) => {
+            const nome = escaparHtml(a.clienteNome ?? "Cliente");
+            const username = a.clienteUsername
+              ? `<span style="color:#a1a1aa;"> · @${escaparHtml(a.clienteUsername)}</span>`
+              : "";
+            const badgeErro = a.teveErro
+              ? `<span style="margin-left:6px; padding:1px 6px; border-radius:999px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; font-size:9px; font-weight:700;">erro</span>`
+              : "";
+            return `<tr>
+              <td style="padding:8px 10px; border-top:1px solid #e4e4e7; font-size:12px; color:#27272a;">${nome}${username}${badgeErro}</td>
+              <td style="padding:8px 10px; border-top:1px solid #e4e4e7; font-size:12px; color:#52525b; white-space:nowrap;">${formatarDataCurtaEmail(a.diaISO)}</td>
+              <td style="padding:8px 10px; border-top:1px solid #e4e4e7; font-size:12px; color:#52525b; white-space:nowrap;">${a.horarioMensagem ? formatarHoraEmail(a.horarioMensagem) : "—"}</td>
+              <td style="padding:8px 10px; border-top:1px solid #e4e4e7; font-size:12px; color:#52525b; white-space:nowrap;">${formatarHoraEmail(a.horarioResposta)}</td>
+              <td style="padding:8px 10px; border-top:1px solid #e4e4e7; font-size:12px; color:#27272a; text-align:right;">${a.totalMensagens}</td>
+            </tr>`;
+          })
+          .join("");
+
+  const tabelaAtendimentos = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+    <tr style="background:#f4f4f5;">
+      <th align="left" style="padding:8px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Cliente</th>
+      <th align="left" style="padding:8px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Dia</th>
+      <th align="left" style="padding:8px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Mensagem</th>
+      <th align="left" style="padding:8px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Resposta</th>
+      <th align="right" style="padding:8px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Msgs</th>
+    </tr>
+    ${linhasDeAtendimento}
+  </table>`;
+
+  // Stories publicados por dia — só entra se a conta tiver o Agendador de Stories conectado.
+  const secaoStories =
     relatorio.storiesHabilitado && relatorio.storiesConectado
-      ? `<td style="padding:0 0 0 16px;"><p style="margin:0; font-size:12px; color:#a1a1aa;">STORIES PUBLICADOS</p><p style="margin:2px 0 0; font-size:26px; font-weight:700; color:#f5f5f7;">${relatorio.totalStoriesPublicados}</p></td>`
+      ? `<tr><td style="padding:20px 24px 0;">
+          <p style="margin:0 0 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#71717a;">Stories publicados por dia</p>
+          ${
+            !relatorio.storiesPorDia || relatorio.storiesPorDia.length === 0
+              ? `<p style="margin:0; font-size:13px; color:#71717a;">Nenhum Story publicado nesse período.</p>`
+              : `<div style="border:1px solid #e4e4e7; border-radius:10px; overflow:hidden;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                    <tr style="background:#f4f4f5;">
+                      <th align="left" style="padding:6px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Dia</th>
+                      <th align="right" style="padding:6px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#71717a;">Publicados</th>
+                    </tr>
+                    ${relatorio.storiesPorDia
+                      .map(
+                        (s) =>
+                          `<tr><td style="padding:6px 10px; border-top:1px solid #e4e4e7; font-size:12px; color:#27272a;">${formatarDataCurtaEmail(s.dataISO)}</td><td style="padding:6px 10px; border-top:1px solid #e4e4e7; font-size:12px; color:#27272a; text-align:right; font-weight:700;">${s.total}</td></tr>`
+                      )
+                      .join("")}
+                  </table>
+                </div>`
+          }
+        </td></tr>`
       : "";
 
   // `color-scheme`/`supported-color-schemes` travados em "only light" de propósito: sem isso, o
-  // Apple Mail (confirmado no teste real do Único Sushi Bar) reinterpreta um e-mail com fundo quase
-  // preto como "feito pra modo claro" e reescreve as cores sozinho — trocando o cartão escuro por
-  // um fundo branco, exatamente o "desconfigurado" que apareceu no teste. Isso trava o design nas
-  // cores que a gente escolheu, nas duas aparências (claro/escuro) do celular de quem recebe.
+  // Apple Mail (confirmado no teste real do Único Sushi Bar) reinterpreta um e-mail de fundo escuro
+  // como "feito pra modo claro" e reescreve as cores sozinho. Como o design agora já É claro
+  // (pedido do Victor — "pode ser mais simples, fundo branco, uma tabela mesmo"), isso trava esse
+  // fundo claro nas duas aparências (claro/escuro) do celular de quem recebe, sem o Apple Mail
+  // tentando "ajudar" de novo.
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -161,30 +282,31 @@ export async function enviarRelatorioSemanal(
 <meta name="supported-color-schemes" content="only light">
 <title>Relatório — ${relatorio.contaNome}</title>
 </head>
-<body style="margin:0; padding:0; background:#050509;" bgcolor="#050509">
-    <div style="background:#050509; padding:28px 20px; font-family:Helvetica,Arial,sans-serif;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0d0d13" style="max-width:520px; margin:0 auto; background:#0d0d13; border:1px solid #1f1f27; border-radius:16px; overflow:hidden;">
-        <tr><td style="padding:24px 24px 4px;">
-          <p style="margin:0; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#818cf8;">Relatório de desempenho</p>
-          <h1 style="margin:6px 0 0; font-size:20px; color:#f5f5f7;">${relatorio.contaNome}</h1>
-          <p style="margin:4px 0 20px; font-size:13px; color:#71717a;">${periodo}</p>
+<body style="margin:0; padding:0; background:#f4f4f5;" bgcolor="#f4f4f5">
+    <div style="background:#f4f4f5; padding:24px 16px; font-family:Helvetica,Arial,sans-serif;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px; margin:0 auto;">
+        <tr><td style="background:#4f46e5; padding:20px 24px; border-radius:16px 16px 0 0;" bgcolor="#4f46e5">
+          <p style="margin:0; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#e0e7ff;">Relatório de desempenho</p>
+          <h1 style="margin:4px 0 0; font-size:20px; color:#ffffff;">${relatorio.contaNome}</h1>
+          <p style="margin:2px 0 0; font-size:13px; color:#c7d2fe;">${periodo}</p>
         </td></tr>
-        <tr><td style="padding:0 24px;">
-          <table role="presentation" cellpadding="0" cellspacing="0">
-            <tr>
-              <td><p style="margin:0; font-size:12px; color:#a1a1aa;">ATENDIMENTOS</p><p style="margin:2px 0 0; font-size:26px; font-weight:700; color:#f5f5f7;">${relatorio.totalAtendimentos}</p></td>
-              <td style="padding:0 0 0 16px;"><p style="margin:0; font-size:12px; color:#a1a1aa;">MENSAGENS</p><p style="margin:2px 0 0; font-size:26px; font-weight:700; color:#f5f5f7;">${relatorio.totalMensagens}</p></td>
-              ${linhaReservas}
-              ${linhaStories}
-            </tr>
-          </table>
+        <tr><td style="background:#ffffff; padding:20px 24px 0;" bgcolor="#ffffff">
+          ${linhaDeQuadradinhos(quadradinhosPrincipais)}
         </td></tr>
-        <tr><td style="padding:24px 24px 0;">
-          <p style="margin:0 0 10px; font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#71717a;">Mensagens por dia</p>
-          ${grafico}
+        <tr><td style="background:#ffffff; padding:0 24px;" bgcolor="#ffffff">
+          ${linhaDeQuadradinhos(quadradinhosSecundarios)}
         </td></tr>
-        <tr><td style="padding:20px 24px 24px;">
-          <p style="margin:0; font-size:11px; color:#52525b;">Relatório automático do Chatbot Direct.</p>
+        <tr><td style="background:#ffffff; padding:8px 24px 0;" bgcolor="#ffffff">
+          <p style="margin:0 0 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#71717a;">
+            Atendimentos detalhados
+          </p>
+          <div style="border:1px solid #e4e4e7; border-radius:10px; overflow:hidden;">
+            ${tabelaAtendimentos}
+          </div>
+        </td></tr>
+        ${secaoStories}
+        <tr><td style="background:#ffffff; padding:20px 24px 24px; border-radius:0 0 16px 16px;" bgcolor="#ffffff">
+          <p style="margin:0; font-size:11px; color:#a1a1aa;">Relatório automático do Chatbot Direct.</p>
         </td></tr>
       </table>
     </div>
