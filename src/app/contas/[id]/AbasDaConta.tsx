@@ -12,6 +12,7 @@ const ABAS_POR_SERVICO = [
 
 const ABAS_FINAIS = [
   { segmento: "atendimentos", rotulo: "Atendimentos" },
+  { segmento: "relatorios", rotulo: "Relatórios" },
   { segmento: "ignorados", rotulo: "Ignorados" },
   { segmento: "funcionarios", rotulo: "Funcionários" },
 ];

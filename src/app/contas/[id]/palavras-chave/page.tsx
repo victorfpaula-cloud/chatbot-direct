@@ -64,20 +64,12 @@ export default async function PalavrasChavePage({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold text-neutral-50">Palavras-chave</h2>
-          <p className="mt-1.5 text-sm text-neutral-400">
-            Quando o cliente manda uma dessas palavras, o bot responde com a sequência de mensagens
-            configurada — sem precisar de nenhum fluxo automático (Reserva/Agendamento) por trás.
-          </p>
-        </div>
-        <a
-          href={`/contas/${params.id}/relatorios`}
-          className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-semibold text-indigo-200 transition hover:border-indigo-400/50 hover:bg-indigo-500/20"
-        >
-          Relatórios
-        </a>
+      <div>
+        <h2 className="text-xl font-semibold text-neutral-50">Palavras-chave</h2>
+        <p className="mt-1.5 text-sm text-neutral-400">
+          Quando o cliente manda uma dessas palavras, o bot responde com a sequência de mensagens
+          configurada — sem precisar de nenhum fluxo automático (Reserva/Agendamento) por trás.
+        </p>
       </div>
 
       {searchParams.erro && <div className={CLASSE_AVISO_ERRO}>{searchParams.erro}</div>}
