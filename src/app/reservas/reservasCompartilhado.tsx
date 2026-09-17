@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { FormularioDeEdicaoDeReserva } from "./FormularioDeEdicaoDeReserva";
 import { BotaoExcluirReserva } from "./BotaoExcluirReserva";
 import { BotaoConfirmarPresenca } from "./BotaoConfirmarPresenca";
@@ -6,6 +9,12 @@ import { BotaoConfirmarPresenca } from "./BotaoConfirmarPresenca";
 // quanto pela tela Antigas/Futuras (o dia é um Client Component que busca os dados sob demanda,
 // só quando a pessoa abre o dropdown daquele dia — ver DiaComCarregamentoSobDemanda.tsx). Por isso
 // nada aqui pode depender de `next/headers` nem de outra coisa exclusiva de servidor.
+//
+// "use client" (novo): CartaoDeReserva precisa de estado próprio pra mudar de cara (vidro claro →
+// escuro) NA HORA que o funcionário toca em "Confirmar"/"Chegou", sem esperar a gravação no banco
+// (ver BotaoConfirmarPresenca.tsx) — nada impede um Server Component (a tela "Hoje") de renderizar
+// um Client Component recebendo os dados como prop, então isso não muda como as duas telas usam
+// esse arquivo.
 
 export type Reserva = {
   id: string;
@@ -128,7 +137,15 @@ export function CartaoDeReserva({
    * anterior) — não afeta nada visual além disso. */
   indice?: number;
 }) {
-  const confirmado = reserva.presenca_confirmada;
+  // Estado otimista: reflete o toque no botão Confirmar/Chegou NA HORA (ver
+  // BotaoConfirmarPresenca.tsx), antes da gravação no banco terminar. Sincroniza com o valor
+  // vindo do servidor sempre que ele mudar de verdade (ex.: a lista foi buscada de novo) — sem
+  // isso, um recarregamento de dados sob demanda (Antigas/Futuras) poderia deixar o cartão preso
+  // no valor antigo se o componente não remontar.
+  const [confirmado, setConfirmado] = useState(reserva.presenca_confirmada);
+  useEffect(() => {
+    setConfirmado(reserva.presenca_confirmada);
+  }, [reserva.presenca_confirmada]);
 
   return (
     // Vidro (Liquid Glass): mais escuro/recuado que o card do dia que o envolve — em vez de
@@ -300,6 +317,7 @@ export function CartaoDeReserva({
           redirectTo={hrefAtualizar}
           nomeCliente={reserva.cliente_nome ?? "esse cliente"}
           presencaConfirmada={confirmado}
+          aoAlternar={setConfirmado}
         />
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Icone } from "./reservasCompartilhado";
 
@@ -18,28 +18,58 @@ const CLASSE_BOTAO_CONFIRMAR =
 const CLASSE_SELO_CHEGOU =
   "flex shrink-0 items-center gap-1 rounded-[10px] border border-white/5 bg-white/[0.02] px-2.5 py-1.5 text-[10px] font-medium text-white/25";
 
+/**
+ * Clicar aqui precisa parecer instantâneo (pedido do Victor: o cartão inteiro tem que mudar de
+ * cara — vidro claro → escuro/apagado, ou vice-versa — NA HORA do toque, sem esperar o
+ * atendimento/servidor). Por isso não navega mais de página nenhuma: quem muda a cara do cartão é
+ * o estado otimista lá em CartaoDeReserva (`aoAlternar`, chamado ANTES de qualquer chamada de
+ * rede); a gravação de verdade no banco roda por trás, via fetch — se falhar (raríssimo, sem
+ * internet etc.), desfaz o estado otimista e avisa com um toast discreto embaixo da tela.
+ */
 export function BotaoConfirmarPresenca({
   action,
   redirectTo,
   nomeCliente,
   presencaConfirmada,
+  aoAlternar,
 }: {
   action: string;
   redirectTo: string;
   nomeCliente: string;
   presencaConfirmada: boolean;
+  /** Muda a cara do cartão imediatamente (chamado antes do fetch terminar) — e de novo, com o
+   * valor anterior, se a gravação no banco falhar. */
+  aoAlternar: (novoValor: boolean) => void;
 }) {
   const [modalAberto, setModalAberto] = useState(false);
-  // Essa ação é um POST de formulário de verdade (navegação de página inteira, não fetch) — como
-  // o app instalado (standalone) não mostra a barra de carregamento do navegador, sem isso o
-  // toque não dava NENHUM feedback até a próxima página terminar de chegar, parecendo travado.
-  const [enviando, setEnviando] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
+  const [erro, setErro] = useState(false);
 
-  const rodaGirando = enviando &&
+  function confirmarNoServidor(valorOtimista: boolean) {
+    // Fire-and-forget de propósito — a UI já mudou; isso só precisa acontecer, não bloquear nada.
+    // O toggle é decidido pelo próprio servidor a partir do que já está gravado (ver
+    // /api/reservas/[id]/confirmar-presenca), então mandar redirect_to é só resquício de quando
+    // essa ação navegava de página — a resposta (um redirect) é ignorada aqui.
+    const formData = new FormData();
+    formData.set("redirect_to", redirectTo);
+    fetch(action, { method: "POST", body: formData })
+      .then((resposta) => {
+        if (!resposta.ok) throw new Error(`status ${resposta.status}`);
+      })
+      .catch((erroDeRede) => {
+        console.error("Falha ao confirmar presença, desfazendo na tela:", erroDeRede);
+        aoAlternar(!valorOtimista);
+        setErro(true);
+        setTimeout(() => setErro(false), 3000);
+      });
+  }
+
+  const toast =
+    erro &&
     createPortal(
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-        <div className="h-11 w-11 animate-spin rounded-full border-[3px] border-white/15 border-t-indigo-400" />
+      <div className="fixed inset-x-0 bottom-6 z-[60] flex justify-center px-4">
+        <div className="rounded-xl border border-red-900 bg-red-950 px-4 py-2.5 text-xs font-medium text-red-200 shadow-lg">
+          Não deu pra confirmar — sem internet? Tenta de novo.
+        </div>
       </div>,
       document.body
     );
@@ -49,28 +79,29 @@ export function BotaoConfirmarPresenca({
   if (presencaConfirmada) {
     return (
       <>
-        <form ref={formRef} action={action} method="POST" className="contents" onSubmit={() => setEnviando(true)}>
-          <input type="hidden" name="redirect_to" value={redirectTo} />
-          <button type="submit" className={CLASSE_SELO_CHEGOU}>
-            <Icone path={CAMINHO_CHECK} className="h-3 w-3" />
-            Chegou
-          </button>
-        </form>
-        {rodaGirando}
+        <button
+          type="button"
+          onClick={() => {
+            aoAlternar(false);
+            confirmarNoServidor(false);
+          }}
+          className={CLASSE_SELO_CHEGOU}
+        >
+          <Icone path={CAMINHO_CHECK} className="h-3 w-3" />
+          Chegou
+        </button>
+        {toast}
       </>
     );
   }
 
   return (
     <>
-      <form ref={formRef} action={action} method="POST" className="contents" onSubmit={() => setEnviando(true)}>
-        <input type="hidden" name="redirect_to" value={redirectTo} />
-        <button type="button" onClick={() => setModalAberto(true)} className={CLASSE_BOTAO_CONFIRMAR}>
-          <Icone path={CAMINHO_CHECK} className="h-3 w-3 text-indigo-400" />
-          Confirmar
-        </button>
-      </form>
-      {rodaGirando}
+      <button type="button" onClick={() => setModalAberto(true)} className={CLASSE_BOTAO_CONFIRMAR}>
+        <Icone path={CAMINHO_CHECK} className="h-3 w-3 text-indigo-400" />
+        Confirmar
+      </button>
+      {toast}
 
       {modalAberto &&
         createPortal(
@@ -106,7 +137,8 @@ export function BotaoConfirmarPresenca({
                   type="button"
                   onClick={() => {
                     setModalAberto(false);
-                    formRef.current?.requestSubmit();
+                    aoAlternar(true);
+                    confirmarNoServidor(true);
                   }}
                   className="flex-1 rounded-xl bg-indigo-500 py-3 text-sm font-semibold text-neutral-950"
                 >
