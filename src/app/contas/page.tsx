@@ -2,6 +2,7 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { buscarFotoDePerfilDaConta } from "@/lib/metaMessaging";
 import { extrairCorPredominante } from "@/lib/corDoLogo";
 import { AvatarConta } from "./AvatarConta";
+import { BotaoAtualizar } from "./BotaoAtualizar";
 import { BotaoSair } from "./BotaoSair";
 import { ChavesDeServico } from "./ChavesDeServico";
 import { AnelDeProgresso } from "./AnelDeProgresso";
@@ -344,6 +345,7 @@ export default async function ContasPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <BotaoAtualizar />
           <BotaoSair />
         </div>
       </div>
