@@ -97,3 +97,15 @@ export async function montarConfigPublica(admin: Admin, conta: ContaExterna): Pr
 export function hojeISO(): string {
   return paraISO(agoraEmSaoPaulo());
 }
+
+/**
+ * Só pra página pública (src/app/r/[slug]/page.tsx) distinguir "esse link nunca existiu" (404 de
+ * verdade) de "esse link existe, mas a conta tá pausada" (Victor pausa quando o cliente não paga —
+ * ver botão Pausar em /contas) — as duas caem em `buscarContaPorSlug` devolvendo null, de propósito
+ * (as rotas de API de reserva, que É onde importa de verdade bloquear, não precisam nem devem saber
+ * o motivo, só que não pode reservar). Chamada só quando `buscarContaPorSlug` já devolveu null.
+ */
+export async function slugPertenceAContaPausada(admin: Admin, slug: string): Promise<boolean> {
+  const { data } = await admin.from("chatbot_accounts").select("active").eq("slug", slug).maybeSingle();
+  return !!data && !data.active;
+}
