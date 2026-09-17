@@ -213,6 +213,61 @@ async function buscarResumoDeStoriesHoje(
   return resumo;
 }
 
+// Quantos Stories o AutoStory (novo sub-módulo do Agendador de Stories, lançado 17/09/2026 — lê
+// uma pasta do Google Drive sozinho e publica, sem precisar cadastrar horário na mão) já publicou
+// hoje, por conta — tabelas próprias (story_drive_config/story_posts), independentes de
+// schedule_slots/publish_log usadas pelo Stories "normal" acima. undefined = conta sem AutoStory
+// configurado lá (não mostra o ícone do robô nem pra quem não conectou, igual ao resumo de cima).
+async function buscarResumoDeAutoStoryHoje(
+  admin: ReturnType<typeof criarClienteAdmin>,
+  contasComStories: { id: string; instagram_user_id: string }[]
+): Promise<Map<string, number>> {
+  const resumo = new Map<string, number>();
+  if (contasComStories.length === 0) return resumo;
+
+  const idsDoInstagram = contasComStories.map((c) => c.instagram_user_id);
+  const { data: contasStories } = await admin.from("accounts").select("id, ig_user_id").in("ig_user_id", idsDoInstagram);
+
+  const storiesIdParaContaLocal = new Map<string, string>();
+  for (const c of contasComStories) {
+    const contaStories = (contasStories ?? []).find((cs) => cs.ig_user_id === c.instagram_user_id);
+    if (contaStories) storiesIdParaContaLocal.set(contaStories.id, c.id);
+  }
+
+  const idsDeStories = Array.from(storiesIdParaContaLocal.keys());
+  if (idsDeStories.length === 0) return resumo;
+
+  // Só conta pra quem realmente tem o AutoStory configurado lá — sem isso, toda conta com Stories
+  // "normal" ganhava um robô mostrando "0" à toa, mesmo nunca tendo usado esse recurso novo.
+  const { data: configsDeAutoStory } = await admin
+    .from("story_drive_config")
+    .select("account_id")
+    .in("account_id", idsDeStories);
+
+  const dataHoje = dataDeHojeEmSaoPauloISO();
+  const inicioDoDiaUTC = new Date(`${dataHoje}T00:00:00-03:00`).toISOString();
+  const fimDoDiaUTC = new Date(`${dataHoje}T23:59:59-03:00`).toISOString();
+
+  const { data: storiesAutomaticosDeHoje } = await admin
+    .from("story_posts")
+    .select("account_id, status")
+    .in("account_id", idsDeStories)
+    .gte("scheduled_at", inicioDoDiaUTC)
+    .lte("scheduled_at", fimDoDiaUTC);
+
+  const postadosPorConta = new Map<string, number>();
+  for (const s of storiesAutomaticosDeHoje ?? []) {
+    if (s.status === "success") postadosPorConta.set(s.account_id, (postadosPorConta.get(s.account_id) ?? 0) + 1);
+  }
+
+  for (const { account_id: storiesId } of configsDeAutoStory ?? []) {
+    const contaLocalId = storiesIdParaContaLocal.get(storiesId);
+    if (contaLocalId) resumo.set(contaLocalId, postadosPorConta.get(storiesId) ?? 0);
+  }
+
+  return resumo;
+}
+
 export default async function ContasPage({
   searchParams,
 }: {
@@ -288,7 +343,10 @@ export default async function ContasPage({
   const contasComStories = (contas ?? [])
     .filter((c) => servicosPorConta.get(c.id)?.stories)
     .map((c) => ({ id: c.id, instagram_user_id: c.instagram_user_id }));
-  const resumoDeStoriesPorConta = await buscarResumoDeStoriesHoje(admin, contasComStories);
+  const [resumoDeStoriesPorConta, resumoDeAutoStoryPorConta] = await Promise.all([
+    buscarResumoDeStoriesHoje(admin, contasComStories),
+    buscarResumoDeAutoStoryHoje(admin, contasComStories),
+  ]);
 
   // "Status do dia": conta rápida de quantos CLIENTES essa conta atendeu hoje e quantos tiveram
   // erro — só pra dar uma visão geral batendo o olho, sem precisar entrar em cada conta. Isso
@@ -396,6 +454,7 @@ export default async function ContasPage({
 
           const fade = conta.active ? "" : "opacity-50";
           const resumoStories = resumoDeStoriesPorConta.get(conta.id);
+          const postadosPeloAutoStory = resumoDeAutoStoryPorConta.get(conta.id);
 
           return (
             <div
@@ -501,8 +560,34 @@ export default async function ContasPage({
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
                           Stories hoje
                         </span>
-                        <span className="text-base font-semibold text-neutral-100">
-                          {resumoStories.postados}/{resumoStories.total}
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-base font-semibold text-neutral-100">
+                            {resumoStories.postados}/{resumoStories.total}
+                          </span>
+                          {postadosPeloAutoStory !== undefined && (
+                            <span
+                              className="flex items-center gap-0.5 text-indigo-400"
+                              title={`AutoStory publicou ${postadosPeloAutoStory} hoje`}
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-3 w-3"
+                                aria-hidden="true"
+                              >
+                                <rect x="4" y="9" width="16" height="11" rx="3" />
+                                <path d="M12 9V5" />
+                                <circle cx="12" cy="3.5" r="1.2" fill="currentColor" stroke="none" />
+                                <circle cx="9" cy="14.5" r="1.2" fill="currentColor" stroke="none" />
+                                <circle cx="15" cy="14.5" r="1.2" fill="currentColor" stroke="none" />
+                              </svg>
+                              <span className="text-xs font-semibold">{postadosPeloAutoStory}</span>
+                            </span>
+                          )}
                         </span>
                       </span>
                     </a>
