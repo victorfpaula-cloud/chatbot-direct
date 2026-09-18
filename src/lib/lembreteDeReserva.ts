@@ -50,7 +50,12 @@ async function enviarLembretesDaConta(
       if (id.startsWith("sendpulse:")) {
         await enviarTextoPelaApiDaSendPulse(id.slice("sendpulse:".length), mensagem);
         resultado.enviadas++;
-      } else if (id.startsWith("manual:")) {
+      } else if (id.startsWith("manual:") || id.startsWith("externo:")) {
+        // "externo:..." = reserva pelo link público (/r/[slug]) — sem conversa nenhuma no Direct
+        // por trás, então não tem pra quem mandar lembrete por aqui (só WhatsApp resolveria, e essa
+        // função não manda por esse canal). Sem esse branch, caía no "else" abaixo e tentava mandar
+        // pro Direct usando esse id sintético como se fosse um IGSID de verdade — sempre falhava na
+        // Graph API à toa.
         resultado.puladas++;
       } else if (conta.access_token) {
         await enviarMensagemDirect(conta.access_token, id, mensagem);

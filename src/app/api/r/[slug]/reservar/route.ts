@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { prepararConfirmacaoDeReserva, sincronizarComPlanilha } from "@/lib/reservas";
 import { buscarContaPorSlug, hojeISO, montarConfigPublica } from "@/lib/reservaExterna";
@@ -45,7 +46,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const dados = {
     nome,
     username: null,
-    instagram_scoped_id: null,
+    // Nunca null: reserva feita por aqui não tem NENHUMA conversa por trás (sem Direct, sem
+    // SendPulse) pra gerar um id de verdade, mas um id sintético (mesma ideia de "manual:...")
+    // evita qualquer código que assuma instagram_scoped_id sempre preenchido — foi exatamente um
+    // id nulo aqui que derrubou a tela de reservas do funcionário em produção (18/09/2026, ver
+    // PainelDeReservas.tsx: ".startsWith" chamado direto num id nulo).
+    instagram_scoped_id: `externo:${crypto.randomUUID()}`,
     data_reserva: data,
     data_reserva_br: paraDataBR(data),
     periodo,

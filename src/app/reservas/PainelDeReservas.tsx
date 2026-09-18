@@ -252,11 +252,12 @@ export async function PainelDeReservas({
       // chamada por @usuário único (não por reserva) pra não repetir à toa se a mesma pessoa tiver
       // mais de uma reserva no dia.
       //
-      // `instagram_scoped_id` vem em 3 formatos diferentes dependendo de como a reserva chegou:
-      // um IGSID de verdade da Meta (webhook direto), `sendpulse:<id>` (pela ponte — hoje é
-      // praticamente todo mundo, enquanto o App Review não sai, então a Graph API da Meta NUNCA
-      // teria a foto desse ID) ou `manual:...` (reserva antiga migrada à mão, sem foto nenhuma pra
-      // buscar). Cada um busca no lugar certo.
+      // `instagram_scoped_id` vem em 4 formatos diferentes dependendo de como a reserva chegou:
+      // um IGSID de verdade da Meta (webhook direto), `sendpulse:<id>` (pela ponte, hoje
+      // decomissionada — só cobre reserva antiga), `manual:...` (reserva antiga migrada à mão) ou
+      // `externo:<uuid>` (reserva feita pelo link público /r/[slug] — sem conversa nenhuma no
+      // Direct por trás, então nunca tem foto pra buscar, igual "manual:..."). Cada um busca no
+      // lugar certo.
       if (reservas.length > 0) {
         // .filter(Boolean): reserva sem instagram_scoped_id (ex.: cadastrada manualmente sem
         // vínculo com conversa nenhuma do Direct) quebrava a tela inteira aqui — ".startsWith" num
@@ -274,7 +275,7 @@ export async function PainelDeReservas({
         const fotosPorId = new Map<string, string | null>(
           await Promise.all(
             idsUnicos.map(async (id) => {
-              if (id.startsWith("manual:")) return [id, null] as const;
+              if (id.startsWith("manual:") || id.startsWith("externo:")) return [id, null] as const;
               if (id.startsWith("sendpulse:")) {
                 const contatoId = id.slice("sendpulse:".length);
                 const fotoPelaSendPulse = await buscarFotoDePerfilPelaApiDaSendPulse(contatoId);
