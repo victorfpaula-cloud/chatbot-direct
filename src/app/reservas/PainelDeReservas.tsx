@@ -258,7 +258,11 @@ export async function PainelDeReservas({
       // teria a foto desse ID) ou `manual:...` (reserva antiga migrada à mão, sem foto nenhuma pra
       // buscar). Cada um busca no lugar certo.
       if (reservas.length > 0) {
-        const idsUnicos = Array.from(new Set(reservas.map((r) => r.instagram_scoped_id)));
+        // .filter(Boolean): reserva sem instagram_scoped_id (ex.: cadastrada manualmente sem
+        // vínculo com conversa nenhuma do Direct) quebrava a tela inteira aqui — ".startsWith" num
+        // id nulo lançava TypeError não tratado (visto em produção com uma reserva real da "Ana
+        // Luiza"). Mesmo filtro já usado em src/lib/lembreteDeReserva.ts pro mesmo motivo.
+        const idsUnicos = Array.from(new Set(reservas.map((r) => r.instagram_scoped_id).filter(Boolean)));
         // Pra fallback por @usuário (ver abaixo): pega o primeiro @usuário salvo pra cada id único.
         const usernamePorId = new Map<string, string | null>();
         for (const r of reservas) {
