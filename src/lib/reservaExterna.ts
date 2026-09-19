@@ -6,7 +6,7 @@ import {
   parseDatasBloqueadas,
   passouDoCutoff,
 } from "@/lib/reservas";
-import { paletaAPartirDoHex, paletaAPartirDeAcentoExato, type PaletaDoLogo } from "@/lib/corDoLogo";
+import { paletaAPartirDoHex, paletaAPartirDeAcentoExato, type PaletaDoLogo } from "@/lib/paletaDoLogo";
 
 // Reserva externa (link público /r/[slug], fora do Instagram — ver src/app/r/[slug]/page.tsx e as
 // rotas em src/app/api/r/[slug]/). Todo o cálculo de "o que pode ser reservado agora" mora aqui,
