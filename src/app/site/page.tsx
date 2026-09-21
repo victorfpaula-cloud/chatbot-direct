@@ -3,6 +3,7 @@ import styles from "./pagina.module.css";
 import { DefinicoesDoVidroLiquidoSite } from "./VidroLiquido";
 import { EfeitosDeRolagem } from "./EfeitosDeRolagem";
 import { ContadorSocial } from "./ContadorSocial";
+import { FormularioContato } from "./FormularioContato";
 
 // Home de vendas do produto (automesa.com.br — ver a reescrita "/" -> "/site" em src/middleware.ts
 // pro domínio próprio). Sem nenhuma leitura de banco: é conteúdo institucional, igual pra todo
@@ -375,9 +376,7 @@ export default function PaginaSite() {
             <br />
             Deixe o AutoMesa fazer isso por você.
           </p>
-          <a href={`mailto:${EMAIL_DE_CONTATO}`} className={styles.ctaPrimario}>
-            Quero colocar meu restaurante no AutoMesa
-          </a>
+          <FormularioContato />
         </section>
 
         <footer className={styles.rodape}>

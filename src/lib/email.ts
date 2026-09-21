@@ -69,6 +69,59 @@ export async function enviarEmailDeReclamacao(dados: {
   }
 }
 
+/** Contato pelo formulário do final da home de vendas (/site) — sempre pro e-mail pessoal do
+ * Victor (fixo, não é o mesmo ALERT_EMAIL das reclamações: é lead comercial, não operação).
+ * Devolve o resultado (como enviarRelatorioSemanal, ao contrário de enviarEmailDeReclamacao) porque
+ * aqui um envio que falhou silenciosamente vira um lead perdido de verdade — a rota que chama isso
+ * precisa poder avisar o visitante que não deu certo. */
+export async function enviarEmailDeContatoDoSite(dados: {
+  nome: string;
+  whatsapp: string;
+  restaurante: string;
+  mensagem: string;
+}): Promise<{ sucesso: boolean; erro?: string }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { sucesso: false, erro: "RESEND_API_KEY não configurada nesse ambiente." };
+
+  const corpo = [
+    "Novo contato pelo formulário do site (automesa.com.br).",
+    "",
+    `Nome: ${dados.nome}`,
+    `Restaurante: ${dados.restaurante}`,
+    `WhatsApp: ${dados.whatsapp}`,
+    "",
+    `Mensagem: ${dados.mensagem || "(sem mensagem)"}`,
+  ].join("\n");
+
+  try {
+    const resposta = await fetch(RESEND_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: REMETENTE,
+        to: ["victorfpaula@gmail.com"],
+        subject: `Novo contato do site — ${dados.restaurante}`,
+        text: corpo,
+      }),
+      cache: "no-store",
+    });
+
+    if (!resposta.ok) {
+      const corpoDoErro = await resposta.text().catch(() => "");
+      console.error(`Falha ao enviar e-mail de contato do site (${resposta.status}): ${corpoDoErro}`);
+      return { sucesso: false, erro: `Resend recusou o envio (${resposta.status}).` };
+    }
+
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Falha ao enviar e-mail de contato do site:", erro);
+    return { sucesso: false, erro: "Falha de rede ao tentar enviar." };
+  }
+}
+
 function formatarPeriodoExtenso(inicioISO: string, fimISO: string): string {
   const formatarDia = (iso: string) => {
     const [ano, mes, dia] = iso.split("-").map((v) => parseInt(v, 10));

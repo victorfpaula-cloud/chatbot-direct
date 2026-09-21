@@ -308,6 +308,8 @@ export const config = {
     // api/r/ (src/app/api/r/[slug]/*): as chamadas fetch que essa mesma página pública faz pro
     // calendário/disponibilidade/confirmação — o navegador do cliente final as dispara direto,
     // sem cookie de sessão nenhum, então também precisam ficar de fora do redirecionamento.
-    "/((?!api/webhook/instagram|api/r/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/|site$).*)",
+    // api/site/ (src/app/api/site/contato/route.ts): o formulário de contato da home de vendas
+    // (/site) — visitante nunca tem sessão nenhuma, igual a reserva externa acima.
+    "/((?!api/webhook/instagram|api/r/|api/site/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/|site$).*)",
   ],
 };
