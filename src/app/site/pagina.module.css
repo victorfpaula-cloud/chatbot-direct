@@ -408,12 +408,12 @@
 .passosGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  margin-top: 44px;
+  gap: 16px;
+  margin-top: 36px;
 }
 .passoGrande {
-  padding: 30px 26px;
-  border-radius: 20px;
+  padding: 24px 22px;
+  border-radius: 18px;
   border: 1.5px solid var(--glass-border);
   background: rgba(255, 255, 255, 0.04);
 }
@@ -447,16 +447,16 @@
 
 /* ---------- problemas (o que a equipe deixa de fazer) ---------- */
 .problemasCard {
-  margin-top: 44px;
-  padding: 34px;
-  border-radius: 22px;
+  margin-top: 24px;
+  padding: 26px 28px;
+  border-radius: 20px;
   border: 1.5px solid var(--glass-border);
   background: rgba(255, 255, 255, 0.04);
 }
 .problemasLista {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px 28px;
+  gap: 10px 20px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -720,15 +720,15 @@
 /* ---------- features ---------- */
 .featureGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  margin-top: 44px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 36px;
 }
 .featureCard {
   position: relative;
   border: 1.5px solid var(--glass-border);
-  border-radius: 20px;
-  padding: 26px 24px;
+  border-radius: 18px;
+  padding: 22px 20px;
   background: rgba(255, 255, 255, 0.045);
   backdrop-filter: blur(14px) url(#vidro-feature-site);
   -webkit-backdrop-filter: blur(14px) url(#vidro-feature-site);
@@ -788,7 +788,7 @@
 
 /* ---------- comparação ---------- */
 .tabelaWrap {
-  margin-top: 40px;
+  margin-top: 32px;
   overflow-x: auto;
   border-radius: 18px;
   border: 1.5px solid var(--glass-border);
@@ -796,13 +796,14 @@
 .tabela {
   width: 100%;
   border-collapse: collapse;
-  min-width: 560px;
+  min-width: 480px;
 }
 .tabela th,
 .tabela td {
-  padding: 16px 20px;
+  padding: 13px 20px;
   text-align: left;
   vertical-align: top;
+  white-space: nowrap;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   font-size: 14.5px;
 }
@@ -865,6 +866,12 @@
   color: var(--ink-low);
 }
 
+@media (max-width: 980px) {
+  .featureGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 860px) {
   .hero {
     grid-template-columns: 1fr;
@@ -884,6 +891,15 @@
   .canaisUniao {
     flex-direction: row;
     justify-content: center;
+  }
+  .tabela {
+    min-width: 0;
+  }
+  .tabela th,
+  .tabela td {
+    padding: 11px 10px;
+    font-size: 12.5px;
+    white-space: normal;
   }
   .navLinks {
     display: none;

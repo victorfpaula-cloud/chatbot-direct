@@ -115,9 +115,7 @@ export default function PaginaSite() {
             <span className={styles.eyebrow}>Sistema de reservas para restaurantes</span>
             <h1 className={styles.heroTitulo}>Seu Instagram virou uma central de reservas.</h1>
             <p className={styles.heroSub}>
-              O cliente manda uma mensagem. O AutoMesa entende o pedido, verifica a disponibilidade e confirma a
-              reserva automaticamente — no Instagram Direct ou por um link exclusivo com a cara do seu restaurante,
-              sem sua equipe ficar respondendo mensagem, conferindo horário ou controlando lotação.
+              O cliente manda mensagem no Instagram. O AutoMesa confirma a reserva sozinho.
             </p>
             <div className={styles.heroCtas}>
               <a href={`mailto:${EMAIL_DE_CONTATO}`} className={styles.ctaPrimario}>
@@ -127,7 +125,7 @@ export default function PaginaSite() {
                 Ver como funciona
               </a>
             </div>
-            <p className={styles.heroNota}>Feito sob medida para restaurantes — não é um chatbot genérico adaptado.</p>
+            <p className={styles.heroNota}>Feito sob medida pra restaurante — não é chatbot genérico.</p>
           </div>
 
           <div className={styles.telefoneWrap}>
@@ -154,9 +152,9 @@ export default function PaginaSite() {
         </section>
 
         {/* ---------- como funciona (3 passos) ---------- */}
-        <section className={styles.secao} id="como-funciona">
+        <section className={`${styles.secao} ${styles.compacta}`} id="como-funciona">
           <span className={styles.eyebrow}>Como funciona</span>
-          <h2 className={styles.tituloSecao}>Da mensagem à mesa reservada, sem ninguém digitar nada por trás</h2>
+          <h2 className={styles.tituloSecao}>Da mensagem à mesa reservada</h2>
           <div className={styles.passosGrid}>
             <div className={styles.passoGrande}>
               <span className={styles.passoNumero}>01</span>
@@ -166,60 +164,42 @@ export default function PaginaSite() {
             <div className={styles.passoGrande}>
               <span className={styles.passoNumero}>02</span>
               <h3>AutoMesa verifica</h3>
-              <p>Data, horário, quantidade de pessoas e disponibilidade.</p>
+              <p>Data, horário e disponibilidade.</p>
             </div>
             <div className={styles.passoGrande}>
               <span className={styles.passoNumero}>03</span>
               <h3>Reserva confirmada</h3>
-              <p>A reserva entra automaticamente no painel do restaurante.</p>
+              <p>Já entra sozinha no painel do restaurante.</p>
             </div>
           </div>
           <p className={styles.passoNota}>
-            Também funciona por um <b>link exclusivo</b> — sem precisar passar pelo Instagram.
+            Funciona também por um <b>link exclusivo</b>.
           </p>
         </section>
 
-        {/* ---------- problemas ---------- */}
-        <section className={styles.secao}>
-          <span className={styles.eyebrow}>Sua equipe não precisa fazer isso manualmente</span>
-          <h2 className={styles.tituloSecao}>Aquele inferno de responder &quot;tem horário hoje?&quot; no Direct</h2>
-          <div className={styles.problemasCard}>
-            <ul className={styles.problemasLista}>
-              <li className={styles.problemaItem}>
-                <span className={styles.x}>✕</span> Responder cada mensagem
-              </li>
-              <li className={styles.problemaItem}>
-                <span className={styles.x}>✕</span> Conferir disponibilidade
-              </li>
-              <li className={styles.problemaItem}>
-                <span className={styles.x}>✕</span> Contar pessoas
-              </li>
-              <li className={styles.problemaItem}>
-                <span className={styles.x}>✕</span> Atualizar planilha
-              </li>
-              <li className={styles.problemaItem}>
-                <span className={styles.x}>✕</span> Evitar overbooking
-              </li>
-              <li className={styles.problemaItem}>
-                <span className={styles.x}>✕</span> Confirmar reserva uma por uma
-              </li>
-            </ul>
-            <p className={styles.problemasSeta}>Deixa o AutoMesa cuidar disso.</p>
-          </div>
-        </section>
-
-        {/* ---------- operação / painel ---------- */}
-        <section className={styles.secao}>
+        {/* ---------- problema + painel ---------- */}
+        <section className={`${styles.secao} ${styles.compacta}`}>
           <div className={styles.operacaoGrid}>
             <div>
-              <span className={styles.eyebrow}>O painel</span>
-              <h2 className={styles.tituloSecao}>Sua equipe só recebe o cliente. A gente cuida do resto.</h2>
-              <p className={styles.dekSecao}>
-                Toda a operação e a programação ficam com a gente. Você não mexe em configuração nenhuma pra fazer
-                funcionar — só organiza a mesa e recebe quem chega. A cada reserva nova, o aviso chega sozinho, e sua
-                equipe acompanha tudo dentro do próprio painel, em tempo real — isto aqui é o sistema rodando de
-                verdade, não uma ideia no papel.
-              </p>
+              <span className={styles.eyebrow}>Zero trabalho manual</span>
+              <h2 className={styles.tituloSecao}>Sua equipe só recebe o cliente</h2>
+              <div className={styles.problemasCard}>
+                <ul className={styles.problemasLista}>
+                  <li className={styles.problemaItem}>
+                    <span className={styles.x}>✕</span> Responder cada mensagem
+                  </li>
+                  <li className={styles.problemaItem}>
+                    <span className={styles.x}>✕</span> Conferir disponibilidade
+                  </li>
+                  <li className={styles.problemaItem}>
+                    <span className={styles.x}>✕</span> Contar pessoas
+                  </li>
+                  <li className={styles.problemaItem}>
+                    <span className={styles.x}>✕</span> Evitar overbooking
+                  </li>
+                </ul>
+                <p className={styles.problemasSeta}>Deixa o AutoMesa cuidar disso.</p>
+              </div>
             </div>
 
             <div className={styles.painelMockWrap}>
@@ -262,13 +242,13 @@ export default function PaginaSite() {
         </section>
 
         {/* ---------- canais (instagram + link) ---------- */}
-        <section className={styles.secao}>
+        <section className={`${styles.secao} ${styles.compacta}`}>
           <span className={styles.eyebrow}>Duas portas, um só controle</span>
-          <h2 className={styles.tituloSecao}>Duas formas de reservar. Um único controle.</h2>
+          <h2 className={styles.tituloSecao}>Duas formas de reservar. Uma reserva só.</h2>
           <div className={styles.canaisGrid}>
             <div className={styles.canalCard}>
               <h3>Instagram</h3>
-              <p>Cliente conversa normalmente, no Direct da sua conta — sem instalar nada, sem sair do app.</p>
+              <p>Cliente conversa no Direct, sem instalar nada.</p>
             </div>
             <div className={styles.canaisUniao}>
               <IconeLink />
@@ -276,25 +256,15 @@ export default function PaginaSite() {
             </div>
             <div className={styles.canalCard}>
               <h3>Link</h3>
-              <p>Cliente acessa o link personalizado do restaurante, com sua marca — pra quem prefere não usar o Instagram.</p>
+              <p>Cliente reserva pelo link, com sua marca.</p>
             </div>
           </div>
-          <p className={styles.dekSecao} style={{ marginTop: 24 }}>
-            Mas a reserva cai no mesmo lugar: mesma lotação, mesmo painel, mesmas regras.
-          </p>
         </section>
 
         {/* ---------- recursos ---------- */}
-        <section className={styles.secao} id="recursos">
+        <section className={`${styles.secao} ${styles.compacta}`} id="recursos">
           <span className={styles.eyebrow}>Recursos</span>
-          <h2 className={styles.tituloSecao}>
-            Um atendente de reservas que nunca dorme, nunca erra a conta e nunca ultrapassa a lotação
-          </h2>
-          <p className={styles.dekSecao}>
-            Todo o fluxo — da primeira mensagem até a reserva confirmada — foi desenhado pra rotina de um
-            restaurante de verdade, direto no Instagram Direct ou num link só seu, sem o cliente precisar instalar
-            nada.
-          </p>
+          <h2 className={styles.tituloSecao}>Tudo que a reserva de um restaurante precisa</h2>
 
           <div className={styles.featureGrid}>
             <div className={styles.featureCard}>
@@ -302,146 +272,98 @@ export default function PaginaSite() {
                 <IconeChat />
               </span>
               <h3>Reservas automáticas</h3>
-              <p>
-                Seu cliente escreve como escreveria pra um garçom — &quot;quero reservar sábado pra 6&quot; já
-                basta. O sistema entende data, horário, quantas pessoas e pega o WhatsApp na mesma conversa.
-              </p>
+              <p>Entende data, horário e quantas pessoas numa mensagem só.</p>
             </div>
             <div className={styles.featureCard}>
               <span className={styles.featureIcone}>
                 <IconeMedidor />
               </span>
               <h3>Controle de lotação</h3>
-              <p>
-                Cada reserva confirmada entra na conta certinha, por almoço e por jantar. Perto do limite, ainda
-                cabe uma folga pequena e configurável — sem virar overbooking, sem mesa faltando na hora.
-              </p>
+              <p>Nunca estoura a mesa, por almoço e jantar.</p>
             </div>
             <div className={styles.featureCard}>
               <span className={styles.featureIcone}>
                 <IconeLink />
               </span>
               <h3>Link personalizado</h3>
-              <p>
-                Seu cliente também reserva fora do Instagram, num endereço só seu — com o seu logo e as cores da
-                sua marca no brilho de fundo. Ele nunca vê uma tela genérica de plataforma.
-              </p>
+              <p>Sua marca, fora do Instagram.</p>
             </div>
             <div className={styles.featureCard}>
               <span className={styles.featureIcone}>
                 <IconePainel />
               </span>
               <h3>Painel da equipe</h3>
-              <p>
-                Reservas do dia, ocupação por período, WhatsApp a um toque — num painel com login próprio pra
-                equipe, sem acesso a mais nada do negócio.
-              </p>
+              <p>Reservas do dia, em tempo real.</p>
             </div>
             <div className={styles.featureCard}>
               <span className={styles.featureIcone}>
                 <IconeAjustes />
               </span>
-              <h3>Horário de corte e bloqueio de datas</h3>
-              <p>
-                Horário de corte, datas bloqueadas, o texto de cada etapa da conversa — tudo ajustável por você,
-                na hora, sem abrir chamado com ninguém.
-              </p>
+              <h3>Regras do seu jeito</h3>
+              <p>Horário de corte e datas bloqueadas, você ajusta na hora.</p>
             </div>
             <div className={styles.featureCard}>
               <span className={styles.featureIcone}>
                 <IconeSparkle />
               </span>
               <h3>IA para dúvidas</h3>
-              <p>
-                Cardápio, horário, endereço — o que não é reserva vai pra uma IA que já sabe o tom e os detalhes
-                da sua casa, sem misturar com o fluxo de reservar.
-              </p>
+              <p>Cardápio, horário e endereço, resolvidos sozinhos.</p>
             </div>
           </div>
         </section>
 
         {/* ---------- comparação ---------- */}
-        <section className={styles.secao}>
+        <section className={`${styles.secao} ${styles.compacta}`}>
           <span className={styles.eyebrow}>A diferença</span>
-          <h2 className={styles.tituloSecao}>Não é um chatbot genérico com um nome diferente</h2>
-          <p className={styles.dekSecao}>
-            Automação de Instagram pronta responde &quot;qual o horário?&quot; e para por aí. Administrar a
-            lotação de um restaurante — almoço e jantar, mesa por mesa, sem deixar passar nem faltar — é outro
-            nível de sistema. É esse o nível em que o AutoMesa foi construído:
-          </p>
+          <h2 className={styles.tituloSecao}>Não é um chatbot genérico</h2>
           <div className={styles.tabelaWrap}>
             <table className={styles.tabela}>
               <thead>
                 <tr>
                   <th></th>
-                  <th>Chatbots genéricos</th>
+                  <th>Chatbot genérico</th>
                   <th className={styles.destaque}>AutoMesa</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className={styles.rotulo}>Como entende o cliente</td>
-                  <td><span className={styles.x}>✕</span> menu de botões fixos — trava se a frase sai do script</td>
+                  <td className={styles.rotulo}>Entende o cliente</td>
+                  <td><span className={styles.x}>✕</span> menu de botões fixos</td>
                   <td className={styles.destaque}>
-                    <span className={styles.check}>✓</span> entende frase corrida: data, período, quantas pessoas e
-                    WhatsApp numa mensagem só
+                    <span className={styles.check}>✓</span> frase corrida, direto
                   </td>
                 </tr>
                 <tr>
-                  <td className={styles.rotulo}>Controle de lotação</td>
-                  <td><span className={styles.x}>✕</span> manual, por sua conta — risco real de overbooking</td>
+                  <td className={styles.rotulo}>Lotação</td>
+                  <td><span className={styles.x}>✕</span> manual, risco de overbooking</td>
                   <td className={styles.destaque}>
-                    <span className={styles.check}>✓</span> automático, separado por almoço e jantar, com folga
-                    configurável só quando já está quase no limite
+                    <span className={styles.check}>✓</span> automática, por período
                   </td>
                 </tr>
                 <tr>
                   <td className={styles.rotulo}>Link fora do Instagram</td>
-                  <td><span className={styles.x}>✕</span> tela genérica da plataforma, sem identidade nenhuma</td>
+                  <td><span className={styles.x}>✕</span> tela genérica</td>
                   <td className={styles.destaque}>
-                    <span className={styles.check}>✓</span> com seu logo e a cor da sua marca extraídos
-                    automaticamente — parece um app feito sob medida
+                    <span className={styles.check}>✓</span> com sua marca
                   </td>
                 </tr>
                 <tr>
-                  <td className={styles.rotulo}>Onde a equipe acompanha</td>
-                  <td><span className={styles.x}>✕</span> presa dentro do próprio chat, sem visão do dia inteiro</td>
+                  <td className={styles.rotulo}>Painel da equipe</td>
+                  <td><span className={styles.x}>✕</span> só dentro do chat</td>
                   <td className={styles.destaque}>
-                    <span className={styles.check}>✓</span> painel próprio, com aviso a cada reserva confirmada e
-                    ocupação por período em tempo real
+                    <span className={styles.check}>✓</span> próprio, em tempo real
                   </td>
                 </tr>
                 <tr>
-                  <td className={styles.rotulo}>Acesso da equipe</td>
-                  <td><span className={styles.x}>✕</span> tudo ou nada</td>
+                  <td className={styles.rotulo}>Regras</td>
+                  <td><span className={styles.x}>✕</span> fixas de fábrica</td>
                   <td className={styles.destaque}>
-                    <span className={styles.check}>✓</span> login próprio, restrito só à tela de reservas — sem
-                    acesso ao resto do negócio
-                  </td>
-                </tr>
-                <tr>
-                  <td className={styles.rotulo}>Regras do seu jeito</td>
-                  <td><span className={styles.x}>✕</span> fixas de fábrica — mudar pede chamado técnico</td>
-                  <td className={styles.destaque}>
-                    <span className={styles.check}>✓</span> horário de corte, datas bloqueadas e o texto de cada
-                    etapa: você mesmo ajusta, na hora
-                  </td>
-                </tr>
-                <tr>
-                  <td className={styles.rotulo}>Fora do assunto reserva</td>
-                  <td><span className={styles.x}>✕</span> não entende, ou devolve uma resposta genérica</td>
-                  <td className={styles.destaque}>
-                    <span className={styles.check}>✓</span> uma IA treinada no tom e no conhecimento da sua casa
-                    cuida do resto — cardápio, horário, endereço
+                    <span className={styles.check}>✓</span> você ajusta na hora
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p className={styles.dekSecao} style={{ marginTop: 28 }}>
-            Cada linha dessa tabela é uma decisão que só quem já rodou a reserva de um restaurante de verdade sabe
-            que faz diferença. Ferramenta genérica não pensa nelas porque nunca precisou.
-          </p>
         </section>
 
         <ContadorSocial />
