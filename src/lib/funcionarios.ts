@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
+import type { criarClienteAdmin } from "./supabase/admin";
 
 export { NOME_DO_COOKIE_DE_SESSAO } from "./funcionarios-cookie";
+
+export type ResultadoDeTentativaDeLogin = "sucesso" | "senha_incorreta" | "conta_pausada";
 
 // Login próprio (separado do Supabase Auth que o Victor usa) pros funcionários do restaurante —
 // só dá acesso à tela de reservas do dia (/reservas), nada mais do painel. Mesmo estilo de
@@ -43,4 +46,26 @@ export function gerarTokenDeSessao(): string {
 
 export function calcularExpiracaoDaSessao(): string {
   return new Date(Date.now() + DURACAO_DA_SESSAO_MS).toISOString();
+}
+
+/**
+ * Registra uma linha em chatbot_funcionario_login_tentativas — histórico usado no relatório de
+ * /contas/[id]/funcionarios (último login de cada um, e se alguém tentou entrar recentemente
+ * enquanto a conta estava pausada). Chamada só quando o USUÁRIO existe (sucesso, senha errada ou
+ * bloqueado por pausa) — usuário inexistente não gera log, ver comentário no route.ts. Nunca
+ * lança erro pra fora, mesmo espírito de registrarAtendimento em atendimentos.ts: é só um
+ * histórico, não pode atrapalhar o login em si se a gravação falhar.
+ */
+export async function registrarTentativaDeLogin(
+  admin: ReturnType<typeof criarClienteAdmin>,
+  funcionarioId: string,
+  resultado: ResultadoDeTentativaDeLogin
+): Promise<void> {
+  const { error } = await admin
+    .from("chatbot_funcionario_login_tentativas")
+    .insert({ funcionario_id: funcionarioId, resultado });
+
+  if (error) {
+    console.error("Falha ao registrar tentativa de login de funcionário:", error);
+  }
 }

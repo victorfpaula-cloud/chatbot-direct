@@ -16,6 +16,12 @@ export function somarDiasISO(dataISO: string, dias: number): string {
 // "Agora", formatado em DD/MM/AAAA HH:MM de São Paulo — usado no aviso por e-mail de reclamação
 // (ver enviarEmailDeReclamacao, em email.ts). Mesmo formato já usado na tela de Atendimentos.
 export function agoraFormatadoEmSaoPaulo(): string {
+  return formatarInstanteEmSaoPaulo(new Date());
+}
+
+/** Mesmo formato de agoraFormatadoEmSaoPaulo (DD/MM/AAAA HH:MM), mas pra um instante qualquer —
+ * usado no relatório de login de funcionários (/contas/[id]/funcionarios). */
+export function formatarInstanteEmSaoPaulo(instante: string | Date): string {
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
     day: "2-digit",
@@ -23,7 +29,7 @@ export function agoraFormatadoEmSaoPaulo(): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date());
+  }).format(new Date(instante));
 }
 
 /** A que dia civil de São Paulo um instante (timestamptz) pertence — usado pra agrupar

@@ -4,6 +4,7 @@ import {
   NOME_DO_COOKIE_DE_SESSAO,
   calcularExpiracaoDaSessao,
   gerarTokenDeSessao,
+  registrarTentativaDeLogin,
   senhaConfere,
 } from "@/lib/funcionarios";
 
@@ -27,8 +28,17 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   // Mesma mensagem genérica pra usuário inexistente ou senha errada — não dá pra alguém tentando
-  // adivinhar descobrir se um nome de usuário existe ou não só pela resposta.
-  if (error || !funcionario || !senhaConfere(senha, funcionario.senha_hash)) {
+  // adivinhar descobrir se um nome de usuário existe ou não só pela resposta. Usuário inexistente
+  // não tem `funcionario.id` pra registrar a tentativa contra (nem conta pra atribuir), então só
+  // segue sem logar nada nesse caso — mesmo comportamento anti-enumeração de sempre.
+  if (error || !funcionario) {
+    return NextResponse.redirect(
+      new URL("/reservas/login?erro=Usuário ou senha incorretos.", request.url)
+    );
+  }
+
+  if (!senhaConfere(senha, funcionario.senha_hash)) {
+    await registrarTentativaDeLogin(admin, funcionario.id, "senha_incorreta");
     return NextResponse.redirect(
       new URL("/reservas/login?erro=Usuário ou senha incorretos.", request.url)
     );
@@ -36,8 +46,11 @@ export async function POST(request: NextRequest) {
 
   // Conta pausada (botão "Pausar" em /contas) — recusa o login, sem criar sessão nenhuma, com uma
   // mensagem específica em vez do erro genérico acima (mesma checagem que o middleware faz pra
-  // sessão já existente, ver validarSessaoDeFuncionario em src/lib/funcionarios-cookie.ts).
+  // sessão já existente, ver validarSessaoDeFuncionario em src/lib/funcionarios-cookie.ts). Fica
+  // registrado mesmo assim — é exatamente o caso que o relatório em /contas/[id]/funcionarios
+  // existe pra mostrar: "fulano bateu na porta" enquanto a conta tava bloqueada.
   if (!(funcionario as any).chatbot_accounts?.active) {
+    await registrarTentativaDeLogin(admin, funcionario.id, "conta_pausada");
     return NextResponse.redirect(new URL("/reservas/login?indisponivel=1", request.url));
   }
 
@@ -55,6 +68,8 @@ export async function POST(request: NextRequest) {
       new URL("/reservas/login?erro=Deu um erro pra entrar. Tenta de novo.", request.url)
     );
   }
+
+  await registrarTentativaDeLogin(admin, funcionario.id, "sucesso");
 
   const resposta = NextResponse.redirect(new URL("/reservas", request.url));
   resposta.cookies.set(NOME_DO_COOKIE_DE_SESSAO, token, {
