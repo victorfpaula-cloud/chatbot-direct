@@ -130,7 +130,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       gsap.fromTo(`.${styles.brilhoOrbe}`, { scale: 1 }, { scale: 1.18, duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut", stagger: 0.06 });
     }
 
-    function trocar(nome: string, indo?: "voltar") {
+    function trocarDeVerdade(nome: string, indo?: "voltar") {
       const atual = q(`.${styles.cena}.${styles.ativa}`)!;
       const nomeAtual = atual.dataset.cena!;
       if (indo !== "voltar") historico.push(nomeAtual);
@@ -154,6 +154,83 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
           animarIconeHero(proxima);
           pulsarBrilhos();
         });
+    }
+
+    // ---------- transição especial: selo + clarão + faixa de luz ----------
+    // Reservada só pra dois momentos "de decisão" da experiência (ver trocar() logo abaixo) — nome
+    // escrito -> primeira pergunta, e grupo definido -> WhatsApp — de propósito NÃO em toda troca de
+    // etapa (isso cansaria rápido numa tela que a pessoa só quer preencher). A troca de cena de
+    // verdade (trocarDeVerdade) acontece escondida embaixo do clarão/faixa de luz, no pico da
+    // animação, então o corte nunca aparece cru.
+    const ICONE_PENA = "M19 5c-3 3-8.5 3.2-12.5 7.2C5 13.7 4.3 15 4.3 15s1.4-.4 2.9-1.9C11.2 9.1 12 4 19 5z M6.3 17.7l2.6-2.6";
+    const ICONE_MESA = "M7 8.5h10a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1z M9 8.5V5.8 M15 8.5V5.8 M9 16v2.6 M15 16v2.6";
+
+    function explodirFaiscas(origem: HTMLElement) {
+      const total = 8;
+      for (let i = 0; i < total; i++) {
+        const faisca = document.createElement("span");
+        faisca.className = styles.faisca;
+        origem.appendChild(faisca);
+        const angulo = (Math.PI * 2 * i) / total + Math.random() * 0.4;
+        const distancia = 70 + Math.random() * 40;
+        gsap.fromTo(
+          faisca,
+          { x: 0, y: 0, opacity: 1, scale: 1 },
+          {
+            x: Math.cos(angulo) * distancia,
+            y: Math.sin(angulo) * distancia,
+            opacity: 0,
+            scale: 0.3,
+            duration: 0.55 + Math.random() * 0.15,
+            ease: "power2.out",
+            onComplete: () => faisca.remove(),
+          }
+        );
+      }
+    }
+
+    function tocarTransicaoEspecial(caminhoIcone: string, aoRevelar: () => void) {
+      const overlay = q(`.${styles.transicaoEspecial}`)!;
+      const medalha = q(`.${styles.medalha}`)!;
+      const anel = q(`.${styles.medalhaAnel}`)!;
+      const faixa = q(`.${styles.faixaLuz}`)!;
+      const caminhoSvg = medalha.querySelector("path")!;
+      caminhoSvg.setAttribute("d", caminhoIcone);
+
+      gsap.set(overlay, { autoAlpha: 1 });
+      gsap.set(medalha, { scale: 0, opacity: 0 });
+      gsap.set(anel, { scale: 0.7, opacity: 0 });
+      gsap.set(faixa, { xPercent: -160, opacity: 1 });
+
+      const tl = gsap.timeline({
+        onComplete: () => {
+          gsap.set(overlay, { autoAlpha: 0 });
+        },
+      });
+      tl.to(medalha, { scale: 1, opacity: 1, duration: 0.32, ease: "back.out(2.4)" })
+        .to(anel, { scale: 1.6, opacity: 0.55, duration: 0.45, ease: "sine.out" }, "<")
+        .to(anel, { opacity: 0, duration: 0.25 }, "<0.2")
+        .to(medalha, { scale: 1.14, duration: 0.12, ease: "power2.out" })
+        .call(() => explodirFaiscas(overlay))
+        .to(medalha, { scale: 1, duration: 0.2, ease: "power2.inOut" }, "<")
+        .to(faixa, { xPercent: 160, duration: 0.45, ease: "power2.inOut" }, "<-0.05")
+        .call(aoRevelar, [], "<0.22")
+        .to(medalha, { opacity: 0, scale: 0.85, duration: 0.22 }, "<0.05");
+    }
+
+    function trocar(nome: string, indo?: "voltar") {
+      const atual = q(`.${styles.cena}.${styles.ativa}`)!;
+      const nomeAtual = atual.dataset.cena!;
+
+      if (indo !== "voltar" && nomeAtual === "abertura" && nome === "dia") {
+        tocarTransicaoEspecial(ICONE_PENA, () => trocarDeVerdade(nome, indo));
+        return;
+      }
+      if (indo !== "voltar" && nomeAtual === "pessoas" && nome === "whatsapp") {
+        tocarTransicaoEspecial(ICONE_MESA, () => trocarDeVerdade(nome, indo));
+        return;
+      }
+      trocarDeVerdade(nome, indo);
     }
 
     function restaurarEstado(nome: string) {
@@ -968,6 +1045,19 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
             </a>
           </div>
         </div>
+      </div>
+
+      {/* Transição especial (selo + clarão + faixa de luz) — ver tocarTransicaoEspecial() acima.
+          Só dois momentos usam isso (nome -> dia, pessoas -> whatsapp); o resto das trocas de
+          etapa não toca nesse bloco. */}
+      <div className={styles.transicaoEspecial}>
+        <div className={styles.medalhaAnel} />
+        <div className={styles.medalha}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="" />
+          </svg>
+        </div>
+        <div className={styles.faixaLuz} />
       </div>
 
       <svg width="0" height="0" style={{ position: "absolute" }}>

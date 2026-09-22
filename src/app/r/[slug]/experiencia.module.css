@@ -839,6 +839,81 @@
   z-index: 1;
 }
 
+/* ---------- transição especial (selo + clarão + faixa de luz) ----------
+   Ver tocarTransicaoEspecial() em ExperienciaReserva.tsx — só dois momentos da experiência usam
+   isso (nome -> dia, pessoas -> whatsapp). Fica por cima de tudo (inclusive .pontos/.voltar,
+   z-index 9) e some completamente (autoAlpha) fora desses dois momentos, então não atrapalha nada
+   do resto da tela. */
+.transicaoEspecial {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+.medalha {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--acento-hi) 55%, transparent), color-mix(in srgb, var(--acento-deep) 70%, black) 75%);
+  border: 1.5px solid color-mix(in srgb, var(--acento-hi) 70%, transparent);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.5),
+    0 0 40px 4px color-mix(in srgb, var(--acento) 55%, transparent),
+    0 16px 34px -14px rgba(0, 0, 0, 0.7);
+  color: #241505;
+}
+.medalha svg {
+  width: 44px;
+  height: 44px;
+}
+.medalhaAnel {
+  position: absolute;
+  width: 108px;
+  height: 108px;
+  border-radius: 999px;
+  border: 1.5px solid var(--acento-hi);
+  opacity: 0;
+}
+.faisca {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 999px;
+  background: var(--acento-hi);
+  box-shadow: 0 0 8px 1px color-mix(in srgb, var(--acento) 80%, transparent);
+}
+.faixaLuz {
+  position: fixed;
+  top: -20vh;
+  left: 50%;
+  width: 34vw;
+  height: 140vh;
+  margin-left: -17vw;
+  transform: rotate(-16deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--acento) 55%, transparent) 40%,
+    color-mix(in srgb, var(--acento-hi) 85%, white 15%) 50%,
+    color-mix(in srgb, var(--acento) 55%, transparent) 60%,
+    transparent
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+
 @media (max-width: 480px) {
   .cenaInterna {
     max-width: 100%;
@@ -851,5 +926,8 @@
   .cartaoVidro::before,
   .fechadoCartao::before {
     animation: none !important;
+  }
+  .transicaoEspecial {
+    display: none !important;
   }
 }
