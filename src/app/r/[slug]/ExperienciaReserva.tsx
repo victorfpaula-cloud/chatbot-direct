@@ -758,9 +758,7 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
                 className={`${styles.logoAbertura} ${styles.elem}`}
               />
             )}
-            <span className={`${styles.numeroPergunta} ${styles.elem}`} style={{ justifyContent: "center", width: "100%" }}>
-              {config.nomeConta}
-            </span>
+            <span className={`${styles.marca} ${styles.elem}`}>{config.nomeConta}</span>
             <h1 className={`${styles.titulo} ${styles.elem}`}>Vamos reservar sua mesa?</h1>
             <p className={`${styles.subtitulo} ${styles.elem}`}>Reserva simples e rápida</p>
             <input id="campo-nome" type="text" autoComplete="name" placeholder="Como você se chama?" className={`${styles.campo} ${styles.campoNome} ${styles.elem}`} />

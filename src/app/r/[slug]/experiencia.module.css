@@ -1,14 +1,18 @@
 .pagina {
-  --acento: #818cf8;
-  --acento-hi: #c7cffb;
-  --acento-deep: #4f46e5;
+  /* Paleta padrão (sem foto/cor cadastrada ainda) trocou de índigo genérico de SaaS pra um
+     dourado/âmbar quente — lê mais "convite de restaurante badalado" que "produto de tech". Conta
+     com cor extraída do logo (estiloDaPaleta, ver ExperienciaReserva.tsx) continua sobrescrevendo
+     isso normalmente, então essa mudança só afeta quem ainda não tem foto/cor própria cadastrada. */
+  --acento: #d9a24a;
+  --acento-hi: #f2d8a3;
+  --acento-deep: #a9711f;
   --ink-hi: #f2f2f7;
   --ink-mid: rgba(242, 242, 247, 0.62);
   --ink-low: rgba(242, 242, 247, 0.36);
   --glass: rgba(255, 255, 255, 0.05);
   --glass-border: color-mix(in srgb, var(--acento-hi) 22%, transparent);
-  --bg-1: #050509;
-  --bg-2: #0d0c1c;
+  --bg-1: #08070a;
+  --bg-2: #1a1410;
 
   position: fixed;
   inset: 0;
@@ -39,28 +43,32 @@
   filter: blur(4vmax);
 }
 /* --glow-1/2/3 podem vir sobrescritos inline no elemento .pagina (ver ExperienciaReserva.tsx) com
-   um tom derivado do logo do restaurante — o valor aqui é só o fallback (paleta índigo padrão)
-   pra quando não há foto/cor cadastrada ainda. */
+   um tom derivado do logo do restaurante — o valor aqui é só o fallback (paleta dourada padrão pra
+   quando não há foto/cor cadastrada ainda, trocada de índigo genérico em 22/09/2026). O filtro de
+   vidro líquido (feDisplacementMap em VidroLiquido.tsx) refrata isso pra um tom bem mais esverdeado
+   por dentro dos cartões — mesmo comportamento de antes (a versão índigo virava laranja lá dentro),
+   só que agora dá um ar de "vidro verde-garrafa com detalhe dourado" em vez de corrigir a olho: é
+   um efeito do próprio filtro sobre QUALQUER cor de fundo, não um bug dessa paleta específica. */
 .o1 {
   width: 64vmax;
   height: 64vmax;
   top: -28vmax;
   left: -22vmax;
-  background: radial-gradient(circle, var(--glow-1, rgba(99, 102, 241, 0.5)) 0%, transparent 62%);
+  background: radial-gradient(circle, var(--glow-1, rgba(196, 120, 58, 0.34)) 0%, transparent 62%);
 }
 .o2 {
   width: 54vmax;
   height: 54vmax;
   bottom: -24vmax;
   right: -18vmax;
-  background: radial-gradient(circle, var(--glow-2, rgba(129, 140, 248, 0.4)) 0%, transparent 62%);
+  background: radial-gradient(circle, var(--glow-2, rgba(150, 90, 40, 0.3)) 0%, transparent 62%);
 }
 .o3 {
   width: 38vmax;
   height: 38vmax;
   top: 22%;
   right: -10%;
-  background: radial-gradient(circle, var(--glow-3, rgba(199, 207, 251, 0.32)) 0%, transparent 62%);
+  background: radial-gradient(circle, var(--glow-3, rgba(214, 168, 110, 0.24)) 0%, transparent 62%);
 }
 
 .grao {
@@ -308,15 +316,42 @@
 .titulo {
   font-family: var(--fonte-display), serif;
   font-weight: 600;
+  font-style: italic;
   font-size: clamp(38px, 10vw, 58px);
   line-height: 1.05;
   text-align: center;
+  text-wrap: balance;
 }
 .subtitulo {
   margin-top: 14px;
   font-size: 15px;
   color: var(--ink-mid);
   text-align: center;
+}
+
+/* Nome do restaurante na abertura e na confirmação final — os dois momentos "de capa" da
+   experiência. Versalete espaçado + friso fino dos dois lados, tipo cabeçalho de cardápio/convite,
+   em vez do mesmo texto puramente funcional usado nos rótulos "01/02/03" de cada etapa. */
+.marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  font-family: var(--fonte-ui), sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--acento-hi);
+}
+.marca::before,
+.marca::after {
+  content: "";
+  height: 1px;
+  width: 28px;
+  background: linear-gradient(90deg, transparent, var(--acento), transparent);
+  opacity: 0.7;
 }
 
 .perguntaTitulo {
