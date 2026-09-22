@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Outfit } from "next/font/google";
 import { SplashReservas } from "./SplashReservas";
 import { IndicadorDeCarregamento } from "./IndicadorDeCarregamento";
 import { BannerInstalarApp } from "./BannerInstalarApp";
 import { DefinicoesDoVidroLiquido } from "./VidroLiquido";
+import { NOME_DO_COOKIE_DE_PAUSA_FLASH } from "@/lib/funcionarios-cookie";
 
 // Só a área de reservas (o "painel de funcionário") ganha essa fonte por enquanto — o painel
 // administrativo (/contas) continua com a fonte de sempre até o mesmo redesign chegar lá.
@@ -45,6 +46,15 @@ function pareceAberturaDoApp(): boolean {
 }
 
 export default function ReservasLayout({ children }: { children: React.ReactNode }) {
+  // Conta acabou de ser pausada — o middleware já redirecionou pra cá E deixou esse cookie
+  // (curtíssimo, só de UI) avisando exatamente isso. Pedido do Victor: nesse caso o app não pode
+  // "abrir" visualmente nem por um instante — sem splash em vídeo, sem atmosfera, sem banner de
+  // instalar, nada além do próprio erro (ver /reservas/login/page.tsx), pra parecer um link
+  // quebrado de verdade em vez de uma função temporariamente bloqueada dentro do app.
+  if (cookies().get(NOME_DO_COOKIE_DE_PAUSA_FLASH)) {
+    return <>{children}</>;
+  }
+
   const mostrarSplash = pareceAberturaDoApp();
 
   return (

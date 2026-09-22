@@ -33,6 +33,13 @@ const JANELA_DE_CONFIANCA_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
 export const NOME_DO_COOKIE_DE_CONTA_ATIVA = "chatbot_funcionario_conta_ativa";
 const JANELA_DE_CONTA_ATIVA_MS = 45 * 1000; // 45s — dentro do "até 1 minuto" combinado.
 
+// Marcador de UI, sem assinatura — não protege nada (o corte de acesso de verdade já aconteceu no
+// próprio redirecionamento do middleware; esse cookie só avisa a tela de login pra não montar a
+// splash em vídeo/atmosfera/banner de instalar app por cima do erro de "conta pausada", pedido do
+// Victor pra parecer um link quebrado de verdade, sem nem o app "abrir" visualmente. Curtíssimo de
+// propósito (só precisa sobreviver o tempo de um redirect) — ver reservas/layout.tsx.
+export const NOME_DO_COOKIE_DE_PAUSA_FLASH = "chatbot_funcionario_pausa_flash";
+
 export type ContaDoFuncionario = {
   contaId: string;
   pageName: string;

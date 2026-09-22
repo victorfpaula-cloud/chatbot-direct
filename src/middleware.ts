@@ -5,6 +5,7 @@ import {
   NOME_DO_COOKIE_DE_SESSAO,
   NOME_DO_COOKIE_DE_VERIFICACAO,
   NOME_DO_COOKIE_DE_CONTA_ATIVA,
+  NOME_DO_COOKIE_DE_PAUSA_FLASH,
   NOME_DO_HEADER_DE_CARIMBO,
   criarCarimboDeContaAtiva,
   criarCarimboDeVerificacao,
@@ -52,6 +53,22 @@ import {
 // link. Sem essa reescrita, o domínio custom cairia direto na home (ou 404) do app inteiro em vez
 // da página de reserva certa.
 const DOMINIOS_DA_RESERVA_EXTERNA = ["automesa.com.br", "www.automesa.com.br"];
+
+/**
+ * Marca a resposta de redirecionamento com o cookie que avisa reservas/layout.tsx pra não montar
+ * a splash em vídeo/atmosfera/banner de instalar por cima da tela de "conta pausada" — pedido do
+ * Victor pra parecer um link quebrado de verdade, sem nem o app "abrir" visualmente antes do erro.
+ * maxAge bem curto de propósito: só precisa sobreviver o tempo desse ÚNICO redirect.
+ */
+function marcarPausaFlash(resposta: NextResponse) {
+  resposta.cookies.set(NOME_DO_COOKIE_DE_PAUSA_FLASH, "1", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/reservas",
+    maxAge: 10,
+  });
+}
 
 export async function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
@@ -204,6 +221,7 @@ export async function middleware(request: NextRequest) {
         const respostaDePausa = NextResponse.redirect(destino);
         respostaDePausa.cookies.delete(NOME_DO_COOKIE_DE_VERIFICACAO);
         respostaDePausa.cookies.delete(NOME_DO_COOKIE_DE_CONTA_ATIVA);
+        marcarPausaFlash(respostaDePausa);
         return respostaDePausa;
       }
 
@@ -280,6 +298,9 @@ export async function middleware(request: NextRequest) {
     // não ficar tentando de novo no próximo request com o mesmo resultado.
     respostaDeRedirecionamento.cookies.delete(NOME_DO_COOKIE_DE_VERIFICACAO);
     respostaDeRedirecionamento.cookies.delete(NOME_DO_COOKIE_DE_CONTA_ATIVA);
+    if (resultado.motivo === "conta_pausada") {
+      marcarPausaFlash(respostaDeRedirecionamento);
+    }
     return respostaDeRedirecionamento;
   }
 
