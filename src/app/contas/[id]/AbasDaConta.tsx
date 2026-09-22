@@ -58,7 +58,7 @@ export default function AbasDaConta({
     // [id]/layout.tsx), que já tem seu próprio backdrop-filter. Empilhar blur dentro de blur foi
     // exatamente o que deu artefato visual conhecido no Safari/WebKit quando tentamos isso com os
     // cartões de reserva dentro do painel do dia — aqui só um fundo sólido, sem filtro próprio.
-    <nav className="mt-6 flex flex-wrap gap-2 rounded-xl border border-neutral-800 bg-neutral-950/60 p-2">
+    <nav className="mt-6 flex flex-wrap gap-1.5 rounded-xl border border-neutral-800 bg-neutral-950/60 p-2">
       {abas.map((aba) => {
         const href = `/contas/${contaId}/${aba.segmento}`;
         const ativa = pathname?.startsWith(href) ?? false;
@@ -67,7 +67,11 @@ export default function AbasDaConta({
           <a
             key={aba.segmento}
             href={href}
-            className={`rounded-lg px-3 py-1.5 text-sm transition ${
+            // px/text um pouco mais enxutos que antes (era px-3 text-sm) — combinado com o max-w
+            // maior do shell (ver [id]/layout.tsx), é o que faz essas abas caberem numa linha só
+            // em telas de tablet/desktop em vez de "Funcionários" sozinho quebrando pra linha de
+            // baixo com espaço sobrando nas laterais.
+            className={`rounded-lg px-2.5 py-1.5 text-[13px] whitespace-nowrap transition ${
               ativa
                 ? "bg-indigo-500 font-medium text-white shadow-md shadow-indigo-950/40"
                 : "text-neutral-300 hover:bg-neutral-800"

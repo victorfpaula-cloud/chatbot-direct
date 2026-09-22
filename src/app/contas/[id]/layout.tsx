@@ -22,7 +22,11 @@ export default async function ContaLayout({
   ]);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    // Mesma escala responsiva de max-w/padding já usada em /contas (ver comentário lá) — reportado
+    // aqui pelo mesmo motivo: com max-w-3xl fixo sobrava borda vazia dos lados em telas maiores E a
+    // barra de abas (AbasDaConta) quebrava em duas linhas à toa (ex: "Funcionários" sozinho embaixo)
+    // quando dava pra caber tudo numa linha só com mais espaço disponível.
+    <main className="mx-auto max-w-3xl px-6 py-10 md:max-w-4xl md:px-10 lg:max-w-5xl lg:px-12">
       <a href="/contas" className="text-sm text-neutral-400 hover:text-neutral-300">
         &larr; Voltar pras contas
       </a>
