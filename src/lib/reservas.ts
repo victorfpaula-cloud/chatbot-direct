@@ -5,7 +5,7 @@ import {
   enviarMensagemComBotoes,
 } from "@/lib/metaMessaging";
 import { adicionarLinhaNaPlanilha } from "@/lib/googleSheets";
-import { notificarNovaReserva, notificarLotacaoAtingida } from "@/lib/webPush";
+import { notificarNovaReserva, notificarLotacaoAtingida, notificarLotacaoParcial } from "@/lib/notificacoesAdmin";
 
 // Etapa 6 — fluxo de reserva com estado: a conta responde normal (palavra-chave, Gemini) até
 // alguém escrever a palavra-chave configurada em `palavra_chave_reserva`. Daí em diante, cada
@@ -791,18 +791,22 @@ export async function prepararConfirmacaoDeReserva(
   await ajustarTotalAcumulado(admin, accountId, 1, dados.quantidade_pessoas ?? 0);
   await notificarNovaReserva(admin, accountId, dados.nome ?? null, dados.data_reserva_br ?? null);
 
-  // Essa reserva foi exatamente a que fez a soma bater (ou passar) o limite — as próximas
-  // tentativas pra esse mesmo dia+período já são recusadas antes de chegar aqui (ver checagem
-  // acima), então esse aviso dispara uma vez só, na hora certa, sem repetir a cada nova tentativa
-  // recusada depois disso.
-  if (
-    typeof limiteMaximo === "number" &&
-    dados.data_reserva &&
-    dados.periodo &&
-    jaReservado + dados.quantidade_pessoas >= limiteMaximo
-  ) {
+  // Os dois avisos abaixo disparam uma vez só cada, exatamente na reserva que faz a soma CRUZAR o
+  // limiar (50% ou 100%) — as tentativas seguintes pra esse mesmo dia+período são recusadas antes
+  // de chegar aqui (limite máximo) ou simplesmente não cruzam o limiar de novo (50%, que já passou),
+  // então nenhum dos dois repete à toa a cada nova reserva.
+  if (typeof limiteMaximo === "number" && dados.data_reserva && dados.periodo) {
+    const totalComEssaReserva = jaReservado + dados.quantidade_pessoas;
     const periodoTexto = dados.periodo === "almoco" ? "Almoço" : dados.periodo === "jantar" ? "Jantar" : "Período";
-    await notificarLotacaoAtingida(admin, accountId, periodoTexto);
+
+    const metade = limiteMaximo / 2;
+    if (jaReservado < metade && totalComEssaReserva >= metade) {
+      await notificarLotacaoParcial(admin, accountId, periodoTexto, totalComEssaReserva, limiteMaximo);
+    }
+
+    if (totalComEssaReserva >= limiteMaximo) {
+      await notificarLotacaoAtingida(admin, accountId, periodoTexto);
+    }
   }
 
   const mensagemConfirmada =

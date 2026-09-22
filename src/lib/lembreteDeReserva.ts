@@ -1,20 +1,31 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { agoraEmSaoPaulo, passouDoCutoff } from "@/lib/reservas";
 import { hojeEmSaoPauloISO } from "@/lib/datas";
-import { enviarTextoPelaApiDaSendPulse } from "@/lib/sendpulseApi";
-import { enviarMensagemDirect } from "@/lib/metaMessaging";
+import { enviarWhatsAppTemplate } from "@/lib/kapsoApi";
 
-// Lembrete de comparecimento: mensagem automática no Instagram, uma vez por dia, pra todo mundo
+// Lembrete de comparecimento: mensagem automática por WhatsApp, uma vez por dia, pra todo mundo
 // que confirmou reserva pra HOJE — chamado pelo cron (ver src/app/api/cron/lembrete-reservas/
 // route.ts e vercel.json), nunca pelo fluxo de conversa em si. Cada conta liga/configura isso
 // separadamente em /contas/[id]/reserva (reserva_lembrete_* em chatbot_account_settings).
+//
+// Até 22/09/2026 isso mandava por Instagram Direct e pulava quem reservou pelo link público
+// (instagram_scoped_id "externo:...", sem conversa nenhuma por trás) ou à mão ("manual:..."). Foi
+// pro WhatsApp exatamente pra cobrir esses dois casos também — todo mundo que reserva, por
+// Instagram ou pelo link, já deixa o WhatsApp na mesma etapa da conversa (ver
+// finalizarReserva/continuarFluxo em reservas.ts), então esse campo sozinho já basta, sem precisar
+// mais olhar pra instagram_scoped_id aqui.
+//
+// Mensagem por template aprovado (Meta exige isso pra qualquer mensagem que o sistema inicia, fora
+// da janela de 24h de uma conversa) — por isso não dá mais pra cada conta escrever um texto livre
+// customizado (reserva_lembrete_mensagem foi removido da tela de configuração): o texto do template
+// é fixo e igual pra todo mundo, só o nome do cliente e o nome do restaurante mudam.
 
 type Admin = ReturnType<typeof criarClienteAdmin>;
 
-export const MENSAGEM_LEMBRETE_PADRAO =
-  "Oii, você tem uma reserva confirmada na esquina mais charmosa da cidade hoje! Passando pra te lembrar que o horário de chegada é até as 19h! Bom apetite e Aproveite a casa! ❤️ Estamos esperando você!";
-
 export const HORARIO_LEMBRETE_PADRAO = "18:40";
+
+const TEMPLATE_LEMBRETE = "lembrete_reserva";
+const IDIOMA_TEMPLATE = "pt_BR";
 
 type ResultadoDoLembrete = {
   contaId: string;
@@ -23,48 +34,52 @@ type ResultadoDoLembrete = {
   falhas: number;
 };
 
-/** Manda o lembrete pra quem tem reserva hoje NESSA conta — uma mensagem por pessoa (não por
- * reserva: quem fez duas reservas pro mesmo dia recebe só uma). `manual:` (reserva cadastrada à
- * mão, sem contato de Instagram de verdade) é sempre pulada — não tem como mandar DM sem um
- * contato de Instagram por trás. */
+/** Manda o lembrete pra quem tem reserva hoje NESSA conta — uma mensagem por WhatsApp único (quem
+ * fez duas reservas pro mesmo dia recebe só uma). Sem WhatsApp cadastrado na reserva, pula (não
+ * acontece na prática — o campo é obrigatório em toda etapa de reserva — mas cobre reserva antiga
+ * migrada de outro sistema, sem esse dado). */
 async function enviarLembretesDaConta(
   admin: Admin,
-  conta: { id: string; access_token: string | null },
-  mensagem: string
+  conta: { id: string; page_name: string | null }
 ): Promise<ResultadoDoLembrete> {
   const hoje = hojeEmSaoPauloISO();
   const resultado: ResultadoDoLembrete = { contaId: conta.id, enviadas: 0, puladas: 0, falhas: 0 };
 
   const { data: reservas } = await admin
     .from("chatbot_reservations")
-    .select("instagram_scoped_id")
+    .select("cliente_nome, whatsapp")
     .eq("account_id", conta.id)
     .eq("data_reserva", hoje);
 
   if (!reservas || reservas.length === 0) return resultado;
 
-  const idsUnicos = Array.from(new Set(reservas.map((r) => r.instagram_scoped_id).filter(Boolean)));
+  const nomeDoRestaurante = conta.page_name?.trim() || "AutoMesa";
+  const vistos = new Set<string>();
 
-  for (const id of idsUnicos) {
+  for (const reserva of reservas) {
+    const numero = reserva.whatsapp?.trim();
+    if (!numero) {
+      resultado.puladas++;
+      continue;
+    }
+
+    const chave = numero.replace(/\D/g, "");
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+
     try {
-      if (id.startsWith("sendpulse:")) {
-        await enviarTextoPelaApiDaSendPulse(id.slice("sendpulse:".length), mensagem);
-        resultado.enviadas++;
-      } else if (id.startsWith("manual:") || id.startsWith("externo:")) {
-        // "externo:..." = reserva pelo link público (/r/[slug]) — sem conversa nenhuma no Direct
-        // por trás, então não tem pra quem mandar lembrete por aqui (só WhatsApp resolveria, e essa
-        // função não manda por esse canal). Sem esse branch, caía no "else" abaixo e tentava mandar
-        // pro Direct usando esse id sintético como se fosse um IGSID de verdade — sempre falhava na
-        // Graph API à toa.
-        resultado.puladas++;
-      } else if (conta.access_token) {
-        await enviarMensagemDirect(conta.access_token, id, mensagem);
+      const primeiroNome = reserva.cliente_nome?.trim().split(/\s+/)[0] || "";
+      const enviou = await enviarWhatsAppTemplate(numero, TEMPLATE_LEMBRETE, IDIOMA_TEMPLATE, [
+        primeiroNome,
+        nomeDoRestaurante,
+      ]);
+      if (enviou) {
         resultado.enviadas++;
       } else {
-        resultado.puladas++;
+        resultado.falhas++;
       }
     } catch (erro) {
-      console.error(`Falha ao mandar lembrete de reserva pra ${id} (conta ${conta.id}):`, erro);
+      console.error(`Falha ao mandar lembrete de reserva pro WhatsApp ${numero} (conta ${conta.id}):`, erro);
       resultado.falhas++;
     }
   }
@@ -82,9 +97,7 @@ export async function processarLembretesDeReserva(admin: Admin): Promise<Resulta
 
   const { data: settings } = await admin
     .from("chatbot_account_settings")
-    .select(
-      "account_id, reserva_lembrete_horario, reserva_lembrete_mensagem, reserva_lembrete_ultima_data_enviada"
-    )
+    .select("account_id, reserva_lembrete_horario, reserva_lembrete_ultima_data_enviada")
     .eq("reserva_habilitada", true)
     .eq("reserva_lembrete_habilitado", true);
 
@@ -98,7 +111,7 @@ export async function processarLembretesDeReserva(admin: Admin): Promise<Resulta
 
   const { data: contas } = await admin
     .from("chatbot_accounts")
-    .select("id, access_token")
+    .select("id, page_name")
     .in(
       "id",
       pendentes.map((s) => s.account_id)
@@ -110,8 +123,7 @@ export async function processarLembretesDeReserva(admin: Admin): Promise<Resulta
     const conta = contaPorId.get(s.account_id);
     if (!conta) continue;
 
-    const mensagem = s.reserva_lembrete_mensagem?.trim() || MENSAGEM_LEMBRETE_PADRAO;
-    resultados.push(await enviarLembretesDaConta(admin, conta, mensagem));
+    resultados.push(await enviarLembretesDaConta(admin, conta));
 
     // Marca como enviado hoje mesmo se alguma mensagem individual falhou — senão o cron tentaria
     // de novo a cada execução pelo resto do dia, reenviando pra quem já recebeu só porque UM

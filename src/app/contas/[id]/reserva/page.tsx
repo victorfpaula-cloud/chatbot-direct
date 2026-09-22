@@ -3,7 +3,6 @@ import { Interruptor } from "@/app/contas/Interruptor";
 import DatasBloqueadasEditor from "./DatasBloqueadasEditor";
 import CorDeDestaqueEditor from "./CorDeDestaqueEditor";
 import LinkExternoEditor from "../LinkExternoEditor";
-import { MENSAGEM_LEMBRETE_PADRAO } from "@/lib/lembreteDeReserva";
 import {
   CLASSE_CAMPO,
   CLASSE_CAMPO_TEXTAREA,
@@ -34,7 +33,7 @@ export default async function ReservaConfigPage({
   const { data: config } = await admin
     .from("chatbot_account_settings")
     .select(
-      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario, reserva_lembrete_habilitado, reserva_lembrete_horario, reserva_lembrete_mensagem"
+      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario, reserva_lembrete_habilitado, reserva_lembrete_horario, reserva_lembrete_mensagem, reserva_admin_whatsapp"
     )
     .eq("account_id", params.id)
     .maybeSingle();
@@ -476,12 +475,12 @@ export default async function ReservaConfigPage({
               defaultChecked={config?.reserva_lembrete_habilitado ?? false}
               className={CLASSE_CHECKBOX}
             />
-            Mandar lembrete de comparecimento no Instagram
+            Mandar lembrete de comparecimento por WhatsApp
           </label>
           <p className={CLASSE_AJUDA}>
-            Todo dia, no horário abaixo, manda essa mensagem pra quem tem reserva confirmada pra
-            HOJE — uma vez por pessoa, mesmo se ela tiver mais de uma reserva no dia. Só chega pra
-            quem reservou pelo Instagram (reserva cadastrada à mão não tem contato pra mandar DM).
+            Todo dia, no horário abaixo, manda um lembrete por WhatsApp pra quem tem reserva
+            confirmada pra HOJE — uma vez por pessoa, mesmo se ela tiver mais de uma reserva no dia.
+            Só chega pra quem deixou o WhatsApp na hora de reservar.
           </p>
 
           <div className="mt-3">
@@ -493,18 +492,22 @@ export default async function ReservaConfigPage({
               className={CLASSE_CAMPO}
             />
           </div>
+        </div>
 
-          <div className="mt-3">
-            <label className={CLASSE_RÓTULO}>Mensagem do lembrete</label>
-            <textarea
-              name="reserva_lembrete_mensagem"
-              rows={4}
-              defaultValue={config?.reserva_lembrete_mensagem ?? ""}
-              placeholder={MENSAGEM_LEMBRETE_PADRAO}
-              className={CLASSE_CAMPO_TEXTAREA}
-            />
-            <p className={CLASSE_AJUDA}>Em branco, usa o texto de exemplo acima.</p>
-          </div>
+        <div className={CLASSE_SECAO}>
+          <label className={CLASSE_RÓTULO}>WhatsApp do admin (avisos de lotação)</label>
+          <input
+            type="text"
+            name="reserva_admin_whatsapp"
+            defaultValue={config?.reserva_admin_whatsapp ?? ""}
+            placeholder="11999998888"
+            className={CLASSE_CAMPO}
+          />
+          <p className={CLASSE_AJUDA}>
+            Recebe um WhatsApp automático quando o almoço ou o jantar de hoje atinge 50% e 100% da
+            lotação. Em branco, essa conta não recebe esse aviso (o aviso dentro do painel continua
+            funcionando normalmente).
+          </p>
         </div>
 
         <button

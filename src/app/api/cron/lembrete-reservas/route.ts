@@ -5,8 +5,8 @@ import { processarLembretesDeReserva } from "@/lib/lembreteDeReserva";
 export const dynamic = "force-dynamic";
 
 /**
- * Disparado pelo Cron da Vercel (ver vercel.json) — manda o lembrete de "reserva hoje" pro
- * Instagram de quem já confirmou reserva pro dia, nas contas que ligaram isso em
+ * Disparado pelo Cron da Vercel (ver vercel.json) — manda o lembrete de "reserva hoje" por
+ * WhatsApp pra quem já confirmou reserva pro dia, nas contas que ligaram isso em
  * /contas/[id]/reserva.
  *
  * Protegido pelo header Authorization que a própria Vercel manda quando a env var CRON_SECRET

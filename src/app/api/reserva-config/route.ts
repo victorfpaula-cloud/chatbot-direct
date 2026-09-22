@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   const reservaLembreteHabilitado = formData.get("reserva_lembrete_habilitado") === "on";
   const reservaLembreteHorario = formData.get("reserva_lembrete_horario")?.toString() ?? "";
-  const reservaLembreteMensagem = formData.get("reserva_lembrete_mensagem")?.toString() ?? "";
+  const reservaAdminWhatsapp = formData.get("reserva_admin_whatsapp")?.toString().trim() ?? "";
 
   const corDestaqueManualBruta = formData.get("cor_destaque_manual")?.toString().trim() ?? "";
   const corDestaqueManual = /^#[0-9a-fA-F]{6}$/.test(corDestaqueManualBruta) ? corDestaqueManualBruta : null;
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       // Coluna NOT NULL no banco (sempre precisa de um horário pra comparar no cron) — nunca grava
       // null aqui, mesmo que o campo chegue vazio por algum motivo.
       reserva_lembrete_horario: reservaLembreteHorario || "18:40",
-      reserva_lembrete_mensagem: reservaLembreteMensagem || null,
+      reserva_admin_whatsapp: reservaAdminWhatsapp || null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "account_id" }
