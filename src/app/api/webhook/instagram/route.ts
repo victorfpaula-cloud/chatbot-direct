@@ -69,8 +69,22 @@ async function processarEventoDeMensagem(admin: ReturnType<typeof criarClienteAd
   // evento "postback", NÃO como "message" — é um formato totalmente diferente da Meta. Normaliza
   // aqui pro mesmo formato que o resto do código já entende (`quick_reply.payload`), então nada
   // mais precisa saber se foi um toque de botão ou uma resposta digitada.
+  //
+  // `text` aqui recebe o TÍTULO do botão, não só o payload — investigado depois de ver vários
+  // "[botão] Reserva de Mesas" / "Aniversariante do Mês" / "Rodízio - Informações" etc. chegando
+  // sem nenhuma resposta (tabela chatbot_atendimentos, status sem_resposta): são os Ice
+  // Breakers/menu configurados direto no Instagram, não os botões que O NOSSO fluxo de reserva
+  // manda — chegam como postback com um payload que a gente não reconhece. Sem o texto, a
+  // checagem de palavra-chave de reserva (bateuPalavraChave, em processarMensagemDeReserva) e o
+  // caminho de palavra-chave/Gemini (em decidirEResponder) exigem `mensagem.text`, então o toque
+  // caía direto no "sem_resposta" final, mudo. Passando o título como texto, um toque em "Reserva
+  // de Mesas" passa a valer como se a pessoa tivesse digitado isso — dispara a palavra-chave de
+  // reserva normalmente (ou cai no Gemini, se não bater nenhuma). Não afeta os botões DO nosso
+  // fluxo (Hoje/Amanhã/Sim/Não etc.): todo `interpretar*` já confere o payload ANTES do texto
+  // (RESERVA_DATA_HOJE etc. sempre ganham), então ter o texto preenchido em paralelo não muda nada
+  // pra quem já está no meio de uma reserva — só ajuda quem clicou um botão que não bate com nada.
   const mensagem: { text?: string; quick_reply?: { payload: string } } = postback
-    ? { quick_reply: { payload: postback.payload } }
+    ? { quick_reply: { payload: postback.payload }, text: postback.title || undefined }
     : mensagemOriginal;
 
   const idDaMensagem: string | undefined = postback
