@@ -102,6 +102,23 @@ export async function notificarNovaReserva(
 }
 
 /**
+ * Chamada quando uma reserva confirmada faz a soma de pessoas daquele dia+período CRUZAR 50% do
+ * limite máximo configurado pela primeira vez — vai pra quem ativou notificação no painel, igual
+ * as outras duas (nova reserva, lotação atingida). Dispara uma vez só (mesma lógica de "cruzou o
+ * limiar", ver chamada em prepararConfirmacaoDeReserva em reservas.ts).
+ */
+export async function notificarLotacaoParcial(admin: Admin, accountId: string, periodoTexto: string): Promise<void> {
+  const totalHoje = await contarReservasDeHoje(admin, accountId);
+
+  await enviarPushParaConta(admin, accountId, {
+    titulo: "50% da lotação",
+    corpo: `${periodoTexto} de hoje já passou de 50% da lotação.`,
+    badge: totalHoje,
+    url: "/reservas",
+  });
+}
+
+/**
  * Chamada quando uma reserva confirmada faz a soma de pessoas daquele dia+período bater (ou
  * passar) o limite máximo configurado — ou seja, é a própria reserva que "lotou" a casa. Dispara
  * uma vez só: as tentativas seguintes pra esse mesmo dia+período já são recusadas antes de chegar

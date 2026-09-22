@@ -1,6 +1,7 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import {
   notificarNovaReserva as notificarNovaReservaPush,
+  notificarLotacaoParcial as notificarLotacaoParcialPush,
   notificarLotacaoAtingida as notificarLotacaoAtingidaPush,
 } from "@/lib/webPush";
 import { enviarWhatsAppTemplate } from "@/lib/kapsoApi";
@@ -50,7 +51,8 @@ export async function notificarNovaReserva(
 
 /** Dispara uma vez só, quando uma reserva confirmada faz a soma do dia+período cruzar 50% do
  * limite máximo pela primeira vez (mesma lógica de "cruzou o limiar" de notificarLotacaoAtingida,
- * ver chamada em reservas.ts). Só manda WhatsApp — não existe conceito de "50%" no push de hoje. */
+ * ver chamada em reservas.ts). Push vai pra quem ativou notificação no painel (todo mundo da
+ * conta); WhatsApp só pros números cadastrados em reserva_admin_whatsapp (pode não ter nenhum). */
 export async function notificarLotacaoParcial(
   admin: Admin,
   accountId: string,
@@ -58,6 +60,8 @@ export async function notificarLotacaoParcial(
   ocupado: number,
   limite: number
 ): Promise<void> {
+  await notificarLotacaoParcialPush(admin, accountId, periodoTexto);
+
   const whatsapps = await buscarWhatsAppsDoAdmin(admin, accountId);
   if (whatsapps.length === 0) return;
 
