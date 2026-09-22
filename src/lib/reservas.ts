@@ -418,34 +418,36 @@ async function continuarFluxo(
   // Proteção contra a Meta reentregando o MESMO toque/mensagem do cliente duas vezes com um ID de
   // mensagem diferente cada vez (por isso o dedup por message_id, lá no webhook, não pega esse
   // caso — o ID em si já vem diferente). Sintoma visto na prática: o botão "Posso confirmar?"
-  // chegando duplicado pro cliente, sem ele ter feito nada duas vezes. Guarda a "assinatura" (o
-  // payload do botão, ou o texto digitado) da última mensagem já processada dessa conversa junto
-  // com o horário; se a mensagem que chegou agora é IDÊNTICA à de poucos segundos atrás, é quase
-  // certeza que é a mesma entrega da Meta duplicada — ignora, sem reprocessar nem mandar nada de
-  // novo. Isso também tem o efeito colateral bom de proteger contra o próprio cliente dando duplo
-  // toque sem querer no botão (por exemplo, evita criar a reserva duas vezes se ele tocar "Sim"
-  // duas vezes rápido).
-  const JANELA_DUPLICATA_MS = 30_000;
+  // chegando duplicado pro cliente, sem ele ter feito nada duas vezes.
+  //
+  // A versão original guardava a "assinatura" (payload do botão, ou texto digitado) da última
+  // mensagem processada dentro de dados_coletados, com um SELECT e depois um UPDATE separados —
+  // só que isso tem uma corrida de verdade: duas entregas quase simultâneas da Meta pra mesma ação
+  // do cliente, processadas por duas invocações concorrentes desta função, podem cada uma LER a
+  // conversa antes de qualquer uma das duas ESCREVER, e as duas passam pela checagem. Era
+  // exatamente o que fazia o "Posso confirmar?" às vezes sair duplicado mesmo com essa proteção no
+  // lugar. Marcar a assinatura via `chatbot_marcar_assinatura_processada` (função no banco, ver
+  // migration) faz a checagem E a marcação dentro do MESMO UPDATE, usando o lock de linha do
+  // Postgres pra resolver a corrida: das duas chamadas concorrentes, só uma bate a condição do
+  // WHERE (a que rodar primeiro); a outra, ao ser liberada, já vê a linha com a assinatura marcada
+  // pela primeira e não bate mais — retorna false, e sabe que é duplicata. Isso também protege
+  // contra o próprio cliente dando duplo toque sem querer no botão.
+  const JANELA_DUPLICATA_SEGUNDOS = 30;
   const assinaturaDestaMensagem = payloadDoBotao ?? normalizar((textoDaMensagem ?? "").trim());
-  const agora = Date.now();
-  const ultimaProcessada = dados.__ultimaMensagemProcessada as
-    | { assinatura: string; em: number }
-    | undefined;
 
-  if (
-    assinaturaDestaMensagem &&
-    ultimaProcessada &&
-    ultimaProcessada.assinatura === assinaturaDestaMensagem &&
-    agora - ultimaProcessada.em < JANELA_DUPLICATA_MS
-  ) {
-    return;
+  if (assinaturaDestaMensagem) {
+    const { data: assinaturaMarcada, error: erroAoMarcarAssinatura } = await admin.rpc(
+      "chatbot_marcar_assinatura_processada",
+      {
+        p_conversa_id: conversa.id,
+        p_assinatura: assinaturaDestaMensagem,
+        p_janela_segundos: JANELA_DUPLICATA_SEGUNDOS,
+      }
+    );
+
+    if (erroAoMarcarAssinatura) throw erroAoMarcarAssinatura;
+    if (!assinaturaMarcada) return;
   }
-
-  dados.__ultimaMensagemProcessada = { assinatura: assinaturaDestaMensagem, em: agora };
-  await admin
-    .from("chatbot_conversations")
-    .update({ dados_coletados: dados, atualizado_em: new Date().toISOString() })
-    .eq("id", conversa.id);
 
   // Deixa a pessoa desistir a qualquer momento do fluxo (menos na etapa de confirmação final, que
   // já trata "cancelar"/"não" com sua própria mensagem configurável de recusa, via
