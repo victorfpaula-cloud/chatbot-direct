@@ -1,6 +1,7 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { Interruptor } from "@/app/contas/Interruptor";
 import DatasBloqueadasEditor from "./DatasBloqueadasEditor";
+import WhatsAppsAdminEditor from "./WhatsAppsAdminEditor";
 import CorDeDestaqueEditor from "./CorDeDestaqueEditor";
 import LinkExternoEditor from "../LinkExternoEditor";
 import {
@@ -496,17 +497,11 @@ export default async function ReservaConfigPage({
 
         <div className={CLASSE_SECAO}>
           <label className={CLASSE_RÓTULO}>WhatsApp do admin (avisos de lotação)</label>
-          <input
-            type="text"
-            name="reserva_admin_whatsapp"
-            defaultValue={config?.reserva_admin_whatsapp ?? ""}
-            placeholder="11999998888"
-            className={CLASSE_CAMPO}
-          />
+          <WhatsAppsAdminEditor valorInicial={config?.reserva_admin_whatsapp ?? ""} />
           <p className={CLASSE_AJUDA}>
             Recebe um WhatsApp automático quando o almoço ou o jantar de hoje atinge 50% e 100% da
-            lotação. Em branco, essa conta não recebe esse aviso (o aviso dentro do painel continua
-            funcionando normalmente).
+            lotação — pode cadastrar mais de um número. Sem nenhum preenchido, essa conta não recebe
+            esse aviso (o aviso dentro do painel continua funcionando normalmente).
           </p>
         </div>
 

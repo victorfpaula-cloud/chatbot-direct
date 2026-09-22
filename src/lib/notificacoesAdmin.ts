@@ -15,13 +15,20 @@ const TEMPLATE_LOTACAO_PARCIAL = "alerta_lotacao_meio";
 const TEMPLATE_LOTACAO_MAXIMA = "alerta_lotacao_maxima";
 const IDIOMA_TEMPLATE = "pt_BR";
 
-async function buscarWhatsAppDoAdmin(admin: Admin, accountId: string): Promise<string | null> {
+/** Zero, um ou vários números — guardados como texto separado por vírgula (ver
+ * WhatsAppsAdminEditor.tsx/reserva-config/route.ts). */
+async function buscarWhatsAppsDoAdmin(admin: Admin, accountId: string): Promise<string[]> {
   const { data } = await admin
     .from("chatbot_account_settings")
     .select("reserva_admin_whatsapp")
     .eq("account_id", accountId)
     .maybeSingle();
-  return data?.reserva_admin_whatsapp?.trim() || null;
+
+  const texto: string = data?.reserva_admin_whatsapp ?? "";
+  return texto
+    .split(",")
+    .map((numero) => numero.trim())
+    .filter(Boolean);
 }
 
 async function buscarNomeDaConta(admin: Admin, accountId: string): Promise<string> {
@@ -51,16 +58,20 @@ export async function notificarLotacaoParcial(
   ocupado: number,
   limite: number
 ): Promise<void> {
-  const whatsapp = await buscarWhatsAppDoAdmin(admin, accountId);
-  if (!whatsapp) return;
+  const whatsapps = await buscarWhatsAppsDoAdmin(admin, accountId);
+  if (whatsapps.length === 0) return;
 
   const nomeConta = await buscarNomeDaConta(admin, accountId);
-  await enviarWhatsAppTemplate(whatsapp, TEMPLATE_LOTACAO_PARCIAL, IDIOMA_TEMPLATE, [
-    periodoTexto,
-    nomeConta,
-    String(ocupado),
-    String(limite),
-  ]);
+  await Promise.all(
+    whatsapps.map((whatsapp) =>
+      enviarWhatsAppTemplate(whatsapp, TEMPLATE_LOTACAO_PARCIAL, IDIOMA_TEMPLATE, [
+        periodoTexto,
+        nomeConta,
+        String(ocupado),
+        String(limite),
+      ])
+    )
+  );
 }
 
 /** Push de sempre + WhatsApp novo (se a conta tiver cadastrado reserva_admin_whatsapp). */
@@ -71,9 +82,13 @@ export async function notificarLotacaoAtingida(
 ): Promise<void> {
   await notificarLotacaoAtingidaPush(admin, accountId, periodoTexto);
 
-  const whatsapp = await buscarWhatsAppDoAdmin(admin, accountId);
-  if (!whatsapp) return;
+  const whatsapps = await buscarWhatsAppsDoAdmin(admin, accountId);
+  if (whatsapps.length === 0) return;
 
   const nomeConta = await buscarNomeDaConta(admin, accountId);
-  await enviarWhatsAppTemplate(whatsapp, TEMPLATE_LOTACAO_MAXIMA, IDIOMA_TEMPLATE, [periodoTexto, nomeConta]);
+  await Promise.all(
+    whatsapps.map((whatsapp) =>
+      enviarWhatsAppTemplate(whatsapp, TEMPLATE_LOTACAO_MAXIMA, IDIOMA_TEMPLATE, [periodoTexto, nomeConta])
+    )
+  );
 }

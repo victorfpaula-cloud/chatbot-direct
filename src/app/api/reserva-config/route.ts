@@ -33,7 +33,14 @@ export async function POST(request: NextRequest) {
 
   const reservaLembreteHabilitado = formData.get("reserva_lembrete_habilitado") === "on";
   const reservaLembreteHorario = formData.get("reserva_lembrete_horario")?.toString() ?? "";
-  const reservaAdminWhatsapp = formData.get("reserva_admin_whatsapp")?.toString().trim() ?? "";
+  // Um ou mais campos com esse mesmo name (WhatsAppsAdminEditor.tsx) — getAll junta todos numa
+  // lista, sem precisar que a pessoa digite vírgula na mão. Guardado como texto separado por
+  // vírgula (mesmo padrão de reserva_datas_bloqueadas), lido de volta em notificacoesAdmin.ts.
+  const reservaAdminWhatsapp = formData
+    .getAll("reserva_admin_whatsapp")
+    .map((v) => v.toString().trim())
+    .filter(Boolean)
+    .join(", ");
 
   const corDestaqueManualBruta = formData.get("cor_destaque_manual")?.toString().trim() ?? "";
   const corDestaqueManual = /^#[0-9a-fA-F]{6}$/.test(corDestaqueManualBruta) ? corDestaqueManualBruta : null;
