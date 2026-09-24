@@ -21,6 +21,14 @@ import {
  * sessão de verdade:
  * - `api/webhook/instagram`: quem chama é a Meta, não o navegador do Victor — validado pela
  *   própria assinatura HMAC (`X-Hub-Signature-256`), não por login.
+ * - `api/cron/`: quem chama é um cronjob externo (cron-job.org pro lembrete de reserva, Cron da
+ *   própria Vercel pro relatório semanal), nunca um navegador com sessão — validado pelo header
+ *   Authorization/CRON_SECRET dentro de cada rota (ver comentário em cada uma). Bug real
+ *   descoberto em produção em 24/09/2026: essas rotas não tinham exceção aqui, então batiam na
+ *   checagem de sessão normal, sem sessão nenhuma (é uma chamada de servidor pra servidor, sem
+ *   cookie), e o middleware redirecionava pra "/login" com 307 ANTES da rota sequer rodar — a
+ *   checagem de CRON_SECRET dentro da rota nunca chegava a executar. Ou seja, nenhuma das duas
+ *   rotas de cron jamais funcionou de verdade, desde sempre.
  * - `/login`: senão ninguém conseguiria nem chegar na tela de login pra entrar.
  *
  * Mesmo padrão de autenticação (Supabase Auth por sessão/cookie) já usado no agendador-stories e
@@ -331,6 +339,11 @@ export const config = {
     // sem cookie de sessão nenhum, então também precisam ficar de fora do redirecionamento.
     // api/site/ (src/app/api/site/contato/route.ts): o formulário de contato da home de vendas
     // (/site) — visitante nunca tem sessão nenhuma, igual a reserva externa acima.
-    "/((?!api/webhook/instagram|api/r/|api/site/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/|site$).*)",
+    // api/cron/ (lembrete-reservas, relatorio-semanal): quem chama é um cronjob externo, sem
+    // sessão nenhuma — cada rota já se protege sozinha conferindo o header Authorization contra
+    // CRON_SECRET. FALTAVA essa exceção aqui (bug real, ver comentário no topo do arquivo): sem
+    // ela, todo request batia direto no redirect pra /login antes de chegar na rota, e as duas
+    // rotas de cron nunca funcionaram de verdade.
+    "/((?!api/webhook/instagram|api/r/|api/site/|api/cron/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/|site$).*)",
   ],
 };
