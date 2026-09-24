@@ -5,10 +5,9 @@ import { enviarWhatsAppTemplate } from "@/lib/kapsoApi";
 
 // Lembrete de comparecimento: mensagem automática por WhatsApp, uma vez por dia, pra todo mundo
 // que confirmou reserva pra HOJE — chamado pela rota de cron (ver
-// src/app/api/cron/lembrete-reservas/route.ts), disparada a cada poucos minutos por um Schedule
-// do GitHub Actions (.github/workflows/lembrete-reservas.yml), nunca pelo fluxo de conversa em
-// si. Cada conta liga/configura isso separadamente em /contas/[id]/reserva (reserva_lembrete_* em
-// chatbot_account_settings).
+// src/app/api/cron/lembrete-reservas/route.ts), disparada a cada poucos minutos por um cronjob
+// externo gratuito no cron-job.org, nunca pelo fluxo de conversa em si. Cada conta liga/configura
+// isso separadamente em /contas/[id]/reserva (reserva_lembrete_* em chatbot_account_settings).
 //
 // Até 22/09/2026 isso mandava por Instagram Direct e pulava quem reservou pelo link público
 // (instagram_scoped_id "externo:...", sem conversa nenhuma por trás) ou à mão ("manual:..."). Foi
