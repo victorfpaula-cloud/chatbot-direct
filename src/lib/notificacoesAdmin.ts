@@ -78,7 +78,12 @@ export async function notificarLotacaoParcial(
   );
 }
 
-/** Push de sempre + WhatsApp novo (se a conta tiver cadastrado reserva_admin_whatsapp). */
+/** Push de sempre (esse continua usando periodoTexto na mensagem, sem restrição nenhuma da Meta) +
+ * WhatsApp novo (se a conta tiver cadastrado reserva_admin_whatsapp). Template aprovado pelo
+ * Victor na Meta ("alerta_lotacao_maxima") não tem nenhuma variável no corpo ("A lotação máxima do
+ * dia foi atingida e as reservas foram encerradas.") — mesma causa do lembrete de reserva não sair
+ * (ver comentário em lembreteDeReserva.ts): mandar parâmetro pra um template sem placeholder
+ * nenhum faz a Meta recusar a mensagem inteira, silenciosamente. */
 export async function notificarLotacaoAtingida(
   admin: Admin,
   accountId: string,
@@ -89,10 +94,7 @@ export async function notificarLotacaoAtingida(
   const whatsapps = await buscarWhatsAppsDoAdmin(admin, accountId);
   if (whatsapps.length === 0) return;
 
-  const nomeConta = await buscarNomeDaConta(admin, accountId);
   await Promise.all(
-    whatsapps.map((whatsapp) =>
-      enviarWhatsAppTemplate(whatsapp, TEMPLATE_LOTACAO_MAXIMA, IDIOMA_TEMPLATE, [periodoTexto, nomeConta])
-    )
+    whatsapps.map((whatsapp) => enviarWhatsAppTemplate(whatsapp, TEMPLATE_LOTACAO_MAXIMA, IDIOMA_TEMPLATE, []))
   );
 }
