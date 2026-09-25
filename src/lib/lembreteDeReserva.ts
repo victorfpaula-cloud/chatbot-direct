@@ -3,11 +3,16 @@ import { agoraEmSaoPaulo, passouDoCutoff } from "@/lib/reservas";
 import { hojeEmSaoPauloISO } from "@/lib/datas";
 import { enviarWhatsAppTemplate } from "@/lib/kapsoApi";
 
-// Lembrete de comparecimento: mensagem automática por WhatsApp, uma vez por dia, pra todo mundo
-// que confirmou reserva pra HOJE — chamado pela rota de cron (ver
-// src/app/api/cron/lembrete-reservas/route.ts), disparada a cada poucos minutos por um cronjob
-// externo gratuito no cron-job.org, nunca pelo fluxo de conversa em si. Cada conta liga/configura
-// isso separadamente em /contas/[id]/reserva (reserva_lembrete_* em chatbot_account_settings).
+// Lembrete de comparecimento: mensagem automática por WhatsApp, uma vez por dia, pra quem confirmou
+// reserva de JANTAR pra HOJE (ver enviarLembretesDaConta abaixo pro motivo de excluir almoço) —
+// chamado pela rota de cron (ver src/app/api/cron/lembrete-reservas/route.ts), disparada 1x por dia
+// por um cronjob externo gratuito no cron-job.org (agendado pro horário configurado da conta —
+// 18:30 pro Único, único uso até 25/09/2026; ver conversa "Fluid Active CPU" na Vercel: rodava a
+// cada 10min antes, trocado pra 1x/dia de propósito pra economizar execução — funciona bem enquanto
+// só existir uma conta com um único horário configurado; se aparecer uma segunda conta com horário
+// diferente, precisa voltar a rodar com mais frequência, ou passar a apontar pra 2+ horários
+// fixos). Nunca disparado pelo fluxo de conversa em si. Cada conta liga/configura isso
+// separadamente em /contas/[id]/reserva (reserva_lembrete_* em chatbot_account_settings).
 //
 // Até 22/09/2026 isso mandava por Instagram Direct e pulava quem reservou pelo link público
 // (instagram_scoped_id "externo:...", sem conversa nenhuma por trás) ou à mão ("manual:..."). Foi
@@ -40,8 +45,11 @@ type ResultadoDoLembrete = {
   falhas: number;
 };
 
-/** Manda o lembrete pra quem tem reserva hoje NESSA conta — uma mensagem por WhatsApp único (quem
- * fez duas reservas pro mesmo dia recebe só uma). Sem WhatsApp cadastrado na reserva, pula (não
+/** Manda o lembrete pra quem tem reserva de JANTAR hoje nessa conta — uma mensagem por WhatsApp
+ * único (quem fez duas reservas pro mesmo dia recebe só uma). Só jantar de propósito: pedido do
+ * Victor (25/09/2026) — o cron agora roda 1x por dia, por volta do horário configurado (18:30 pro
+ * Único), bem depois do horário de almoço já ter passado; mandar "lembrete" de um almoço que já
+ * aconteceu não faz sentido nenhum pra quem reservou. Sem WhatsApp cadastrado na reserva, pula (não
  * acontece na prática — o campo é obrigatório em toda etapa de reserva — mas cobre reserva antiga
  * migrada de outro sistema, sem esse dado). */
 async function enviarLembretesDaConta(
@@ -55,7 +63,8 @@ async function enviarLembretesDaConta(
     .from("chatbot_reservations")
     .select("whatsapp")
     .eq("account_id", conta.id)
-    .eq("data_reserva", hoje);
+    .eq("data_reserva", hoje)
+    .eq("periodo", "jantar");
 
   if (!reservas || reservas.length === 0) return resultado;
 
