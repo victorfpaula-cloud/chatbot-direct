@@ -19,7 +19,12 @@ import { enviarWhatsAppTemplate } from "@/lib/kapsoApi";
 // Mensagem por template aprovado (Meta exige isso pra qualquer mensagem que o sistema inicia, fora
 // da janela de 24h de uma conversa) — por isso não dá mais pra cada conta escrever um texto livre
 // customizado (reserva_lembrete_mensagem foi removido da tela de configuração): o texto do template
-// é fixo e igual pra todo mundo, só o nome do cliente e o nome do restaurante mudam.
+// é fixo e igual pra todo mundo. O template aprovado pelo Victor na Meta ("lembrete_reserva") NÃO
+// tem nenhuma variável ({{1}}, {{2}}...) no corpo — é texto 100% fixo, sem nome do cliente nem do
+// restaurante. Chegou a ser chamado com 2 parâmetros (nome + restaurante) achando que o template
+// tinha placeholder pra eles; a Meta recusa a mensagem quando a quantidade de parâmetros não bate
+// com o template aprovado de verdade, então nenhum lembrete saía (bug real, 24/09/2026 — a falha
+// ficava só no log, silenciosa, porque enviarWhatsAppTemplate nunca lança erro pra quem chama).
 
 type Admin = ReturnType<typeof criarClienteAdmin>;
 
@@ -41,20 +46,19 @@ type ResultadoDoLembrete = {
  * migrada de outro sistema, sem esse dado). */
 async function enviarLembretesDaConta(
   admin: Admin,
-  conta: { id: string; page_name: string | null }
+  conta: { id: string }
 ): Promise<ResultadoDoLembrete> {
   const hoje = hojeEmSaoPauloISO();
   const resultado: ResultadoDoLembrete = { contaId: conta.id, enviadas: 0, puladas: 0, falhas: 0 };
 
   const { data: reservas } = await admin
     .from("chatbot_reservations")
-    .select("cliente_nome, whatsapp")
+    .select("whatsapp")
     .eq("account_id", conta.id)
     .eq("data_reserva", hoje);
 
   if (!reservas || reservas.length === 0) return resultado;
 
-  const nomeDoRestaurante = conta.page_name?.trim() || "AutoMesa";
   const vistos = new Set<string>();
 
   for (const reserva of reservas) {
@@ -69,11 +73,11 @@ async function enviarLembretesDaConta(
     vistos.add(chave);
 
     try {
-      const primeiroNome = reserva.cliente_nome?.trim().split(/\s+/)[0] || "";
-      const enviou = await enviarWhatsAppTemplate(numero, TEMPLATE_LEMBRETE, IDIOMA_TEMPLATE, [
-        primeiroNome,
-        nomeDoRestaurante,
-      ]);
+      // Sem parâmetros — o template aprovado não tem nenhuma variável no corpo (ver comentário no
+      // topo do arquivo). Passar uma lista vazia aqui é o que faz enviarWhatsAppTemplate omitir o
+      // campo "components" da chamada à Meta por completo, batendo com o formato de um template
+      // 100% fixo.
+      const enviou = await enviarWhatsAppTemplate(numero, TEMPLATE_LEMBRETE, IDIOMA_TEMPLATE, []);
       if (enviou) {
         resultado.enviadas++;
       } else {
@@ -112,7 +116,7 @@ export async function processarLembretesDeReserva(admin: Admin): Promise<Resulta
 
   const { data: contas } = await admin
     .from("chatbot_accounts")
-    .select("id, page_name")
+    .select("id")
     .in(
       "id",
       pendentes.map((s) => s.account_id)
