@@ -262,6 +262,11 @@ async function continuarFluxoDeAlteracao(
   conversa: { id: string; dados_coletados: any },
   textoDaMensagem: string | undefined
 ) {
+  // Mesmo motivo do guard em continuarFluxo (ver comentário lá): mensagem sem texto nenhum (áudio,
+  // imagem, reação, etc.) não é uma resposta de verdade — ignora, em vez de reenviar "não consegui
+  // entender" à toa.
+  if (!textoDaMensagem) return;
+
   if (ehPedidoDeCancelamento(textoDaMensagem)) {
     await enviarMensagemDirect(conta.access_token, idDoCliente, "Sem problema, não mudei nada na sua reserva.");
     await encerrarConversa(admin, conversa.id);
@@ -414,6 +419,16 @@ async function continuarFluxo(
   payloadDoBotao: string | undefined
 ) {
   const dados = conversa.dados_coletados ?? {};
+
+  // Sem payload de botão E sem texto — a pessoa mandou algo que não é resposta nenhuma (áudio,
+  // imagem, story, figurinha, uma reação de coração numa mensagem nossa, etc.). Bug real visto em
+  // produção (29/09/2026): isso caía direto no switch abaixo como se fosse uma "resposta não
+  // reconhecida", e a etapa de confirmação reenviava os botões "Posso confirmar?" de novo — que,
+  // chegando segundos depois da primeira vez, parecia (e depois é registrado como) uma duplicata
+  // pro cliente, mesmo sem ele ter feito nada duas vezes. Ignora silenciosamente, igual o chatbot
+  // normal (palavra-chave/Gemini) já faz pra mensagem sem texto — nenhuma etapa do fluxo de reserva
+  // deveria reagir a um "não-conteúdo" desses.
+  if (!textoDaMensagem && !payloadDoBotao) return;
 
   // Proteção contra a Meta reentregando o MESMO toque/mensagem do cliente duas vezes com um ID de
   // mensagem diferente cada vez (por isso o dedup por message_id, lá no webhook, não pega esse
