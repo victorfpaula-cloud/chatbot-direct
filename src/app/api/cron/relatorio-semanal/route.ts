@@ -35,10 +35,14 @@ export async function GET(request: NextRequest) {
   const resultados: { accountId: string; sucesso: boolean; erro?: string }[] = [];
 
   for (const config of contasHabilitadas ?? []) {
-    if (!config.relatorio_email) continue;
+    const emails = (config.relatorio_email ?? "")
+      .split(",")
+      .map((v: string) => v.trim())
+      .filter(Boolean);
+    if (emails.length === 0) continue;
     try {
       const relatorio = await montarRelatorio(admin, config.account_id, periodo);
-      const resultado = await enviarRelatorioSemanal(config.relatorio_email, relatorio);
+      const resultado = await enviarRelatorioSemanal(emails, relatorio);
       resultados.push({ accountId: config.account_id, ...resultado });
 
       if (resultado.sucesso) {

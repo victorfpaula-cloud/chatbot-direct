@@ -211,7 +211,7 @@ const LEGENDA_PEQUENA = 'style="margin:1px 0 0; font-size:9px; color:#71717a;"';
  * onboarding@resend.dev logo ali em cima).
  */
 export async function enviarRelatorioSemanal(
-  destinatario: string,
+  destinatarios: string[],
   relatorio: Relatorio
 ): Promise<{ sucesso: boolean; erro?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -397,7 +397,7 @@ export async function enviarRelatorioSemanal(
       },
       body: JSON.stringify({
         from: REMETENTE,
-        to: [destinatario],
+        to: destinatarios,
         // Sem caixa de e-mail de verdade atrás de relatorios@automesa.com.br — se o cliente
         // responder o relatório, cai aqui (mesmo e-mail que já recebe os avisos de reclamação),
         // não se perde no vazio. Omitido se ALERT_EMAIL não estiver configurada.

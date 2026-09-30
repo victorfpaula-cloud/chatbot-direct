@@ -3,7 +3,6 @@ import { montarRelatorio } from "@/lib/relatorioSemanal";
 import { ultimosDiasEmSaoPauloISO } from "@/lib/datas";
 import { CartaoDeSecao } from "../CartaoDeSecao";
 import {
-  CLASSE_CAMPO,
   CLASSE_RÓTULO,
   CLASSE_AJUDA,
   CLASSE_CHECKBOX,
@@ -11,6 +10,7 @@ import {
   CLASSE_AVISO_SALVO,
   CLASSE_AVISO_ERRO,
 } from "../estilosDeCampo";
+import EmailsDeRelatorioEditor from "./EmailsDeRelatorioEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -101,14 +101,8 @@ export default async function RelatoriosPage({
           <input type="hidden" name="account_id" value={params.id} />
 
           <div>
-            <label className={CLASSE_RÓTULO}>E-mail de destino</label>
-            <input
-              type="email"
-              name="relatorio_email"
-              placeholder="cliente@exemplo.com"
-              defaultValue={config?.relatorio_email ?? ""}
-              className={CLASSE_CAMPO}
-            />
+            <label className={CLASSE_RÓTULO}>E-mails de destino</label>
+            <EmailsDeRelatorioEditor valorInicial={config?.relatorio_email ?? ""} />
           </div>
 
           <label className="flex items-center gap-2.5 text-sm text-neutral-300">

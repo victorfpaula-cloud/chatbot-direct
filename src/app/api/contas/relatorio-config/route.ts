@@ -6,18 +6,25 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const accountId = formData.get("account_id")?.toString();
-  const email = formData.get("relatorio_email")?.toString().trim() ?? "";
+  // Zero, um ou vários e-mails — mesmo padrão já usado pros WhatsApps de admin (ver
+  // reserva_admin_whatsapp em reserva-config/route.ts): cada caixinha do EmailsDeRelatorioEditor
+  // manda um input com o MESMO name, o form nativo já entrega isso como lista (getAll), guardado
+  // aqui como texto separado por vírgula.
+  const emails = formData
+    .getAll("relatorio_email")
+    .map((v) => v.toString().trim())
+    .filter(Boolean);
   const habilitado = formData.get("relatorio_habilitado")?.toString() === "1";
 
   if (!accountId) {
     return NextResponse.redirect(new URL("/contas", request.url));
   }
 
-  if (habilitado && !email) {
+  if (habilitado && emails.length === 0) {
     return NextResponse.redirect(
       new URL(
         `/contas/${accountId}/relatorios?erro=${encodeURIComponent(
-          "Precisa cadastrar um e-mail antes de ligar o envio automático."
+          "Precisa cadastrar pelo menos um e-mail antes de ligar o envio automático."
         )}`,
         request.url
       )
@@ -28,7 +35,7 @@ export async function POST(request: NextRequest) {
   const { error } = await admin.from("chatbot_account_settings").upsert(
     {
       account_id: accountId,
-      relatorio_email: email || null,
+      relatorio_email: emails.join(", ") || null,
       relatorio_habilitado: habilitado,
       updated_at: new Date().toISOString(),
     },

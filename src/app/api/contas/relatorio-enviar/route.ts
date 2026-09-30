@@ -28,7 +28,12 @@ export async function POST(request: NextRequest) {
     .eq("account_id", accountId)
     .maybeSingle();
 
-  if (!config?.relatorio_email) {
+  const emails = (config?.relatorio_email ?? "")
+    .split(",")
+    .map((v: string) => v.trim())
+    .filter(Boolean);
+
+  if (emails.length === 0) {
     return NextResponse.redirect(
       new URL(
         `/contas/${accountId}/relatorios?erro=${encodeURIComponent("Cadastra um e-mail antes de enviar.")}`,
@@ -38,7 +43,7 @@ export async function POST(request: NextRequest) {
   }
 
   const relatorio = await montarRelatorio(admin, accountId, ultimosDiasEmSaoPauloISO(dias));
-  const resultado = await enviarRelatorioSemanal(config.relatorio_email, relatorio);
+  const resultado = await enviarRelatorioSemanal(emails, relatorio);
 
   if (!resultado.sucesso) {
     return NextResponse.redirect(
