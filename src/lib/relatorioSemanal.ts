@@ -196,20 +196,66 @@ export async function montarRelatorio(
 
     if (contaStories) {
       storiesConectado = true;
-      const { data: publicacoesBrutas } = await admin
-        .from("publish_log")
-        .select("scheduled_for, status")
-        .eq("account_id", contaStories.id)
-        .gte("scheduled_for", inicioISO)
-        .lte("scheduled_for", fimISO);
 
-      totalStoriesPublicados = (publicacoesBrutas ?? []).filter((p) => p.status === "success").length;
-      totalStoriesComErro = (publicacoesBrutas ?? []).filter((p) => p.status === "error").length;
+      // TRÊS fontes de Story publicado no Agendador, contadas juntas: a rotina semanal de sempre
+      // (schedule_slots -> publish_log), o "AutoStory" — Stories automáticos via Google Drive,
+      // sub-módulo de 17/09/2026 (ver supabase/story-drive-automation.sql no repo do Agendador),
+      // que grava em story_posts — e o "Ciclo de Categorias" (story_ciclo_categoria /
+      // story_ciclo_horario / story_ciclo_item / story_ciclo_posts), um TERCEIRO motor de
+      // publicação, achado em 30/09/2026 direto no banco (tabelas com dados reais, contas
+      // publicando de verdade) mas sem NENHUM código correspondente em nenhum dos repositórios do
+      // GitHub do Victor — grava direto no Supabase compartilhado por fora desses apps. Mesmo
+      // padrão dos outros dois: filtra por scheduled_at e status, conta junto.
+      // Achado em 30/09/2026 (pedido do Victor) que o relatório só somava a primeira fonte, depois
+      // que só somava as duas primeiras — cada fonte nova destrava um pedaço de Stories publicados
+      // que o relatório vinha subestimando (conferido: Único Sushi Bar teve 5 publicações pelo
+      // Ciclo de Categorias nos últimos 30 dias que não entravam em nenhuma das outras duas).
+      const [{ data: publicacoesBrutas }, { data: autoStoriesBrutos }, { data: cicloStoriesBrutos }] =
+        await Promise.all([
+          admin
+            .from("publish_log")
+            .select("scheduled_for, status")
+            .eq("account_id", contaStories.id)
+            .gte("scheduled_for", inicioISO)
+            .lte("scheduled_for", fimISO),
+          admin
+            .from("story_posts")
+            .select("scheduled_at, status")
+            .eq("account_id", contaStories.id)
+            .gte("scheduled_at", inicio)
+            .lt("scheduled_at", fim),
+          admin
+            .from("story_ciclo_posts")
+            .select("scheduled_at, status")
+            .eq("account_id", contaStories.id)
+            .gte("scheduled_at", inicio)
+            .lt("scheduled_at", fim),
+        ]);
+
+      const sucessosSemanal = (publicacoesBrutas ?? []).filter((p) => p.status === "success").length;
+      const errosSemanal = (publicacoesBrutas ?? []).filter((p) => p.status === "error").length;
+      const sucessosAutoStory = (autoStoriesBrutos ?? []).filter((p) => p.status === "success").length;
+      const errosAutoStory = (autoStoriesBrutos ?? []).filter((p) => p.status === "error").length;
+      const sucessosCiclo = (cicloStoriesBrutos ?? []).filter((p) => p.status === "success").length;
+      const errosCiclo = (cicloStoriesBrutos ?? []).filter((p) => p.status === "error").length;
+
+      totalStoriesPublicados = sucessosSemanal + sucessosAutoStory + sucessosCiclo;
+      totalStoriesComErro = errosSemanal + errosAutoStory + errosCiclo;
 
       const diasComStories = new Map<string, number>();
       for (const p of publicacoesBrutas ?? []) {
         if (p.status !== "success") continue;
         diasComStories.set(p.scheduled_for, (diasComStories.get(p.scheduled_for) ?? 0) + 1);
+      }
+      for (const p of autoStoriesBrutos ?? []) {
+        if (p.status !== "success") continue;
+        const dia = dataEmSaoPauloISO(p.scheduled_at);
+        diasComStories.set(dia, (diasComStories.get(dia) ?? 0) + 1);
+      }
+      for (const p of cicloStoriesBrutos ?? []) {
+        if (p.status !== "success") continue;
+        const dia = dataEmSaoPauloISO(p.scheduled_at);
+        diasComStories.set(dia, (diasComStories.get(dia) ?? 0) + 1);
       }
       storiesPorDia = Array.from(diasComStories.entries())
         .map(([dataISO, total]) => ({ dataISO, total }))
