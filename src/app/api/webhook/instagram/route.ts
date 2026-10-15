@@ -65,6 +65,24 @@ async function processarEventoDeMensagem(admin: ReturnType<typeof criarClienteAd
     return;
   }
 
+  // Reação de emoji a um Story (❤️, 😮, 😂 etc. pelo seletor de reações rápidas, sem digitar nada)
+  // chega da Meta como uma message NORMAL, com reply_to.story preenchido e o `text` sendo só o
+  // emoji — não dá pra distinguir isso de "mensagem de verdade" só pelo texto estar vazio, porque
+  // aqui ele vem preenchido. Diferente de uma resposta de TEXTO a um story (ex: cliente responde
+  // "Que delícia!" no story) — isso também tem reply_to.story, mas o texto tem palavra de
+  // verdade, então continua caindo no fluxo normal (reserva/palavra-chave/Gemini) como deveria.
+  // Pedido do Victor: instrução no Gemini pra ignorar emoji não bastava, porque isso aqui nem
+  // chega a entrar no Gemini de propósito — só filtra ANTES, igual o is_echo acima.
+  const ehReacaoDeEmojiAoStory =
+    Boolean(mensagemOriginal?.reply_to?.story) &&
+    typeof mensagemOriginal?.text === "string" &&
+    mensagemOriginal.text.length > 0 &&
+    !/[\p{L}\p{N}]/u.test(mensagemOriginal.text);
+
+  if (ehReacaoDeEmojiAoStory) {
+    return;
+  }
+
   // Toque num botão do novo formato (Button Template, usado no fluxo de reserva) chega como um
   // evento "postback", NÃO como "message" — é um formato totalmente diferente da Meta. Normaliza
   // aqui pro mesmo formato que o resto do código já entende (`quick_reply.payload`), então nada
