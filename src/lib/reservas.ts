@@ -557,6 +557,21 @@ async function continuarFluxo(
 
       const dataLivreISO = paraISO(dataLivre);
 
+      // Pedido do Victor (09/10/2026): cliente digitou uma data com o ano por extenso (ex:
+      // "09/09/2026") já passada esse ano, e como só tinha a checagem de bloqueada aqui, a reserva
+      // seguiu em frente — ninguém notou na entrada porque o dia parecia "normal" na planilha/
+      // painel. Sem ano, parseDataLivre já empurra pro ano seguinte sozinho (ver lá) — só o ano
+      // explícito escapava dessa proteção. Mesma regra de "data < hoje" que a reserva externa
+      // (/api/r/[slug]/reservar) já aplicava — agora os dois canais recusam igual.
+      if (dataLivreISO < paraISO(agora)) {
+        await enviarMensagemDirect(
+          conta.access_token,
+          idDoCliente,
+          "Essa data já passou — pode escrever uma data a partir de hoje?" + SUGESTAO_DE_CANCELAR
+        );
+        return;
+      }
+
       if (estaBloqueada(dataLivreISO, config?.reserva_datas_bloqueadas)) {
         await enviarMensagemDirect(
           conta.access_token,
@@ -759,6 +774,19 @@ export async function prepararConfirmacaoDeReserva(
   }
 ): Promise<{ ok: boolean; mensagem: string; reservaId?: string; config: any }> {
   const { data: config } = await buscarConfig(admin, accountId);
+
+  // Último cinto de segurança contra reserva com data passada — a reserva externa (/api/r/[slug]/
+  // reservar) já recusa isso antes de chegar aqui, e o fluxo do Instagram agora também recusa na
+  // etapa "data_customizada" (ver case lá em cima) — mas essa função é o ÚNICO ponto que os dois
+  // canais realmente atravessam antes de gravar, então repete a checagem aqui pra nenhum caminho
+  // futuro escapar dela por esquecimento.
+  if (dados.data_reserva && dados.data_reserva < paraISO(agoraEmSaoPaulo())) {
+    return {
+      ok: false,
+      config,
+      mensagem: "Essa data já passou — pode pedir pra reservar de novo com uma data a partir de hoje?",
+    };
+  }
 
   // Confere a capacidade de novo aqui, bem antes de gravar — o cliente pode ter levado minutos
   // entre a pergunta da quantidade e essa confirmação final, e outra pessoa pode ter confirmado

@@ -259,11 +259,17 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
         const ehHoje = iso === hojeISOStr;
         const bloqueadoPorData = config.datasBloqueadas.includes(iso);
         const bloqueadoPorHorario = ehHoje && config.hojeFechadoPorHorario;
-        if (dataCel < hoje) btn.classList.add(styles.passado);
+        const ehPassado = dataCel < hoje;
+        if (ehPassado) btn.classList.add(styles.passado);
         else if (bloqueadoPorData || bloqueadoPorHorario) btn.classList.add(styles.bloqueado);
         if (ehHoje) btn.classList.add(styles.hoje);
         if (iso === dados.dataEscolhida) btn.classList.add(styles.selecionado);
-        btn.addEventListener("click", (e) => escolherDataCalendario(iso, btn, e));
+        // Dia passado só tinha a classe "passado" (um estilo mais apagado) mas continuava
+        // clicável de verdade — dava pra escolher uma data de mês anterior sem nenhum aviso (o
+        // servidor já recusa na hora de confirmar, mas pedido do Victor em 17/10/2026: ele viu
+        // gente escolhendo dia já passado e só descobrindo o erro na hora de chegar no local).
+        if (ehPassado) btn.disabled = true;
+        else btn.addEventListener("click", (e) => escolherDataCalendario(iso, btn, e));
         calGrade.appendChild(btn);
       }
       calAnterior.disabled = ano === hoje.getFullYear() && mes === hoje.getMonth();
