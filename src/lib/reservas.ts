@@ -30,6 +30,49 @@ const RESERVA_PERIODO_JANTAR = "RESERVA_PERIODO_JANTAR";
 const RESERVA_CONFIRMAR_SIM = "RESERVA_CONFIRMAR_SIM";
 const RESERVA_CONFIRMAR_NAO = "RESERVA_CONFIRMAR_NAO";
 
+// Modo "horário livre" (pedido do Victor, 19/10/2026 — primeiro cliente com essas regras: aceita
+// reserva pro mesmo dia até mais tarde, e quem reserva digita o horário, não escolhe só Almoço ou
+// Jantar). Mesmo formato de HorarioDoDia em src/lib/agendamentos.ts — duplicado aqui de propósito
+// (não importado de lá) pra não criar import circular (agendamentos.ts já importa DESTE arquivo).
+type JanelaHorarioDoDia = { dia: number; ativo: boolean; inicio: string; fim: string };
+
+function minutosDoDia(horaMinuto: string): number {
+  const [h, m] = horaMinuto.split(":").map((v) => parseInt(v, 10));
+  return h * 60 + m;
+}
+
+/** Janela configurada (reserva_horarios) pro dia da semana de `dataISO` — null se não tiver
+ * nenhuma configuração salva ainda, ou se esse dia da semana estiver desativado. */
+function janelaDoDiaDaSemana(
+  horarios: JanelaHorarioDoDia[] | null | undefined,
+  dataISO: string
+): JanelaHorarioDoDia | null {
+  if (!Array.isArray(horarios) || horarios.length === 0) return null;
+  const [ano, mes, dia] = dataISO.split("-").map((v) => parseInt(v, 10));
+  const diaDaSemana = new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay();
+  const janela = horarios.find((h) => h.dia === diaDaSemana);
+  return janela && janela.ativo ? janela : null;
+}
+
+/** Entende um horário digitado livre (ex: "20h", "20:00", "20h30", "8:30") — sempre 24h, nunca
+ * pede pra especificar manhã/tarde/noite (a janela configurada já deixa isso implícito: ninguém
+ * configura janela de reserva de madrugada). `null` se não conseguir reconhecer nada parecido com
+ * um horário. */
+function parseHorarioLivre(texto: string): { h: number; m: number } | null {
+  const match = texto.match(/(\d{1,2})[h:]?(\d{2})?/);
+  if (!match) return null;
+
+  const h = parseInt(match[1], 10);
+  const m = match[2] ? parseInt(match[2], 10) : 0;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+
+  return { h, m };
+}
+
+function formatarHoraMinuto(h: number, m: number): string {
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 // Se o cliente sumir no meio do fluxo (não responde mais) e voltar dias depois falando de outra
 // coisa, sem isso ele ficaria PRA SEMPRE preso no fluxo de reserva — toda mensagem nova dele seria
 // interpretada como resposta da pergunta parada (data/período/etc.), o bot nunca mais cairia em
@@ -410,6 +453,35 @@ async function perguntarPeriodo(conta: Conta, idDoCliente: string, mensagemPergu
   ]);
 }
 
+/** Equivalente a `perguntarPeriodo`, só que pro modo "horário livre" — sem botões (o cliente
+ * digita), já que a ideia desse modo é justamente deixar escolher qualquer horário, não só duas
+ * opções fixas. Reaproveita o MESMO campo de mensagem configurável que o modo período usa
+ * (`reserva_msg_pergunta_periodo`) — a tela de configuração mostra um ou outro, nunca os dois, já
+ * que uma conta só está num modo por vez. */
+async function perguntarHorarioLivre(conta: Conta, idDoCliente: string, mensagemPergunta?: string | null) {
+  const texto = mensagemPergunta?.trim() || "Pra que horário você quer reservar? (ex: 20h, 20:00)";
+  await enviarMensagemDirect(conta.access_token, idDoCliente, texto);
+}
+
+/** Depois que a data é escolhida (nos dois caminhos possíveis — Hoje/Amanhã ou data digitada),
+ * decide a próxima pergunta: Almoço/Jantar no modo de sempre, ou o horário livre no modo novo. */
+async function avancarParaPeriodoOuHorario(
+  admin: Admin,
+  conversa: { id: string },
+  conta: Conta,
+  idDoCliente: string,
+  dados: any,
+  config: { reserva_modo?: string | null; reserva_msg_pergunta_periodo?: string | null } | null | undefined
+) {
+  if (config?.reserva_modo === "horario") {
+    await atualizarEtapa(admin, conversa.id, "horario_livre", dados);
+    await perguntarHorarioLivre(conta, idDoCliente, config?.reserva_msg_pergunta_periodo);
+  } else {
+    await atualizarEtapa(admin, conversa.id, "periodo", dados);
+    await perguntarPeriodo(conta, idDoCliente, config?.reserva_msg_pergunta_periodo);
+  }
+}
+
 async function continuarFluxo(
   admin: Admin,
   conta: Conta,
@@ -535,8 +607,7 @@ async function continuarFluxo(
 
       dados.data_reserva = dataEscolhidaISO;
       dados.data_reserva_br = formatarDataBR(dataEscolhida);
-      await atualizarEtapa(admin, conversa.id, "periodo", dados);
-      await perguntarPeriodo(conta, idDoCliente, config?.reserva_msg_pergunta_periodo);
+      await avancarParaPeriodoOuHorario(admin, conversa, conta, idDoCliente, dados, config);
       return;
     }
 
@@ -583,8 +654,56 @@ async function continuarFluxo(
 
       dados.data_reserva = dataLivreISO;
       dados.data_reserva_br = formatarDataBR(dataLivre);
-      await atualizarEtapa(admin, conversa.id, "periodo", dados);
-      await perguntarPeriodo(conta, idDoCliente, config?.reserva_msg_pergunta_periodo);
+      await avancarParaPeriodoOuHorario(admin, conversa, conta, idDoCliente, dados, config);
+      return;
+    }
+
+    case "horario_livre": {
+      const { data: config } = await buscarConfig(admin, conta.id);
+      const horarioLivre = textoDaMensagem ? parseHorarioLivre(textoDaMensagem) : null;
+
+      if (!horarioLivre) {
+        await enviarMensagemDirect(
+          conta.access_token,
+          idDoCliente,
+          "Não consegui entender esse horário — pode escrever tipo 20h ou 20:00?" + SUGESTAO_DE_CANCELAR
+        );
+        return;
+      }
+
+      const janela = janelaDoDiaDaSemana(
+        config?.reserva_horarios as JanelaHorarioDoDia[] | null | undefined,
+        dados.data_reserva
+      );
+
+      if (!janela) {
+        await enviarMensagemDirect(
+          conta.access_token,
+          idDoCliente,
+          "Não estamos aceitando reserva nesse dia — pode escolher outra data?" + SUGESTAO_DE_CANCELAR
+        );
+        return;
+      }
+
+      const minutosPedidos = horarioLivre.h * 60 + horarioLivre.m;
+      const minutosInicio = minutosDoDia(janela.inicio);
+      const minutosFim = minutosDoDia(janela.fim);
+
+      if (minutosPedidos < minutosInicio || minutosPedidos > minutosFim) {
+        await enviarMensagemDirect(
+          conta.access_token,
+          idDoCliente,
+          `Nosso horário pra esse dia é de ${janela.inicio} até ${janela.fim} — pode escolher um horário dentro dessa janela?` +
+            SUGESTAO_DE_CANCELAR
+        );
+        return;
+      }
+
+      dados.periodo = formatarHoraMinuto(horarioLivre.h, horarioLivre.m);
+      await atualizarEtapa(admin, conversa.id, "pessoas", dados);
+
+      const perguntaPessoas = config?.reserva_msg_pergunta_pessoas?.trim() || "Pra quantas pessoas é a reserva?";
+      await enviarMensagemDirect(conta.access_token, idDoCliente, perguntaPessoas);
       return;
     }
 
@@ -619,15 +738,23 @@ async function continuarFluxo(
       }
 
       const { data: config } = await buscarConfig(admin, conta.id);
-      const limiteMaximo = limiteMaximoDoPeriodo(config, dados.periodo);
+      const modoHorarioLivre = config?.reserva_modo === "horario";
+      const limiteMaximo = limiteMaximoDoPeriodo(config, modoHorarioLivre ? undefined : dados.periodo);
 
       if (typeof limiteMaximo === "number") {
-        // Capacidade é por dia+período, cada período com o próprio limite configurável (almoço e
-        // jantar podem ter números diferentes agora — ver limiteMaximoDoPeriodo) — soma quem já
-        // está confirmado em chatbot_reservations pra essa data+período MAIS a quantidade que essa
+        // Capacidade é por dia+período no modo de sempre, cada período com o próprio limite
+        // configurável (almoço e jantar podem ter números diferentes — ver limiteMaximoDoPeriodo)
+        // — no modo "horário livre" é por DIA inteiro (ver comentário em
+        // prepararConfirmacaoDeReserva), por isso `null` no lugar do período. Soma quem já está
+        // confirmado em chatbot_reservations pra essa data(+período) MAIS a quantidade que essa
         // pessoa está pedindo agora. Recusa mesmo que ninguém tenha reservado ainda, se só o
         // pedido dela já estourar o limite sozinho.
-        const jaReservado = await somaPessoasReservadas(admin, conta.id, dados.data_reserva, dados.periodo);
+        const jaReservado = await somaPessoasReservadas(
+          admin,
+          conta.id,
+          dados.data_reserva,
+          modoHorarioLivre ? null : dados.periodo
+        );
 
         if (!cabeNoLimite(jaReservado, quantidade, limiteMaximo)) {
           const mensagem =
@@ -665,7 +792,12 @@ async function continuarFluxo(
 
       const { data: config } = await buscarConfig(admin, conta.id);
       const regras = config?.reserva_regras_texto?.trim();
-      const periodoTexto = dados.periodo === "almoco" ? "almoço" : "jantar";
+      // Modo "horário livre": dados.periodo já é o horário digitado (ex: "20:00") — mostra literal
+      // no resumo. Bug real antes dessa checagem: qualquer periodo que não fosse "almoco" caía em
+      // "jantar" por padrão, então o resumo de uma reserva por horário livre sempre dizia "jantar"
+      // errado (nunca mostrava o horário de verdade).
+      const periodoTexto =
+        dados.periodo === "almoco" ? "almoço" : dados.periodo === "jantar" ? "jantar" : dados.periodo;
 
       // As Regras (texto livre, cadastrado por conta — pode ser bem longo) e o resumo da reserva
       // vão numa mensagem de texto simples, SEPARADA da mensagem com botão — mandar tudo junto
@@ -788,15 +920,27 @@ export async function prepararConfirmacaoDeReserva(
     };
   }
 
+  // Modo "horário livre": a lotação máxima vale pro DIA inteiro, não por período — não faria
+  // sentido separar por período quando nem existe período (dados.periodo aqui guarda o horário
+  // digitado, ex: "20:00", um valor diferente a cada reserva). `undefined` no lugar do período faz
+  // limiteMaximoDoPeriodo cair sempre no valor do Almoço (= o único limite que esse modo usa) e
+  // somaPessoasReservadas somar o dia inteiro, sem filtrar por periodo.
+  const modoHorarioLivre = config?.reserva_modo === "horario";
+
   // Confere a capacidade de novo aqui, bem antes de gravar — o cliente pode ter levado minutos
   // entre a pergunta da quantidade e essa confirmação final, e outra pessoa pode ter confirmado
   // uma reserva pro mesmo dia+período nesse meio tempo. Sem essa segunda checagem, dava pra
   // estourar o limite combinando duas reservas que passaram cada uma na checagem da etapa
   // "pessoas" só porque, na hora de cada uma, a outra ainda não tinha sido confirmada.
-  const limiteMaximo = limiteMaximoDoPeriodo(config, dados.periodo ?? undefined);
+  const limiteMaximo = limiteMaximoDoPeriodo(config, modoHorarioLivre ? undefined : dados.periodo ?? undefined);
   let jaReservado = 0;
-  if (typeof limiteMaximo === "number" && dados.data_reserva && dados.periodo) {
-    jaReservado = await somaPessoasReservadas(admin, accountId, dados.data_reserva, dados.periodo);
+  if (typeof limiteMaximo === "number" && dados.data_reserva && (modoHorarioLivre || dados.periodo)) {
+    jaReservado = await somaPessoasReservadas(
+      admin,
+      accountId,
+      dados.data_reserva,
+      modoHorarioLivre ? null : dados.periodo
+    );
 
     if (!cabeNoLimite(jaReservado, dados.quantidade_pessoas, limiteMaximo)) {
       const mensagem =
@@ -840,9 +984,15 @@ export async function prepararConfirmacaoDeReserva(
   // limiar (50% ou 100%) — as tentativas seguintes pra esse mesmo dia+período são recusadas antes
   // de chegar aqui (limite máximo) ou simplesmente não cruzam o limiar de novo (50%, que já passou),
   // então nenhum dos dois repete à toa a cada nova reserva.
-  if (typeof limiteMaximo === "number" && dados.data_reserva && dados.periodo) {
+  if (typeof limiteMaximo === "number" && dados.data_reserva && (modoHorarioLivre || dados.periodo)) {
     const totalComEssaReserva = jaReservado + dados.quantidade_pessoas;
-    const periodoTexto = dados.periodo === "almoco" ? "Almoço" : dados.periodo === "jantar" ? "Jantar" : "Período";
+    const periodoTexto = modoHorarioLivre
+      ? "Hoje"
+      : dados.periodo === "almoco"
+        ? "Almoço"
+        : dados.periodo === "jantar"
+          ? "Jantar"
+          : "Período";
 
     const metade = limiteMaximo / 2;
     if (jaReservado < metade && totalComEssaReserva >= metade) {
@@ -866,7 +1016,10 @@ export async function sincronizarComPlanilha(admin: Admin, config: any, reservaI
   const idDaPlanilha = config?.google_sheet_id;
   if (!idDaPlanilha) return;
 
-  const periodoTexto = dados.periodo === "almoco" ? "Almoço" : dados.periodo === "jantar" ? "Jantar" : "";
+  // Modo "horário livre": dados.periodo guarda o próprio horário digitado (ex: "20:00") — mostra
+  // literal na planilha, em vez de deixar a coluna vazia (só Almoço/Jantar tinham tradução antes).
+  const periodoTexto =
+    dados.periodo === "almoco" ? "Almoço" : dados.periodo === "jantar" ? "Jantar" : dados.periodo ?? "";
 
   const escreveuNaPlanilha = await adicionarLinhaNaPlanilha(idDaPlanilha, [
     dados.nome ?? "",
@@ -886,21 +1039,26 @@ export async function sincronizarComPlanilha(admin: Admin, config: any, reservaI
 /**
  * Soma quantas pessoas já estão em reservas CONFIRMADAS (as únicas que existem em
  * chatbot_reservations — a tabela só recebe uma linha depois que o cliente confirma no fim do
- * fluxo) pra uma data+período específicos. Usada pra checar capacidade: o limite máximo
- * configurado é por dia+período (almoço e jantar contam à parte, cada um com o mesmo teto).
+ * fluxo) pra uma data específica. Usada pra checar capacidade: o limite máximo configurado é por
+ * dia+período no modo de sempre (almoço e jantar contam à parte, cada um com o mesmo teto) — `null`
+ * em `periodo` soma o DIA INTEIRO em vez de filtrar por período, usado pelo modo "horário livre"
+ * (lotação única pro dia, sem separar por horário).
  */
 export async function somaPessoasReservadas(
   admin: Admin,
   accountId: string,
   dataReserva: string,
-  periodo: string
+  periodo: string | null
 ): Promise<number> {
-  const { data, error } = await admin
+  let query = admin
     .from("chatbot_reservations")
     .select("quantidade_pessoas")
     .eq("account_id", accountId)
-    .eq("data_reserva", dataReserva)
-    .eq("periodo", periodo);
+    .eq("data_reserva", dataReserva);
+
+  if (periodo) query = query.eq("periodo", periodo);
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
@@ -942,7 +1100,7 @@ export async function buscarConfig(admin: Admin, accountId: string) {
   const resultado = await admin
     .from("chatbot_account_settings")
     .select(
-      "reserva_habilitada, reserva_pausa_ativa, reserva_pausa_mensagem, reserva_regras_texto, reserva_mensagem_limite_maximo, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_cutoff_horario, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas"
+      "reserva_habilitada, reserva_pausa_ativa, reserva_pausa_mensagem, reserva_regras_texto, reserva_mensagem_limite_maximo, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_cutoff_horario, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, reserva_modo, reserva_horarios"
     )
     .eq("account_id", accountId)
     .maybeSingle();

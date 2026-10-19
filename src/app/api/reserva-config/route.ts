@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { normalizarSlug } from "@/lib/slug";
 
+function tentarParsearJSON<T>(texto: string | undefined, valorPadrao: T): T {
+  if (!texto) return valorPadrao;
+  try {
+    return JSON.parse(texto) as T;
+  } catch {
+    return valorPadrao;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const accountId = formData.get("account_id")?.toString();
@@ -11,6 +20,12 @@ export async function POST(request: NextRequest) {
   }
 
   const palavraChaveReserva = formData.get("palavra_chave_reserva")?.toString() ?? "";
+  const reservaModoBruto = formData.get("reserva_modo")?.toString() ?? "";
+  const reservaModo = reservaModoBruto === "horario" ? "horario" : "periodo";
+  const reservaHorarios = tentarParsearJSON<unknown[] | null>(
+    formData.get("reserva_horarios")?.toString(),
+    null
+  );
   const reservaRegrasTexto = formData.get("reserva_regras_texto")?.toString() ?? "";
   const reservaMensagemLimiteMaximo =
     formData.get("reserva_mensagem_limite_maximo")?.toString() ?? "";
@@ -90,6 +105,8 @@ export async function POST(request: NextRequest) {
     {
       account_id: accountId,
       palavra_chave_reserva: palavraChaveReserva || null,
+      reserva_modo: reservaModo,
+      reserva_horarios: reservaHorarios,
       reserva_regras_texto: reservaRegrasTexto || null,
       reserva_limite_normal: reservaLimiteNormal,
       reserva_limite_maximo: reservaLimiteMaximo,

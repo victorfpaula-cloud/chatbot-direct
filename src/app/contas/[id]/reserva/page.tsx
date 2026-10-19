@@ -4,6 +4,8 @@ import DatasBloqueadasEditor from "./DatasBloqueadasEditor";
 import WhatsAppsAdminEditor from "./WhatsAppsAdminEditor";
 import CorDeDestaqueEditor from "./CorDeDestaqueEditor";
 import LinkExternoEditor from "../LinkExternoEditor";
+import HorariosSemanaEditor from "../agendamento/HorariosSemanaEditor";
+import { DIAS_DA_SEMANA_PADRAO } from "@/lib/agendamentos";
 import {
   CLASSE_CAMPO,
   CLASSE_CAMPO_TEXTAREA,
@@ -34,7 +36,7 @@ export default async function ReservaConfigPage({
   const { data: config } = await admin
     .from("chatbot_account_settings")
     .select(
-      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario, reserva_lembrete_habilitado, reserva_lembrete_horario, reserva_lembrete_mensagem, reserva_admin_whatsapp"
+      "palavra_chave_reserva, reserva_habilitada, reserva_regras_texto, reserva_limite_normal, reserva_limite_maximo, reserva_limite_maximo_jantar, reserva_mensagem_limite_maximo, reserva_cutoff_horario, reserva_pausa_ativa, reserva_pausa_data, reserva_pausa_mensagem, google_sheet_id, reserva_msg_inicial, reserva_msg_pergunta_data, reserva_msg_pergunta_periodo, reserva_msg_pergunta_pessoas, reserva_msg_pergunta_whatsapp, reserva_msg_confirmada, reserva_msg_recusada, reserva_datas_bloqueadas, palavra_chave_alterar_reserva, alteracao_cutoff_horario, reserva_lembrete_habilitado, reserva_lembrete_horario, reserva_lembrete_mensagem, reserva_admin_whatsapp, reserva_modo, reserva_horarios"
     )
     .eq("account_id", params.id)
     .maybeSingle();
@@ -144,6 +146,39 @@ export default async function ReservaConfigPage({
         </div>
 
         <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Como o cliente escolhe o horário</p>
+          <p className={CLASSE_AJUDA}>
+            <strong>Por período</strong>: o cliente escolhe Almoço ou Jantar (o jeito de sempre).{" "}
+            <strong>Por horário livre</strong>: o cliente digita o horário que quiser (ex: 20h),
+            dentro da janela que você configurar abaixo em &quot;Horário de funcionamento&quot; — pensado
+            pra quem aceita reserva até mais tarde no mesmo dia e não trabalha só com Almoço/Jantar.
+          </p>
+          <select name="reserva_modo" defaultValue={config?.reserva_modo ?? "periodo"} className={`${CLASSE_CAMPO} mt-3`}>
+            <option value="periodo">Por período (Almoço/Jantar)</option>
+            <option value="horario">Por horário livre</option>
+          </select>
+        </div>
+
+        <div className={CLASSE_SECAO}>
+          <p className={CLASSE_TITULO_SECAO}>Horário de funcionamento</p>
+          <p className={CLASSE_AJUDA}>
+            Só usado no modo &quot;Por horário livre&quot; — janela em que o cliente pode escolher um
+            horário, com liga/desliga e início/fim por dia da semana (varia à vontade de um dia pro
+            outro). No modo &quot;Por período&quot; isso aqui é ignorado.
+          </p>
+          <div className="mt-3">
+            <HorariosSemanaEditor
+              nome="reserva_horarios"
+              valorInicial={
+                Array.isArray(config?.reserva_horarios) && (config.reserva_horarios as unknown[]).length > 0
+                  ? (config!.reserva_horarios as any)
+                  : DIAS_DA_SEMANA_PADRAO
+              }
+            />
+          </div>
+        </div>
+
+        <div className={CLASSE_SECAO}>
           <p className={CLASSE_TITULO_SECAO}>Link de acesso do cliente</p>
           <p className={CLASSE_AJUDA}>
             Endereço que você manda pro cliente pra ele reservar direto (fora do Instagram) — a
@@ -204,15 +239,17 @@ export default async function ReservaConfigPage({
           </div>
 
           <div className="mt-4">
-            <label className={CLASSE_RÓTULO}>Pergunta 2 — período</label>
+            <label className={CLASSE_RÓTULO}>Pergunta 2 — período ou horário</label>
             <p className={CLASSE_AJUDA}>
-              Pergunta se é Almoço ou Jantar (aparece junto com os botões).
+              No modo &quot;Por período&quot;: pergunta se é Almoço ou Jantar (aparece junto com os
+              botões). No modo &quot;Por horário livre&quot;: pergunta o horário (sem botões, o
+              cliente digita).
             </p>
             <textarea
               name="reserva_msg_pergunta_periodo"
               rows={2}
               defaultValue={config?.reserva_msg_pergunta_periodo ?? ""}
-              placeholder="É pro Almoço ou Jantar?"
+              placeholder="É pro Almoço ou Jantar? / Pra que horário você quer reservar?"
               className={CLASSE_CAMPO_TEXTAREA}
             />
           </div>
@@ -304,14 +341,17 @@ export default async function ReservaConfigPage({
         <div className={CLASSE_SECAO}>
           <p className={CLASSE_TITULO_SECAO}>Capacidade máxima de pessoas</p>
           <p className={CLASSE_AJUDA}>
-            Um número pra cada período — é a SOMA de todas as reservas já confirmadas pra aquele
-            dia+período. Assim que bater nesse número, ninguém mais consegue reservar pra esse
-            período — nem uma reserva pequena que ainda caberia, se pedir mais do que o que sobrou.
+            No modo &quot;Por período&quot;: um número pra cada período — é a SOMA de todas as
+            reservas já confirmadas pra aquele dia+período. No modo &quot;Por horário livre&quot;: só
+            o campo &quot;Almoço&quot; vale, como limite único pro DIA INTEIRO (soma todos os
+            horários juntos) — o campo &quot;Jantar&quot; é ignorado nesse modo. Assim que bater no
+            número, ninguém mais consegue reservar — nem uma reserva pequena que ainda caberia, se
+            pedir mais do que o que sobrou.
           </p>
 
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className={CLASSE_RÓTULO}>Almoço</label>
+              <label className={CLASSE_RÓTULO}>Almoço (ou limite do dia, no modo horário livre)</label>
               <input
                 type="number"
                 min={0}
@@ -324,7 +364,7 @@ export default async function ReservaConfigPage({
             <div>
               <label className={CLASSE_RÓTULO}>Jantar</label>
               <p className={CLASSE_AJUDA}>
-                Em branco usa o mesmo número do Almoço.
+                Em branco usa o mesmo número do Almoço. Ignorado no modo &quot;Por horário livre&quot;.
               </p>
               <input
                 type="number"
