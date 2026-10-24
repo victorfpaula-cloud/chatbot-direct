@@ -34,16 +34,19 @@ const RESERVA_CONFIRMAR_NAO = "RESERVA_CONFIRMAR_NAO";
 // reserva pro mesmo dia até mais tarde, e quem reserva digita o horário, não escolhe só Almoço ou
 // Jantar). Mesmo formato de HorarioDoDia em src/lib/agendamentos.ts — duplicado aqui de propósito
 // (não importado de lá) pra não criar import circular (agendamentos.ts já importa DESTE arquivo).
-type JanelaHorarioDoDia = { dia: number; ativo: boolean; inicio: string; fim: string };
+// Exportado (junto com os helpers abaixo) pra ser reaproveitado pelas rotas da reserva externa
+// (/api/r/[slug]/disponibilidade e /reservar) — a MESMA validação de janela/horário vale nos dois
+// canais, sem duplicar a lógica numa segunda cópia que poderia um dia divergir da primeira.
+export type JanelaHorarioDoDia = { dia: number; ativo: boolean; inicio: string; fim: string };
 
-function minutosDoDia(horaMinuto: string): number {
+export function minutosDoDia(horaMinuto: string): number {
   const [h, m] = horaMinuto.split(":").map((v) => parseInt(v, 10));
   return h * 60 + m;
 }
 
 /** Janela configurada (reserva_horarios) pro dia da semana de `dataISO` — null se não tiver
  * nenhuma configuração salva ainda, ou se esse dia da semana estiver desativado. */
-function janelaDoDiaDaSemana(
+export function janelaDoDiaDaSemana(
   horarios: JanelaHorarioDoDia[] | null | undefined,
   dataISO: string
 ): JanelaHorarioDoDia | null {
@@ -58,7 +61,7 @@ function janelaDoDiaDaSemana(
  * pede pra especificar manhã/tarde/noite (a janela configurada já deixa isso implícito: ninguém
  * configura janela de reserva de madrugada). `null` se não conseguir reconhecer nada parecido com
  * um horário. */
-function parseHorarioLivre(texto: string): { h: number; m: number } | null {
+export function parseHorarioLivre(texto: string): { h: number; m: number } | null {
   const match = texto.match(/(\d{1,2})[h:]?(\d{2})?/);
   if (!match) return null;
 
@@ -69,7 +72,7 @@ function parseHorarioLivre(texto: string): { h: number; m: number } | null {
   return { h, m };
 }
 
-function formatarHoraMinuto(h: number, m: number): string {
+export function formatarHoraMinuto(h: number, m: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 

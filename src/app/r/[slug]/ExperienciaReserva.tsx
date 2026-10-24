@@ -19,6 +19,34 @@ import { DefinicoesDoVidroLiquidoExterno } from "./VidroLiquido";
 
 type Etapa = "abertura" | "dia" | "periodo" | "pessoas" | "whatsapp" | "confirmacao" | "fim";
 
+// Duplicado de propósito (não importado de src/lib/reservas.ts, que é server-only — importa
+// supabase/admin, metaMessaging etc., nada disso pode entrar no bundle do cliente) — MESMA lógica
+// de janela/horário livre que o fluxo do Instagram e as rotas /api/r/[slug]/* usam, só pra calcular
+// a dica de horário mostrada na tela; a validação de verdade sempre acontece no servidor.
+type JanelaHorarioDoDia = { dia: number; ativo: boolean; inicio: string; fim: string };
+
+function minutosDoDiaCliente(horaMinuto: string): number {
+  const [h, m] = horaMinuto.split(":").map((v) => parseInt(v, 10));
+  return h * 60 + m;
+}
+
+function janelaDoDiaDaSemanaCliente(horarios: JanelaHorarioDoDia[], dataISO: string): JanelaHorarioDoDia | null {
+  if (!Array.isArray(horarios) || horarios.length === 0) return null;
+  const [ano, mes, dia] = dataISO.split("-").map((v) => parseInt(v, 10));
+  const diaDaSemana = new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay();
+  const janela = horarios.find((h) => h.dia === diaDaSemana);
+  return janela && janela.ativo ? janela : null;
+}
+
+function parseHorarioLivreCliente(texto: string): { h: number; m: number } | null {
+  const match = texto.match(/(\d{1,2})[h:]?(\d{2})?/);
+  if (!match) return null;
+  const h = parseInt(match[1], 10);
+  const m = match[2] ? parseInt(match[2], 10) : 0;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return { h, m };
+}
+
 export function ExperienciaReserva({ slug, config }: { slug: string; config: ConfigPublica }) {
   const raizRef = useRef<HTMLDivElement>(null);
   // Link de foto da Meta pode ter vencido entre a hora que a página buscou e a hora que o
@@ -36,7 +64,9 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
     const dados = {
       nome: "",
       dataEscolhida: "",
-      periodo: null as "almoco" | "jantar" | null,
+      // No modo "horário livre" guarda o horário digitado (ex: "20:00") em vez de "almoco"/"jantar"
+      // — mesmo campo, mesmo espírito do dados.periodo em src/lib/reservas.ts (Instagram).
+      periodo: null as string | null,
       pessoas: 2,
       whatsapp: "",
     };
@@ -159,7 +189,8 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
     function restaurarEstado(nome: string) {
       if (nome === "dia") montarCalendario();
       if (nome === "periodo") {
-        qa(`[data-cena="periodo"] .${styles.opcao}`).forEach((o) => o.classList.toggle(styles.escolhida, o.dataset.valor === dados.periodo));
+        if (config.modo === "horario") prepararCenaHorario();
+        else qa(`[data-cena="periodo"] .${styles.opcao}`).forEach((o) => o.classList.toggle(styles.escolhida, o.dataset.valor === dados.periodo));
       }
       if (nome === "pessoas") montarCadeiras();
       if (nome === "whatsapp") (campoWhats as HTMLInputElement).value = dados.whatsapp;
@@ -306,6 +337,16 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
     const btnDiaContinuar = q<HTMLButtonElement>("#btn-dia-continuar")!;
     btnDiaContinuar.addEventListener("click", (e) => {
       ondularBotao(btnDiaContinuar, e);
+      // Modo "horário livre": nunca pula direto pra "pessoas" como o soSobrouJantar faz no modo
+      // período — aqui SEMPRE passa pela cena de horário, porque é lá que o cliente escolhe (não
+      // tem "só sobrou uma opção" quando a escolha é digitar um horário qualquer).
+      if (config.modo === "horario") {
+        setTimeout(() => {
+          prepararCenaHorario();
+          trocar("periodo");
+        }, 180);
+        return;
+      }
       if (soSobrouJantar(dados.dataEscolhida)) {
         dados.periodo = "jantar";
         setTimeout(() => {
@@ -342,10 +383,69 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
         trocar("pessoas");
       }, 320);
     }
-    qa(`[data-cena="periodo"] .${styles.opcao}`).forEach((botao) => {
-      const valor = botao.dataset.valor as "almoco" | "jantar";
-      botao.addEventListener("click", (e) => escolherPeriodo(botao, valor, e));
-    });
+    if (config.modo !== "horario") {
+      qa(`[data-cena="periodo"] .${styles.opcao}`).forEach((botao) => {
+        const valor = botao.dataset.valor as "almoco" | "jantar";
+        botao.addEventListener("click", (e) => escolherPeriodo(botao, valor, e));
+      });
+    }
+
+    // ---------- horário livre (modo alternativo ao período, ver config.modo) ----------
+    let campoHorario: HTMLInputElement | null = null;
+    let dicaHorario: HTMLElement | null = null;
+    let btnHorarioContinuar: HTMLButtonElement | null = null;
+    let janelaDoDiaAtual: JanelaHorarioDoDia | null = null;
+
+    /** Chamada ao entrar na cena "periodo" (tanto na primeira vez quanto voltando) — recalcula a
+     * janela pro dia escolhido (varia por dia da semana) e atualiza a dica mostrada embaixo do
+     * campo. Se o dia não tiver janela nenhuma configurada (ou estiver desativado), avisa que não
+     * dá pra reservar nesse dia — mesma regra que o fluxo do Instagram aplica ao digitar o
+     * horário, só que aqui mostrada ANTES de digitar, já que dá pra calcular de antemão. */
+    function prepararCenaHorario() {
+      if (!campoHorario || !dicaHorario || !btnHorarioContinuar) return;
+      campoHorario.value = dados.periodo ?? "";
+      dicaHorario.classList.remove(styles.dicaErro);
+      janelaDoDiaAtual = janelaDoDiaDaSemanaCliente(config.horarios, dados.dataEscolhida);
+      if (!janelaDoDiaAtual) {
+        dicaHorario.textContent = "Não estamos aceitando reserva nesse dia.";
+        dicaHorario.classList.add(styles.dicaErro);
+        btnHorarioContinuar.disabled = true;
+        return;
+      }
+      dicaHorario.textContent = `Atendemos esse dia de ${janelaDoDiaAtual.inicio} até ${janelaDoDiaAtual.fim}.`;
+      btnHorarioContinuar.disabled = false;
+    }
+
+    if (config.modo === "horario") {
+      campoHorario = q<HTMLInputElement>("#campo-horario")!;
+      dicaHorario = q("#dica-horario-janela")!;
+      btnHorarioContinuar = q<HTMLButtonElement>("#btn-horario-continuar")!;
+
+      btnHorarioContinuar.addEventListener("click", (e) => {
+        if (!campoHorario || !dicaHorario || !btnHorarioContinuar) return;
+        const horarioLivre = parseHorarioLivreCliente(campoHorario.value);
+        if (!horarioLivre || !janelaDoDiaAtual) {
+          gsap.fromTo(campoHorario, { x: -8 }, { x: 0, duration: 0.45, ease: "elastic.out(1,.35)" });
+          dicaHorario.textContent = "Não consegui entender esse horário — tenta tipo 20h ou 20:00.";
+          dicaHorario.classList.add(styles.dicaErro);
+          return;
+        }
+        const minutosPedidos = horarioLivre.h * 60 + horarioLivre.m;
+        if (minutosPedidos < minutosDoDiaCliente(janelaDoDiaAtual.inicio) || minutosPedidos > minutosDoDiaCliente(janelaDoDiaAtual.fim)) {
+          gsap.fromTo(campoHorario, { x: -8 }, { x: 0, duration: 0.45, ease: "elastic.out(1,.35)" });
+          dicaHorario.textContent = `Nosso horário pra esse dia é de ${janelaDoDiaAtual.inicio} até ${janelaDoDiaAtual.fim}.`;
+          dicaHorario.classList.add(styles.dicaErro);
+          return;
+        }
+        ondularBotao(btnHorarioContinuar, e);
+        vibrar(12);
+        dados.periodo = `${String(horarioLivre.h).padStart(2, "0")}:${String(horarioLivre.m).padStart(2, "0")}`;
+        setTimeout(() => {
+          montarCadeiras();
+          trocar("pessoas");
+        }, 320);
+      });
+    }
 
     // ---------- pessoas ----------
     const cadeirasEl = q("#cadeiras")!;
@@ -416,7 +516,11 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       if (!validarWhats()) return;
       ondularBotao(btnWhatsappContinuar, e);
       q("#resumo-dia")!.textContent = formatarDataResumo(dados.dataEscolhida);
-      q("#resumo-periodo")!.textContent = dados.periodo === "almoco" ? "Almoço" : "Jantar";
+      // Modo "horário livre": dados.periodo já é o horário escolhido (ex: "20:00") — mostra
+      // literal. Bug real já corrigido no Instagram (ver reservas.ts): qualquer período que não
+      // fosse "almoco" caía direto em "Jantar" por padrão.
+      q("#resumo-periodo")!.textContent =
+        dados.periodo === "almoco" ? "Almoço" : dados.periodo === "jantar" ? "Jantar" : dados.periodo ?? "—";
       q("#resumo-pessoas")!.textContent = String(dados.pessoas);
       q("#resumo-whatsapp")!.textContent = dados.whatsapp;
       // Toque pessoal no título dessa última pergunta — só o primeiro nome, pra não ficar formal
@@ -454,10 +558,21 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
       }
     }
 
-    // Horário só aproximado (não temos um horário exato reservado, só o período) — serve pra dar
-    // um bloco plausível de ~1h30 no calendário de quem for, não uma hora cravada que o
-    // restaurante nunca prometeu.
-    function horarioAproximadoDoPeriodo(periodo: "almoco" | "jantar" | null): { inicio: string; fim: string } {
+    // Horário pro calendário: no modo horário livre, dados.periodo já É o horário escolhido de
+    // verdade (ex: "20:00") — usa ele exato, com 1h30 de duração. No modo período, não temos
+    // horário exato reservado, só "Almoço"/"Jantar" — segue aproximando um bloco plausível, não
+    // uma hora cravada que o restaurante nunca prometeu.
+    function horarioAproximadoDoPeriodo(periodo: string | null): { inicio: string; fim: string } {
+      if (periodo && /^\d{2}:\d{2}$/.test(periodo)) {
+        const [h, m] = periodo.split(":").map((v) => parseInt(v, 10));
+        const fimMinutos = h * 60 + m + 90;
+        const fimH = Math.floor(fimMinutos / 60) % 24;
+        const fimM = fimMinutos % 60;
+        return {
+          inicio: `${String(h).padStart(2, "0")}${String(m).padStart(2, "0")}`,
+          fim: `${String(fimH).padStart(2, "0")}${String(fimM).padStart(2, "0")}`,
+        };
+      }
       return periodo === "almoco" ? { inicio: "1200", fim: "1330" } : { inicio: "2000", fim: "2130" };
     }
     function linkAdicionarNaAgenda(): string {
@@ -826,7 +941,8 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
         <div className={styles.cena} data-cena="periodo">
           <div className={styles.cenaInterna}>
             <span className={`${styles.numeroPergunta} ${styles.elem}`}>
-              <span className={styles.numeroBolha}>2</span>Almoço ou jantar?
+              <span className={styles.numeroBolha}>2</span>
+              {config.modo === "horario" ? "Horário" : "Almoço ou jantar?"}
             </span>
             <div className={styles.iconeHero}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -835,28 +951,46 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
               </svg>
             </div>
             <h2 className={`${styles.perguntaTitulo} ${styles.elem}`}>Qual horário?</h2>
-            <div className={`${styles.cartaoVidro} ${styles.elem}`}>
-              <div className={styles.opcoes}>
-                <button className={`${styles.opcao} ${styles.elem}`} data-valor="almoco">
-                  <span className={styles.tecla}>
-                    <svg>
-                      <use href="#icone-sol" />
-                    </svg>
-                  </span>
-                  Almoço
-                  <span className={styles.check}>✓</span>
-                </button>
-                <button className={`${styles.opcao} ${styles.elem}`} data-valor="jantar">
-                  <span className={styles.tecla}>
-                    <svg>
-                      <use href="#icone-lua" />
-                    </svg>
-                  </span>
-                  Jantar
-                  <span className={styles.check}>✓</span>
-                </button>
+            {config.modo === "horario" ? (
+              <div className={`${styles.cartaoVidro} ${styles.elem}`}>
+                <input
+                  id="campo-horario"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Ex: 20h, 20:00"
+                  className={`${styles.campo} ${styles.elem}`}
+                />
+                <span className={`${styles.dica} ${styles.elem}`} id="dica-horario-janela" />
+                <div className={`${styles.continuarLinha} ${styles.elem}`}>
+                  <button className={styles.botaoPrincipal} id="btn-horario-continuar">
+                    Continuar
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className={`${styles.cartaoVidro} ${styles.elem}`}>
+                <div className={styles.opcoes}>
+                  <button className={`${styles.opcao} ${styles.elem}`} data-valor="almoco">
+                    <span className={styles.tecla}>
+                      <svg>
+                        <use href="#icone-sol" />
+                      </svg>
+                    </span>
+                    Almoço
+                    <span className={styles.check}>✓</span>
+                  </button>
+                  <button className={`${styles.opcao} ${styles.elem}`} data-valor="jantar">
+                    <span className={styles.tecla}>
+                      <svg>
+                        <use href="#icone-lua" />
+                      </svg>
+                    </span>
+                    Jantar
+                    <span className={styles.check}>✓</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

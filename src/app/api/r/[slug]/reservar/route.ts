@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { prepararConfirmacaoDeReserva, sincronizarComPlanilha } from "@/lib/reservas";
+import {
+  formatarHoraMinuto,
+  janelaDoDiaDaSemana,
+  minutosDoDia,
+  parseHorarioLivre,
+  prepararConfirmacaoDeReserva,
+  sincronizarComPlanilha,
+  type JanelaHorarioDoDia,
+} from "@/lib/reservas";
 import { buscarContaPorSlug, hojeISO, montarConfigPublica } from "@/lib/reservaExterna";
 
 function paraDataBR(iso: string): string {
@@ -22,10 +30,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const nome = typeof corpo?.nome === "string" ? corpo.nome.trim() : "";
   const whatsapp = typeof corpo?.whatsapp === "string" ? corpo.whatsapp.trim() : "";
   const data = typeof corpo?.data === "string" ? corpo.data : "";
-  const periodo = corpo?.periodo === "almoco" || corpo?.periodo === "jantar" ? corpo.periodo : null;
+  const periodoBruto = typeof corpo?.periodo === "string" ? corpo.periodo : null;
   const pessoas = Number(corpo?.pessoas);
 
-  if (!nome || nome.length < 2 || whatsapp.replace(/\D/g, "").length < 8 || !data || !periodo || !Number.isFinite(pessoas) || pessoas < 1) {
+  if (!nome || nome.length < 2 || whatsapp.replace(/\D/g, "").length < 8 || !data || !periodoBruto || !Number.isFinite(pessoas) || pessoas < 1) {
     return NextResponse.json({ ok: false, mensagem: "Dados inválidos." }, { status: 400 });
   }
 
@@ -41,6 +49,34 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
   if (data < hojeISO() || (data === hojeISO() && config.hojeFechadoPorHorario) || config.datasBloqueadas.includes(data)) {
     return NextResponse.json({ ok: false, mensagem: "Essa data não está mais disponível — escolha outra." });
+  }
+
+  // Modo "horário livre": periodoBruto chega como o horário digitado (ex: "20h") — mesma validação
+  // de janela que a etapa "horario_livre" do Instagram aplica (ver src/lib/reservas.ts), repetida
+  // aqui porque esse é o ÚLTIMO ponto antes de gravar (quem chamou /disponibilidade pode ter
+  // levado minutos até confirmar, e a janela nunca deveria ser confiada só no que o cliente mandou).
+  let periodo = periodoBruto;
+  if (config.modo === "horario") {
+    if (periodoBruto !== "almoco" && periodoBruto !== "jantar") {
+      const horarioLivre = parseHorarioLivre(periodoBruto);
+      if (!horarioLivre) {
+        return NextResponse.json({ ok: false, mensagem: "Não consegui entender esse horário." });
+      }
+      const janela = janelaDoDiaDaSemana(config.horarios as JanelaHorarioDoDia[], data);
+      if (!janela) {
+        return NextResponse.json({ ok: false, mensagem: "Não estamos aceitando reserva nesse dia." });
+      }
+      const minutosPedidos = horarioLivre.h * 60 + horarioLivre.m;
+      if (minutosPedidos < minutosDoDia(janela.inicio) || minutosPedidos > minutosDoDia(janela.fim)) {
+        return NextResponse.json({
+          ok: false,
+          mensagem: `Nosso horário pra esse dia é de ${janela.inicio} até ${janela.fim}.`,
+        });
+      }
+      periodo = formatarHoraMinuto(horarioLivre.h, horarioLivre.m);
+    }
+  } else if (periodoBruto !== "almoco" && periodoBruto !== "jantar") {
+    return NextResponse.json({ ok: false, mensagem: "Dados inválidos." }, { status: 400 });
   }
 
   const dados = {

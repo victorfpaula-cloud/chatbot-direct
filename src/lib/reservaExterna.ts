@@ -5,6 +5,7 @@ import {
   paraISO,
   parseDatasBloqueadas,
   passouDoCutoff,
+  type JanelaHorarioDoDia,
 } from "@/lib/reservas";
 import { paletaAPartirDoHex, paletaAPartirDeAcentoExato, type PaletaDoLogo } from "@/lib/paletaDoLogo";
 
@@ -52,6 +53,10 @@ export type ConfigPublica = {
   datasBloqueadas: string[];
   regrasTexto: string | null;
   mensagemConfirmada: string;
+  // Modo "horário livre" (ver src/lib/reservas.ts) — mesma config valendo pro Instagram e pra essa
+  // página pública, lida sempre ao vivo, nunca copiada.
+  modo: "periodo" | "horario";
+  horarios: JanelaHorarioDoDia[];
 };
 
 /** Só os campos que a página pública precisa pra desenhar a experiência — nunca token/id interno. */
@@ -90,6 +95,8 @@ export async function montarConfigPublica(admin: Admin, conta: ContaExterna): Pr
     mensagemConfirmada:
       config?.reserva_msg_confirmada?.trim() ||
       "Reserva confirmada! Te esperamos por lá. Qualquer mudança, é só chamar por aqui de novo.",
+    modo: config?.reserva_modo === "horario" ? "horario" : "periodo",
+    horarios: Array.isArray(config?.reserva_horarios) ? (config.reserva_horarios as JanelaHorarioDoDia[]) : [],
   };
 }
 

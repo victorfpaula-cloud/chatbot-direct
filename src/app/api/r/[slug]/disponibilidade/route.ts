@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { buscarConfig, cabeNoLimite, limiteMaximoDoPeriodo, somaPessoasReservadas } from "@/lib/reservas";
+import {
+  buscarConfig,
+  cabeNoLimite,
+  formatarHoraMinuto,
+  janelaDoDiaDaSemana,
+  limiteMaximoDoPeriodo,
+  minutosDoDia,
+  parseHorarioLivre,
+  somaPessoasReservadas,
+  type JanelaHorarioDoDia,
+} from "@/lib/reservas";
 import { buscarContaPorSlug, hojeISO, montarConfigPublica } from "@/lib/reservaExterna";
 
 /**
@@ -14,10 +24,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const corpo = await request.json().catch(() => null);
 
   const data = typeof corpo?.data === "string" ? corpo.data : null;
-  const periodo = corpo?.periodo === "almoco" || corpo?.periodo === "jantar" ? corpo.periodo : null;
+  const periodoBruto = typeof corpo?.periodo === "string" ? corpo.periodo : null;
   const pessoas = Number(corpo?.pessoas);
 
-  if (!data || !periodo || !Number.isFinite(pessoas) || pessoas < 1) {
+  if (!data || !periodoBruto || !Number.isFinite(pessoas) || pessoas < 1) {
     return NextResponse.json({ erro: "dados inválidos" }, { status: 400 });
   }
 
@@ -41,11 +51,40 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ permitido: false, mensagem: "Não temos reservas nessa data." });
   }
 
+  const modoHorarioLivre = config.modo === "horario";
+
+  // Modo "horário livre": periodoBruto chega como o horário digitado (ex: "20h") — valida contra
+  // a janela daquele dia da semana ANTES de checar capacidade, mesma regra que o fluxo do
+  // Instagram aplica na etapa "horario_livre" (ver src/lib/reservas.ts).
+  let periodo = periodoBruto;
+  if (modoHorarioLivre) {
+    if (periodoBruto !== "almoco" && periodoBruto !== "jantar") {
+      const horarioLivre = parseHorarioLivre(periodoBruto);
+      if (!horarioLivre) {
+        return NextResponse.json({ permitido: false, mensagem: "Não consegui entender esse horário." });
+      }
+      const janela = janelaDoDiaDaSemana(config.horarios as JanelaHorarioDoDia[], data);
+      if (!janela) {
+        return NextResponse.json({ permitido: false, mensagem: "Não estamos aceitando reserva nesse dia." });
+      }
+      const minutosPedidos = horarioLivre.h * 60 + horarioLivre.m;
+      if (minutosPedidos < minutosDoDia(janela.inicio) || minutosPedidos > minutosDoDia(janela.fim)) {
+        return NextResponse.json({
+          permitido: false,
+          mensagem: `Nosso horário pra esse dia é de ${janela.inicio} até ${janela.fim}.`,
+        });
+      }
+      periodo = formatarHoraMinuto(horarioLivre.h, horarioLivre.m);
+    }
+  } else if (periodoBruto !== "almoco" && periodoBruto !== "jantar") {
+    return NextResponse.json({ erro: "dados inválidos" }, { status: 400 });
+  }
+
   const { data: configCompleto } = await buscarConfig(admin, conta.id);
-  const limiteMaximo = limiteMaximoDoPeriodo(configCompleto, periodo);
+  const limiteMaximo = limiteMaximoDoPeriodo(configCompleto, modoHorarioLivre ? undefined : periodo);
 
   if (typeof limiteMaximo === "number") {
-    const jaReservado = await somaPessoasReservadas(admin, conta.id, data, periodo);
+    const jaReservado = await somaPessoasReservadas(admin, conta.id, data, modoHorarioLivre ? null : periodo);
     if (!cabeNoLimite(jaReservado, pessoas, limiteMaximo)) {
       const mensagem =
         configCompleto?.reserva_mensagem_limite_maximo?.trim() ||
