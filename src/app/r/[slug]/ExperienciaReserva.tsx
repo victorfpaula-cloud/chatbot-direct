@@ -290,16 +290,23 @@ export function ExperienciaReserva({ slug, config }: { slug: string; config: Con
         const ehHoje = iso === hojeISOStr;
         const bloqueadoPorData = config.datasBloqueadas.includes(iso);
         const bloqueadoPorHorario = ehHoje && config.hojeFechadoPorHorario;
+        // Modo "horário livre": dia da semana sem janela configurada (ou desativado) — pedido do
+        // Victor em 25/10/2026 (conta Stop Bike: não abre todo dia). O servidor já recusava essa
+        // data na hora de confirmar (ver janelaDoDiaDaSemana em reservas.ts/reservar/route.ts),
+        // isso aqui só deixa visualmente apagado e não clicável, igual já era pra dia passado.
+        const bloqueadoPorDiaSemana = config.modo === "horario" && !janelaDoDiaDaSemanaCliente(config.horarios, iso);
         const ehPassado = dataCel < hoje;
+        const naoClicavel = ehPassado || bloqueadoPorDiaSemana;
         if (ehPassado) btn.classList.add(styles.passado);
-        else if (bloqueadoPorData || bloqueadoPorHorario) btn.classList.add(styles.bloqueado);
+        else if (bloqueadoPorData || bloqueadoPorHorario || bloqueadoPorDiaSemana) btn.classList.add(styles.bloqueado);
         if (ehHoje) btn.classList.add(styles.hoje);
         if (iso === dados.dataEscolhida) btn.classList.add(styles.selecionado);
-        // Dia passado só tinha a classe "passado" (um estilo mais apagado) mas continuava
-        // clicável de verdade — dava pra escolher uma data de mês anterior sem nenhum aviso (o
-        // servidor já recusa na hora de confirmar, mas pedido do Victor em 17/10/2026: ele viu
-        // gente escolhendo dia já passado e só descobrindo o erro na hora de chegar no local).
-        if (ehPassado) btn.disabled = true;
+        // Dia passado (ou sem janela nesse dia da semana) só tinha a classe de estilo mais
+        // apagado, mas continuava clicável de verdade — dava pra escolher uma data indisponível
+        // sem nenhum aviso (o servidor sempre recusou, mas só na hora de confirmar — pedido do
+        // Victor em 17/10/2026: ele viu gente escolhendo dia já passado e só descobrindo o erro na
+        // hora de chegar no local).
+        if (naoClicavel) btn.disabled = true;
         else btn.addEventListener("click", (e) => escolherDataCalendario(iso, btn, e));
         calGrade.appendChild(btn);
       }
