@@ -4,6 +4,7 @@ import { extrairCorPredominante } from "@/lib/corDoLogo";
 import { AvatarConta } from "./AvatarConta";
 import { BotaoAtualizar } from "./BotaoAtualizar";
 import { BotaoSair } from "./BotaoSair";
+import Link from "next/link";
 import { ChavesDeServico } from "./ChavesDeServico";
 import { AnelDeProgresso } from "./AnelDeProgresso";
 import { MenuDeAcoesDaConta } from "./MenuDeAcoesDaConta";
@@ -403,6 +404,12 @@ export default async function ContasPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/contas/reservas"
+            className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-neutral-300 transition hover:bg-white/[0.08]"
+          >
+            Ver reservas
+          </Link>
           <BotaoAtualizar />
           <BotaoSair />
         </div>
