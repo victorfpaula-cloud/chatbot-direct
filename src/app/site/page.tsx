@@ -103,7 +103,7 @@ export default function PaginaSite() {
           <div className={styles.navLinks}>
             <a href="#recursos">Recursos</a>
             <a href="#como-funciona">Como funciona</a>
-            <a href={`mailto:${EMAIL_DE_CONTATO}`}>Fale com a gente</a>
+            <a href="#contato">Fale com a gente</a>
             <a href="/login" className={styles.navEntrar}>
               Entrar
             </a>
@@ -119,8 +119,8 @@ export default function PaginaSite() {
               O cliente manda mensagem no Instagram. O AutoMesa confirma a reserva sozinho.
             </p>
             <div className={styles.heroCtas}>
-              <a href={`mailto:${EMAIL_DE_CONTATO}`} className={styles.ctaPrimario}>
-                Quero conhecer o AutoMesa
+              <a href="#contato" className={styles.ctaPrimario}>
+                Quero o AutoMesa no meu restaurante
               </a>
               <a href="#como-funciona" className={styles.ctaSecundario}>
                 Ver como funciona
@@ -176,6 +176,12 @@ export default function PaginaSite() {
           <p className={styles.passoNota}>
             Funciona também por um <b>link exclusivo</b>.
           </p>
+          <div className={styles.ctaMeio}>
+            <p className={styles.ctaMeioTexto}>Quer ver isso rodando no seu restaurante?</p>
+            <a href="#contato" className={styles.ctaPrimario}>
+              Quero conhecer o AutoMesa
+            </a>
+          </div>
         </section>
 
         {/* ---------- problema + painel ---------- */}
@@ -240,6 +246,12 @@ export default function PaginaSite() {
               </div>
             </div>
           </div>
+          <div className={styles.ctaMeio}>
+            <p className={styles.ctaMeioTexto}>Sua equipe também pode trabalhar assim.</p>
+            <a href="#contato" className={styles.ctaPrimario}>
+              Quero isso pro meu restaurante
+            </a>
+          </div>
         </section>
 
         {/* ---------- canais (instagram + link) ---------- */}
@@ -259,6 +271,12 @@ export default function PaginaSite() {
               <h3>Link</h3>
               <p>Cliente reserva pelo link, com sua marca.</p>
             </div>
+          </div>
+          <div className={styles.ctaMeio}>
+            <p className={styles.ctaMeioTexto}>Ative os dois canais no seu restaurante.</p>
+            <a href="#contato" className={styles.ctaPrimario}>
+              Ativar no meu Instagram
+            </a>
           </div>
         </section>
 
@@ -310,6 +328,12 @@ export default function PaginaSite() {
               <h3>IA para dúvidas</h3>
               <p>Cardápio, horário e endereço, resolvidos sozinhos.</p>
             </div>
+          </div>
+          <div className={styles.ctaMeio}>
+            <p className={styles.ctaMeioTexto}>Gostou dos recursos?</p>
+            <a href="#contato" className={styles.ctaPrimario}>
+              Quero esses recursos
+            </a>
           </div>
         </section>
 
@@ -365,12 +389,18 @@ export default function PaginaSite() {
               </tbody>
             </table>
           </div>
+          <div className={styles.ctaMeio}>
+            <p className={styles.ctaMeioTexto}>Agora que você viu a diferença:</p>
+            <a href="#contato" className={styles.ctaPrimario}>
+              Prefiro o AutoMesa
+            </a>
+          </div>
         </section>
 
         <ContadorSocial />
 
         {/* ---------- cta final ---------- */}
-        <section className={styles.ctaFinal}>
+        <section className={styles.ctaFinal} id="contato">
           <p className={styles.ctaFinalTitulo}>
             Pare de administrar reservas pelo Direct.
             <br />
@@ -381,6 +411,9 @@ export default function PaginaSite() {
 
         <footer className={styles.rodape}>
           <span>© {new Date().getFullYear()} AutoMesa</span>
+          <a href={`mailto:${EMAIL_DE_CONTATO}`} style={{ color: "inherit" }}>
+            {EMAIL_DE_CONTATO}
+          </a>
           <a href="/login" style={{ color: "inherit" }}>
             Entrar
           </a>
