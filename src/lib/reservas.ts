@@ -218,12 +218,23 @@ export async function processarMensagemDeReserva(
     return true;
   }
 
+  // Achado em 02/11/2026 (relatório semanal do Único com número de atendimentos bem maior que o
+  // real): mensagem sem texto nem payload (áudio, figurinha, reação etc.) chegando DURANTE um
+  // fluxo ativo é ignorada silenciosamente por continuarFluxo/continuarFluxoDeAlteracao (mesmo
+  // guard que já existia lá dentro, ver comentário nessas funções) — mas como processarMensagemDe
+  // Reserva sempre devolvia `true` aqui, o webhook registrava isso como um "atendimento
+  // respondido" de verdade mesmo sem ter feito nada. Confirmado no banco: 23 dessas linhas
+  // fantasma só nessa conta, numa semana. Repete AQUI a mesma condição (em vez de mudar o tipo de
+  // retorno das duas funções, que têm um switch grande por dentro) só pra decidir certo o que
+  // volta pro webhook — sem nenhum comportamento de resposta mudando.
   if (conversa?.fluxo_atual === "alterar_reserva") {
+    if (!textoDaMensagem) return false;
     await continuarFluxoDeAlteracao(admin, conta, idDoCliente, conversa, textoDaMensagem);
     return true;
   }
 
   if (conversa?.fluxo_atual === "reserva") {
+    if (!textoDaMensagem && !payloadDoBotao) return false;
     await continuarFluxo(admin, conta, idDoCliente, conversa, textoDaMensagem, payloadDoBotao);
     return true;
   }
