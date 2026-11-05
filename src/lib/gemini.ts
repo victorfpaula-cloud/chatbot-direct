@@ -4,9 +4,19 @@
 // em código, só ajustando essa variável na Vercel.
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
+export type TrocaAnterior = { mensagemDoCliente: string; respostaEnviada: string };
+
+/**
+ * `historico` é o que faltava pro Gemini não repetir sempre a mesma coisa (pedido do Victor,
+ * 05/11/2026): sem ele, cada mensagem virava uma chamada isolada, sem nenhuma lembrança do que já
+ * foi dito ANTES pra essa mesma pessoa — daí vinha a saudação/despedida de novo toda hora, mesmo
+ * no meio de uma conversa em andamento. Trocas mais antigas primeiro, a mensagem atual sempre por
+ * último (ver buscarHistoricoRecente em respostaAutomatica.ts, que já devolve nessa ordem).
+ */
 export async function gerarRespostaComGemini(
   promptDoSistema: string,
-  mensagemDoCliente: string
+  mensagemDoCliente: string,
+  historico: TrocaAnterior[] = []
 ): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -15,6 +25,14 @@ export async function gerarRespostaComGemini(
     return null;
   }
 
+  const contents = [
+    ...historico.flatMap((troca) => [
+      { role: "user", parts: [{ text: troca.mensagemDoCliente }] },
+      { role: "model", parts: [{ text: troca.respostaEnviada }] },
+    ]),
+    { role: "user", parts: [{ text: mensagemDoCliente }] },
+  ];
+
   const resposta = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
     {
@@ -22,7 +40,7 @@ export async function gerarRespostaComGemini(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: promptDoSistema }] },
-        contents: [{ role: "user", parts: [{ text: mensagemDoCliente }] }],
+        contents,
       }),
       cache: "no-store",
     }

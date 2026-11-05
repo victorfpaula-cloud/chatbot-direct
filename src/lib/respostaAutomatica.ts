@@ -1,6 +1,6 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { enviarMensagemDirect, buscarPerfilDoCliente } from "@/lib/metaMessaging";
-import { gerarRespostaComGemini, detectarReclamacao } from "@/lib/gemini";
+import { gerarRespostaComGemini, detectarReclamacao, type TrocaAnterior } from "@/lib/gemini";
 import { enviarEmailDeReclamacao } from "@/lib/email";
 import { agoraFormatadoEmSaoPaulo } from "@/lib/datas";
 import { processarMensagemDeReserva } from "@/lib/reservas";
@@ -174,9 +174,20 @@ async function responderComGemini(
     ? `Reservas NÃO são feitas por você — existe um fluxo automático separado, dedicado só a isso, que começa assim que a pessoa escrever a palavra "${primeiraVariacaoDaPalavraChaveDeReserva}" (ou fizer um pedido claro de reserva). Nunca diga que "não fazemos reservas", que reserva "não é possível por aqui" ou qualquer coisa parecida — se o assunto for reserva, apenas oriente a pessoa a dizer que quer fazer uma reserva (ou usar a palavra "${primeiraVariacaoDaPalavraChaveDeReserva}") para o fluxo de reserva começar.`
     : null;
 
-  const promptDoSistema = [promptBaseDoSistema, instrucaoSobreReserva].filter(Boolean).join("\n\n");
+  // Instrução fixa, interna, vale pra TODAS as contas (pedido do Victor, 05/11/2026: o Gemini
+  // vinha repetindo sempre a mesma saudação/despedida, mesmo no meio de uma conversa já andando —
+  // sem histórico nenhum, cada mensagem era tratada como se fosse a primeira). Complementa (não
+  // substitui) o histórico passado logo abaixo: o histórico dá o CONTEXTO, isso aqui dá a REGRA de
+  // como se comportar dentro desse contexto.
+  const instrucaoSobreContinuidade =
+    "Você está vendo o histórico recente dessa conversa (mensagens antigas primeiro, a de agora por último). Continue a conversa de forma natural e fluida, como quem já está conversando com a pessoa — NÃO repita saudação, nome do negócio, nem frases de fechamento (tipo \"qualquer dúvida estou à disposição\") se você já disse isso nas mensagens recentes. Varie o jeito de fechar a mensagem; às vezes nem precisa de fechamento nenhum, uma resposta direta já basta.";
 
-  const respostaGerada = await gerarRespostaComGemini(promptDoSistema, textoDaMensagem);
+  const promptDoSistema = [promptBaseDoSistema, instrucaoSobreReserva, instrucaoSobreContinuidade]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const historico = await buscarHistoricoRecente(admin, conta.id, idDoCliente);
+  const respostaGerada = await gerarRespostaComGemini(promptDoSistema, textoDaMensagem, historico);
 
   if (!respostaGerada) {
     return null;
@@ -201,6 +212,46 @@ async function responderComGemini(
   }
 
   return respostaGerada;
+}
+
+// Quantas trocas anteriores entram no histórico mandado pro Gemini — curto de propósito: o
+// suficiente pra não repetir saudação/despedida nem perder o fio da conversa, sem inflar toda
+// chamada com uma conversa inteira (custo e tempo de resposta sobem à toa, e conversa muito velha
+// raramente importa pra responder a mensagem de agora).
+const LIMITE_DO_HISTORICO = 6;
+
+/**
+ * Busca as últimas trocas de verdade (mensagem do cliente + resposta enviada) dessa pessoa com
+ * essa conta, mais antiga primeiro — vira o "histórico" que o Gemini recebe junto com a mensagem
+ * atual (ver gerarRespostaComGemini em gemini.ts). Pega de QUALQUER tipo de resposta (reserva,
+ * palavra-chave, Gemini), não só Gemini: tudo que a pessoa já trocou com o bot é contexto válido
+ * pra conversa continuar fazendo sentido. Descarta mensagem sem texto de verdade (áudio, imagem,
+ * reação — vira "[mensagem sem texto...]", nada útil de passar pro Gemini) e linha sem resposta
+ * enviada (não tem o que formar uma troca de duas pontas).
+ */
+async function buscarHistoricoRecente(admin: Admin, contaId: string, idDoCliente: string): Promise<TrocaAnterior[]> {
+  const { data, error } = await admin
+    .from("chatbot_atendimentos")
+    .select("mensagem_recebida, resposta_enviada")
+    .eq("account_id", contaId)
+    .eq("instagram_scoped_id", idDoCliente)
+    .not("resposta_enviada", "is", null)
+    .not("mensagem_recebida", "ilike", "%sem texto%")
+    // tipo "reserva" grava só uma descrição genérica em resposta_enviada ("Tratado pelo fluxo de
+    // reserva...), nunca a mensagem de verdade que o bot mandou — passar isso pro Gemini como se
+    // fosse o que ele disse daria contexto falso. Só palavra_chave e gemini guardam o texto real.
+    .neq("tipo_resposta", "reserva")
+    .order("criado_em", { ascending: false })
+    .limit(LIMITE_DO_HISTORICO);
+
+  if (error) {
+    console.error("Falha ao buscar histórico recente pro Gemini (segue sem histórico):", error);
+    return [];
+  }
+
+  return (data ?? [])
+    .reverse()
+    .map((linha) => ({ mensagemDoCliente: linha.mensagem_recebida, respostaEnviada: linha.resposta_enviada as string }));
 }
 
 function normalizar(texto: string): string {
