@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { assinaturaValida, buscarPerfilDoCliente } from "@/lib/metaMessaging";
+import { assinaturaValida, buscarPerfilDoCliente, enviarMensagemDirect } from "@/lib/metaMessaging";
 import { decidirEResponder } from "@/lib/respostaAutomatica";
 import { registrarAtendimento } from "@/lib/atendimentos";
 import { contaTemIgnorados, usernameEstaIgnorado } from "@/lib/ignorados";
+import { encaminharMencaoPraShoppingHub, encaminharMensagemPraShoppingHub } from "@/lib/shoppinghubBridge";
+
+// Sem isso, a Vercel usa o padrão de 10s — insuficiente pra esperar a ponte com o ShoppingHub
+// processar uma menção de Story (baixa+comprimi a mídia do lado dele antes de responder, pode levar
+// até ~48s em vídeo — ver maxDuration em shoppinghub/api/cron/publicar-mencoes) ou pra esperar a
+// resposta do Gemini via bridge de mensagem.
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   const modo = request.nextUrl.searchParams.get("hub.mode");
@@ -133,7 +140,7 @@ async function processarEventoDeMensagem(admin: ReturnType<typeof criarClienteAd
 
   const { data: conta, error: erroAoBuscarConta } = await admin
     .from("chatbot_accounts")
-    .select("id, access_token, instagram_username, page_name")
+    .select("id, access_token, instagram_username, page_name, shoppinghub")
     .eq("instagram_user_id", idDaContaRecebendo)
     .eq("active", true)
     .maybeSingle();
@@ -156,6 +163,47 @@ async function processarEventoDeMensagem(admin: ReturnType<typeof criarClienteAd
     if (await usernameEstaIgnorado(admin, conta.id, perfil.username)) {
       return;
     }
+  }
+
+  // Conta marcada como "do ShoppingHub" (ver coluna `shoppinghub` em chatbot_accounts) — não usa
+  // NADA da lógica local (reserva/palavra-chave/Gemini própria, nem o histórico de
+  // chatbot_atendimentos): só repassa pro ShoppingHub decidir, e manda a resposta (ou processa a
+  // menção) com o token desta conta. Ver src/lib/shoppinghubBridge.ts.
+  if (conta.shoppinghub) {
+    const anexos: any[] = Array.isArray(mensagemOriginal?.attachments) ? mensagemOriginal.attachments : [];
+    const mencaoDeStory = anexos.find((anexo) => anexo?.type === "story_mention");
+
+    if (mencaoDeStory?.payload?.url) {
+      const perfil = await buscarPerfilDoCliente(conta.access_token, idDoCliente);
+      if (!perfil.username) {
+        console.warn(`Menção de Story (ShoppingHub) sem @usuário resolvido (IGSID=${idDoCliente}) — descartada.`);
+        return;
+      }
+      await encaminharMencaoPraShoppingHub({
+        instagramUserId: idDaContaRecebendo,
+        instagramScopedId: idDoCliente,
+        username: perfil.username,
+        url: mencaoDeStory.payload.url,
+        mid: idDaMensagem,
+      });
+      return;
+    }
+
+    if (!textoDaMensagem) {
+      return;
+    }
+
+    const perfil = await buscarPerfilDoCliente(conta.access_token, idDoCliente);
+    const respostaFinal = await encaminharMensagemPraShoppingHub({
+      instagramUserId: idDaContaRecebendo,
+      contatoId: idDoCliente,
+      texto: textoDaMensagem,
+      username: perfil.username,
+      nome: perfil.nome,
+    });
+
+    await enviarMensagemDirect(conta.access_token, idDoCliente, respostaFinal);
+    return;
   }
 
   // Descrição amigável do que o cliente mandou, pra aparecer no histórico de atendimentos — toque
