@@ -8,6 +8,7 @@ const ABAS_POR_SERVICO = [
   { segmento: "reserva", rotulo: "Reserva", chave: "reservaHabilitada" as const },
   { segmento: "agendamento", rotulo: "Agendamento", chave: "agendamentoHabilitado" as const },
   { segmento: "busca", rotulo: "Busca ao Vivo", chave: "buscaHabilitada" as const },
+  { segmento: "leads", rotulo: "Leads", chave: "leadsHabilitado" as const },
 ];
 
 const ABAS_FINAIS = [
@@ -36,12 +37,14 @@ export default function AbasDaConta({
   reservaHabilitada,
   agendamentoHabilitado,
   buscaHabilitada,
+  leadsHabilitado,
 }: {
   contaId: string;
   directHabilitado: boolean;
   reservaHabilitada: boolean;
   agendamentoHabilitado: boolean;
   buscaHabilitada: boolean;
+  leadsHabilitado: boolean;
 }) {
   const pathname = usePathname();
   const flags = {
@@ -49,6 +52,7 @@ export default function AbasDaConta({
     reservaHabilitada,
     agendamentoHabilitado,
     buscaHabilitada,
+    leadsHabilitado,
   };
 
   const abas = [...ABAS_POR_SERVICO.filter((aba) => flags[aba.chave]), ...ABAS_FINAIS];

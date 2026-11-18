@@ -278,7 +278,7 @@ export default async function ContasPage({
   const { data: contas } = await admin
     .from("chatbot_accounts")
     .select(
-      "id, page_name, instagram_username, active, access_token, instagram_user_id, foto_perfil_url, foto_perfil_atualizada_em"
+      "id, page_name, instagram_username, active, access_token, instagram_user_id, foto_perfil_url, foto_perfil_atualizada_em, tipo_negocio"
     )
     .order("created_at", { ascending: true });
 
@@ -300,7 +300,7 @@ export default async function ContasPage({
       ? admin
           .from("chatbot_account_settings")
           .select(
-            "account_id, chatbot_direct_habilitado, reserva_habilitada, agendamento_habilitado, busca_automatica_habilitada, agendador_stories_habilitado"
+            "account_id, chatbot_direct_habilitado, reserva_habilitada, agendamento_habilitado, busca_automatica_habilitada, agendador_stories_habilitado, leads_habilitado"
           )
           .in("account_id", idsDasContas)
       : Promise.resolve({
@@ -311,6 +311,7 @@ export default async function ContasPage({
             agendamento_habilitado: boolean;
             busca_automatica_habilitada: boolean;
             agendador_stories_habilitado: boolean;
+            leads_habilitado: boolean;
           }[],
         }),
   ]);
@@ -324,6 +325,7 @@ export default async function ContasPage({
         agendamento: c.agendamento_habilitado,
         busca: c.busca_automatica_habilitada,
         stories: c.agendador_stories_habilitado,
+        leads: c.leads_habilitado,
       },
     ])
   );
@@ -457,6 +459,7 @@ export default async function ContasPage({
             agendamento: false,
             busca: false,
             stories: false,
+            leads: false,
           };
 
           const fade = conta.active ? "" : "opacity-50";
@@ -605,11 +608,13 @@ export default async function ContasPage({
                 <div className={`mt-3.5 ${fade}`}>
                   <ChavesDeServico
                     contaId={conta.id}
+                    tipoNegocio={conta.tipo_negocio}
                     directHabilitado={servicos.direct}
                     reservaHabilitada={servicos.reserva}
                     agendamentoHabilitado={servicos.agendamento}
                     buscaHabilitada={servicos.busca}
                     storiesHabilitado={servicos.stories}
+                    leadsHabilitado={servicos.leads}
                   />
                 </div>
 
