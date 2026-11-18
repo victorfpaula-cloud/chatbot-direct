@@ -16,6 +16,7 @@ export default function ConectarForm({
   paginas: PaginaComInstagram[];
 }) {
   const [paginaEscolhida, setPaginaEscolhida] = useState<string | null>(null);
+  const [tipoNegocio, setTipoNegocio] = useState<"restaurante" | "imobiliario">("restaurante");
   const [enviando, setEnviando] = useState(false);
 
   return (
@@ -26,6 +27,50 @@ export default function ConectarForm({
       onSubmit={() => setEnviando(true)}
     >
       <input type="hidden" name="pendente" value={idPendente} />
+
+      <div>
+        <p className="text-xs font-medium text-neutral-400">Que tipo de negócio é esse?</p>
+        <p className="mt-1 text-xs text-neutral-500">
+          Define quais abas e perguntas o chatbot vai usar — dá pra mudar depois, na configuração
+          da conta.
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <label
+            className={`cursor-pointer rounded-xl border px-3 py-2.5 text-center text-sm font-medium transition ${
+              tipoNegocio === "restaurante"
+                ? "border-neutral-400 bg-neutral-800 text-neutral-50"
+                : "border-neutral-800 bg-neutral-900 text-neutral-400"
+            }`}
+          >
+            <input
+              type="radio"
+              name="tipo_negocio"
+              value="restaurante"
+              checked={tipoNegocio === "restaurante"}
+              onChange={() => setTipoNegocio("restaurante")}
+              className="sr-only"
+            />
+            Restaurante
+          </label>
+          <label
+            className={`cursor-pointer rounded-xl border px-3 py-2.5 text-center text-sm font-medium transition ${
+              tipoNegocio === "imobiliario"
+                ? "border-neutral-400 bg-neutral-800 text-neutral-50"
+                : "border-neutral-800 bg-neutral-900 text-neutral-400"
+            }`}
+          >
+            <input
+              type="radio"
+              name="tipo_negocio"
+              value="imobiliario"
+              checked={tipoNegocio === "imobiliario"}
+              onChange={() => setTipoNegocio("imobiliario")}
+              className="sr-only"
+            />
+            Imobiliário
+          </label>
+        </div>
+      </div>
 
       {paginas.map((pagina) => (
         <label
