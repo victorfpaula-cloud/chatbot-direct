@@ -141,7 +141,9 @@ async function responderComGemini(
 ): Promise<string | null> {
   const { data: config, error: erroAoBuscarConfig } = await admin
     .from("chatbot_account_settings")
-    .select("tom_de_voz, guardrails, base_conhecimento, palavra_chave_reserva, reserva_habilitada")
+    .select(
+      "tom_de_voz, guardrails, base_conhecimento, palavra_chave_reserva, reserva_habilitada, busca_automatica_habilitada"
+    )
     .eq("account_id", conta.id)
     .maybeSingle();
 
@@ -164,10 +166,27 @@ async function responderComGemini(
         .find((v: string) => v.length > 0)
     : null;
 
+  // Cópia interna do site externo da conta (ver buscaAutomatica.ts) — só busca essa tabela extra
+  // quando a conta realmente ligou Busca ao Vivo, pra não gastar uma query à toa em toda conta sem
+  // isso ativado (a grande maioria). Conteúdo sempre vem de uma sincronização de até 1 dia atrás,
+  // NUNCA de um fetch ao vivo no site — ver comentário no cron de ingestão sobre o porquê.
+  let conteudoDaBuscaAutomatica: string | null = null;
+  if (config.busca_automatica_habilitada) {
+    const { data: conteudo } = await admin
+      .from("chatbot_busca_automatica_conteudo")
+      .select("conteudo")
+      .eq("account_id", conta.id)
+      .maybeSingle();
+    conteudoDaBuscaAutomatica = conteudo?.conteudo ?? null;
+  }
+
   const promptBaseDoSistema = [
     config.tom_de_voz ? `Tom de voz a seguir:\n${config.tom_de_voz}` : null,
     config.guardrails ? `Regras que você DEVE seguir sempre:\n${config.guardrails}` : null,
     config.base_conhecimento ? `Informações sobre o negócio:\n${config.base_conhecimento}` : null,
+    conteudoDaBuscaAutomatica
+      ? `Informações atualizadas do site oficial (sincronizadas automaticamente uma vez por dia, pode haver pequeno atraso em relação ao site):\n${conteudoDaBuscaAutomatica}`
+      : null,
   ]
     .filter(Boolean)
     .join("\n\n");
