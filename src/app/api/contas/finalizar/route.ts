@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const idPendente = formData.get("pendente")?.toString();
   const pageIdEscolhido = formData.get("page_id")?.toString();
+  const tipoNegocioEscolhido = formData.get("tipo_negocio")?.toString();
+  const tipoNegocio = tipoNegocioEscolhido === "imobiliario" ? "imobiliario" : "restaurante";
 
   if (!idPendente || !pageIdEscolhido) {
     return NextResponse.redirect(new URL("/contas?erro=escolha_invalida", request.url));
@@ -65,6 +67,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL("/contas?erro=pagina_nao_encontrada", request.url));
   }
 
+  // Reconectar uma conta que já existe (token vencido, permissão revogada etc.) NUNCA pode mudar o
+  // tipo de negócio dela — o seletor na tela de conectar só vale pra conta NOVA. Confere antes se
+  // já existe uma linha com esse instagram_user_id: se sim, tipo_negocio simplesmente não entra no
+  // upsert (coluna omitida = valor atual preservado); se não, usa o que foi escolhido no formulário.
+  const { data: contaExistente } = await admin
+    .from("chatbot_accounts")
+    .select("id")
+    .eq("instagram_user_id", paginaEscolhida.instagram_user_id)
+    .maybeSingle();
+
   const { error: erroAoSalvarConta } = await admin.from("chatbot_accounts").upsert(
     {
       instagram_user_id: paginaEscolhida.instagram_user_id,
@@ -73,6 +85,7 @@ export async function POST(request: NextRequest) {
       instagram_username: paginaEscolhida.instagram_username,
       access_token: paginaEscolhida.page_access_token,
       active: true,
+      ...(contaExistente ? {} : { tipo_negocio: tipoNegocio }),
     },
     { onConflict: "instagram_user_id" }
   );

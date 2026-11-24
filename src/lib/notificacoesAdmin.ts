@@ -14,6 +14,15 @@ type Admin = ReturnType<typeof criarClienteAdmin>;
 // simplesmente não recebe alerta por WhatsApp — só o push de sempre continua valendo.
 const TEMPLATE_LOTACAO_PARCIAL = "alerta_lotacao_meio";
 const TEMPLATE_LOTACAO_MAXIMA = "alerta_lotacao_maxima";
+// Novo lead (imobiliário, 19/11/2026) — ainda precisa ser cadastrado e aprovado na Meta antes de
+// funcionar de verdade (mesmo processo dos outros dois). De propósito com SÓ 2 variáveis fixas
+// (nome/@ do cliente + um bloco de resumo já formatado com quebras de linha) em vez de uma
+// variável por pergunta — isso evita de vez a classe de bug que já pegou os outros dois templates
+// duas vezes nessa conta (contagem de parâmetro tem que bater exatamente com o template aprovado;
+// como aqui o número de perguntas ativas varia por conta, mapear 1 pra 1 ia quebrar toda vez que
+// alguém mudasse quais perguntas estão ligadas). Sugestão de corpo pra cadastrar na Meta:
+// "Novo contato interessado em imóvel! Cliente: {{1}}. {{2}}"
+const TEMPLATE_NOVO_LEAD = "alerta_novo_lead_imobiliario";
 const IDIOMA_TEMPLATE = "pt_BR";
 
 /** Zero, um ou vários números — guardados como texto separado por vírgula (ver
@@ -35,6 +44,61 @@ async function buscarWhatsAppsDoAdmin(admin: Admin, accountId: string): Promise<
 async function buscarNomeDaConta(admin: Admin, accountId: string): Promise<string> {
   const { data } = await admin.from("chatbot_accounts").select("page_name").eq("id", accountId).maybeSingle();
   return data?.page_name?.trim() || "seu restaurante";
+}
+
+/** Mesmo padrão de buscarWhatsAppsDoAdmin, mas lendo leads_admin_whatsapp (coluna separada —
+ * imobiliária pode querer mandar lead pra um WhatsApp diferente do de reserva, caso um dia tenha
+ * as duas coisas ativas). */
+async function buscarWhatsAppsDoLead(admin: Admin, accountId: string): Promise<string[]> {
+  const { data } = await admin
+    .from("chatbot_account_settings")
+    .select("leads_admin_whatsapp")
+    .eq("account_id", accountId)
+    .maybeSingle();
+
+  const texto: string = data?.leads_admin_whatsapp ?? "";
+  return texto
+    .split(",")
+    .map((numero) => numero.trim())
+    .filter(Boolean);
+}
+
+const RASTRO_DA_PERGUNTA: Record<string, string> = {
+  interesse: "Interesse",
+  tipo: "Tipo de imóvel",
+  regiao: "Região",
+  preco: "Faixa de preço",
+  quartos: "Quartos",
+};
+
+/** Lead novo qualificado (vertical Imobiliário) — monta um resumo de poucas linhas com só as
+ * respostas que a conta realmente coletou (dados vem de leads.ts/finalizarLead, já filtrado pelas
+ * perguntas ativas daquela conta) e manda pro(s) WhatsApp cadastrado(s) em leads_admin_whatsapp.
+ * Sem número cadastrado, não manda nada — o lead já fica salvo em chatbot_leads de qualquer jeito,
+ * visível na aba Leads. */
+export async function notificarNovoLead(
+  admin: Admin,
+  accountId: string,
+  nomeCliente: string,
+  dados: Record<string, string | undefined>,
+  leadId?: string
+): Promise<void> {
+  const whatsapps = await buscarWhatsAppsDoLead(admin, accountId);
+  if (whatsapps.length === 0) return;
+
+  const resumo = Object.entries(RASTRO_DA_PERGUNTA)
+    .filter(([chave]) => dados[chave])
+    .map(([chave, rotulo]) => `${rotulo}: ${dados[chave]}`)
+    .join("\n");
+
+  await Promise.all(
+    whatsapps.map((whatsapp) =>
+      enviarWhatsAppTemplate(whatsapp, TEMPLATE_NOVO_LEAD, IDIOMA_TEMPLATE, [
+        nomeCliente,
+        resumo || "(sem detalhes coletados)",
+      ])
+    )
+  );
 }
 
 /** Reserva nova confirmada — continua só push por enquanto (é o aviso mais frequente de longe;

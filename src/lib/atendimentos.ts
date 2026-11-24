@@ -1,7 +1,7 @@
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { buscarPerfilDoCliente } from "@/lib/metaMessaging";
 
-export type TipoRespostaAtendimento = "reserva" | "palavra_chave" | "gemini" | "sem_resposta";
+export type TipoRespostaAtendimento = "reserva" | "lead" | "palavra_chave" | "gemini" | "sem_resposta";
 export type StatusAtendimento = "respondido" | "erro" | "sem_resposta";
 
 /**

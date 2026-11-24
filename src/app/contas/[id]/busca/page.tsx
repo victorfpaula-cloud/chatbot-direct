@@ -25,7 +25,9 @@ export default async function BuscaConfigPage({
   const admin = criarClienteAdmin();
   const { data: config } = await admin
     .from("chatbot_account_settings")
-    .select("busca_automatica_habilitada, busca_automatica_url")
+    .select(
+      "busca_automatica_habilitada, busca_automatica_url, busca_automatica_ultima_sincronizacao, busca_automatica_ultimo_erro"
+    )
     .eq("account_id", params.id)
     .maybeSingle();
 
@@ -35,8 +37,9 @@ export default async function BuscaConfigPage({
         <div>
           <h2 className="text-xl font-semibold text-neutral-50">Busca ao Vivo</h2>
           <p className="mt-1.5 text-sm text-neutral-400">
-            Consulta periódica a um site externo (ex: programação de um cinema) pra responder o
-            cliente com informação sempre atualizada, sem precisar navegar no site a cada pergunta.
+            Lê um site externo (ex: programação de um cinema, catálogo de uma imobiliária) uma vez
+            por dia e responde o cliente com base nessa cópia — sem acessar o site durante a
+            conversa.
           </p>
         </div>
 
@@ -62,8 +65,9 @@ export default async function BuscaConfigPage({
         <div>
           <h2 className="text-xl font-semibold text-neutral-50">Busca ao Vivo</h2>
           <p className="mt-1.5 text-sm text-neutral-400">
-            Consulta periódica a um site externo (ex: programação de um cinema) pra responder o
-            cliente com informação sempre atualizada, sem precisar navegar no site a cada pergunta.
+            Lê um site externo (ex: programação de um cinema, catálogo de uma imobiliária) uma vez
+            por dia e responde o cliente com base nessa cópia — sem acessar o site durante a
+            conversa.
           </p>
         </div>
         <form action="/api/contas/busca-status" method="POST" className="shrink-0">
@@ -86,7 +90,7 @@ export default async function BuscaConfigPage({
 
         <CartaoDeSecao
           titulo="Site a consultar"
-          descricao="Link da página onde essa informação aparece (ex: a programação do dia no site do cinema). A busca em si é preparada em uma etapa futura — por enquanto isso só guarda o link."
+          descricao="Link da página onde essa informação aparece (ex: a programação do dia no site do cinema, ou o catálogo de imóveis de uma imobiliária). Uma vez por dia, de manhã, o conteúdo é lido e guardado — o bot sempre responde a partir dessa cópia, nunca acessando o site na hora da conversa."
         >
           <div>
             <label className={CLASSE_RÓTULO}>URL do site</label>
@@ -98,6 +102,23 @@ export default async function BuscaConfigPage({
               className={CLASSE_CAMPO}
             />
             <p className={CLASSE_AJUDA}>Cole o endereço completo, com https://.</p>
+          </div>
+
+          <div className="text-xs text-neutral-500">
+            {config?.busca_automatica_ultimo_erro ? (
+              <p className="text-amber-400">
+                Última tentativa falhou: {config.busca_automatica_ultimo_erro}
+              </p>
+            ) : config?.busca_automatica_ultima_sincronizacao ? (
+              <p>
+                Última sincronização com sucesso:{" "}
+                {new Date(config.busca_automatica_ultima_sincronizacao).toLocaleString("pt-BR", {
+                  timeZone: "America/Sao_Paulo",
+                })}
+              </p>
+            ) : (
+              <p>Ainda sem nenhuma sincronização — a primeira roda na próxima execução diária.</p>
+            )}
           </div>
         </CartaoDeSecao>
 

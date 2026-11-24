@@ -7,6 +7,7 @@ const SERVICOS = [
     action: "/api/contas/direct-status",
     mensagemConfirmarDesligar:
       "Tem certeza que deseja desativar o Chatbot Direct nessa conta? O bot para de responder por palavra-chave/Gemini — Reserva, Agendamento e Busca ao Vivo continuam funcionando normalmente se estiverem ligados.",
+    somenteImobiliario: false,
   },
   {
     chave: "reserva" as const,
@@ -14,6 +15,7 @@ const SERVICOS = [
     action: "/api/contas/reservas-status",
     mensagemConfirmarDesligar:
       "Tem certeza que deseja desativar reservas nessa conta? O bot para de aceitar novas reservas e a configuração fica escondida até você ativar de novo.",
+    somenteImobiliario: false,
   },
   {
     chave: "agendamento" as const,
@@ -21,6 +23,7 @@ const SERVICOS = [
     action: "/api/contas/agendamento-status",
     mensagemConfirmarDesligar:
       "Tem certeza que deseja desativar o Agendamento nessa conta? O bot para de aceitar novos agendamentos e a configuração fica escondida até você ativar de novo.",
+    somenteImobiliario: false,
   },
   {
     chave: "busca" as const,
@@ -28,6 +31,7 @@ const SERVICOS = [
     action: "/api/contas/busca-status",
     mensagemConfirmarDesligar:
       "Tem certeza que deseja desativar a Busca ao Vivo nessa conta? A configuração fica escondida até você ativar de novo.",
+    somenteImobiliario: false,
   },
   {
     chave: "stories" as const,
@@ -35,6 +39,18 @@ const SERVICOS = [
     action: "/api/contas/agendador-stories-status",
     mensagemConfirmarDesligar:
       "Tem certeza que deseja desativar o Agendador de Stories nessa conta? Isso pausa a publicação automática de Stories lá no outro app também.",
+    somenteImobiliario: false,
+  },
+  {
+    chave: "leads" as const,
+    rotulo: "Leads",
+    action: "/api/contas/leads-status",
+    mensagemConfirmarDesligar:
+      "Tem certeza que deseja desativar Leads nessa conta? O bot para de qualificar novos contatos e a configuração fica escondida até você ativar de novo.",
+    // Vertical Imobiliário (19/11/2026) — não faz sentido oferecer isso numa conta de restaurante,
+    // então essa chavinha só aparece quando tipo_negocio da conta é "imobiliario" (ver filtro de
+    // SERVICOS mais abaixo).
+    somenteImobiliario: true,
   },
 ];
 
@@ -93,6 +109,14 @@ function IconeDoProduto({ chave, className }: { chave: ChaveDeServico; className
           <circle cx="12" cy="13" r="4" />
         </svg>
       );
+    case "leads":
+      // Etiqueta — contato/lead qualificado (vertical Imobiliário).
+      return (
+        <svg {...comum}>
+          <path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.2L4 3a1 1 0 0 0-1 1l.2 5.59a2 2 0 0 0 .58 1.41l9.6 9.59a2 2 0 0 0 2.82 0l4.4-4.4a2 2 0 0 0 0-2.82z" />
+          <circle cx="7.5" cy="7.5" r="1.3" fill="currentColor" stroke="none" />
+        </svg>
+      );
   }
 }
 
@@ -108,18 +132,24 @@ function IconeDoProduto({ chave, className }: { chave: ChaveDeServico; className
  */
 export function ChavesDeServico({
   contaId,
+  tipoNegocio,
   directHabilitado,
   reservaHabilitada,
   agendamentoHabilitado,
   buscaHabilitada,
   storiesHabilitado,
+  leadsHabilitado,
 }: {
   contaId: string;
+  /** Default "restaurante" por segurança — contas antigas nunca passam esse prop antes dessa
+   * mudança existir, e um valor ausente nunca deve liberar a chavinha de Leads. */
+  tipoNegocio?: string;
   directHabilitado: boolean;
   reservaHabilitada: boolean;
   agendamentoHabilitado: boolean;
   buscaHabilitada: boolean;
   storiesHabilitado: boolean;
+  leadsHabilitado: boolean;
 }) {
   const estadoPorChave: Record<ChaveDeServico, boolean> = {
     direct: directHabilitado,
@@ -127,9 +157,13 @@ export function ChavesDeServico({
     agendamento: agendamentoHabilitado,
     busca: buscaHabilitada,
     stories: storiesHabilitado,
+    leads: leadsHabilitado,
   };
 
-  const servicosAtivos = SERVICOS.filter((servico) => estadoPorChave[servico.chave]);
+  const servicosVisiveis = SERVICOS.filter(
+    (servico) => !servico.somenteImobiliario || tipoNegocio === "imobiliario"
+  );
+  const servicosAtivos = servicosVisiveis.filter((servico) => estadoPorChave[servico.chave]);
 
   return (
     <details className="group rounded-xl border border-white/10 bg-black/20">
@@ -174,7 +208,7 @@ export function ChavesDeServico({
       </summary>
 
       <div className="flex flex-col gap-2 border-t border-white/10 px-3.5 py-3">
-        {SERVICOS.map((servico) => {
+        {servicosVisiveis.map((servico) => {
           const ligado = estadoPorChave[servico.chave];
           return (
             <form

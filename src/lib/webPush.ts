@@ -134,3 +134,21 @@ export async function notificarLotacaoAtingida(admin: Admin, accountId: string, 
     url: "/reservas",
   });
 }
+
+/**
+ * Chamada pelo cron diário de ingestão (ver buscaAutomatica.ts) quando a sincronização do site
+ * de uma conta falha — mesmo canal (push) de nova reserva/lotação, sem WhatsApp (combinado:
+ * WhatsApp fica pra depois). Manda pra quem ativou notificação NESSA conta — mesma lista de
+ * inscritos que já recebe os avisos de reserva, não um canal novo.
+ */
+export async function notificarFalhaBuscaAutomatica(
+  admin: Admin,
+  accountId: string,
+  mensagemDeErro: string
+): Promise<void> {
+  await enviarPushParaConta(admin, accountId, {
+    titulo: "Busca ao Vivo: falha na sincronização",
+    corpo: mensagemDeErro.slice(0, 120),
+    url: `/contas/${accountId}/busca`,
+  });
+}
