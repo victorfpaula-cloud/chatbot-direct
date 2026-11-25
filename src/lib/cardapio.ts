@@ -54,6 +54,8 @@ export type Categoria = {
   posicao: number;
   ativa: boolean;
   capa_url: string;
+  /** "lista" = itens em uma coluna; "grade" = cards menores, 2 colunas no celular e 4 no computador. */
+  layout: "lista" | "grade";
 };
 export type Produto = {
   id: string;
@@ -254,8 +256,19 @@ export async function criarCategoria(accountId: string, f: FormData) {
     account_id: accountId,
     nome,
     descricao: limpa(f.get("descricao"), 300),
+    layout: f.get("grade") === "1" ? "grade" : "lista",
     posicao: await proximaPosicao("cardapio_categorias", { account_id: accountId }),
   });
+  if (error) throw error;
+}
+
+export async function definirLayoutCategoria(accountId: string, categoriaId: string, layout: "lista" | "grade") {
+  const admin = criarClienteAdmin();
+  const { error } = await admin
+    .from("cardapio_categorias")
+    .update({ layout })
+    .eq("id", categoriaId)
+    .eq("account_id", accountId);
   if (error) throw error;
 }
 

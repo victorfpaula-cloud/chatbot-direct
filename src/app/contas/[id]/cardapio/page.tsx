@@ -223,6 +223,10 @@ export default async function CardapioContaPage({
             Nova categoria
             <input name="nome" required maxLength={80} placeholder="Ex.: Entradas" className={CLASSE_CAMPO} />
           </label>
+          <label className="flex items-center gap-2 pb-2 text-xs text-neutral-300">
+            <input type="checkbox" name="grade" value="1" className="accent-indigo-500" />
+            Grade compacta (ex.: Diversos)
+          </label>
           <button type="submit" className={CLASSE_BOTAO_SALVAR}>Criar categoria</button>
         </form>
 
@@ -238,6 +242,14 @@ export default async function CardapioContaPage({
                   {c.nome}
                   <span className="ml-2 text-xs font-normal text-neutral-500">{produtosDaCategoria(c.id).length} itens</span>
                 </p>
+                <form action="/api/cardapio/acao" method="POST">
+                  <input type="hidden" name="account_id" value={params.id} />
+                  <input type="hidden" name="acao" value="categoria_layout" />
+                  <input type="hidden" name="categoria_id" value={c.id} />
+                  <input type="hidden" name="layout" value={c.layout === "grade" ? "lista" : "grade"} />
+                  <input type="hidden" name="redirect_to" value={voltar} />
+                  <button type="submit" className={CLASSE_BOTAO_SMALL}>{c.layout === "grade" ? "Usar lista" : "Usar grade compacta"}</button>
+                </form>
                 <form action="/api/cardapio/acao" method="POST">
                   <input type="hidden" name="account_id" value={params.id} />
                   <input type="hidden" name="acao" value="categoria_excluir" />

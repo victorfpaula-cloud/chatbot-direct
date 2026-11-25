@@ -5,6 +5,7 @@ import {
   criarCategoria,
   criarProduto,
   definirDisponibilidade,
+  definirLayoutCategoria,
   definirHabilitado,
   excluirCategoria,
   excluirProduto,
@@ -35,6 +36,13 @@ export async function POST(request: NextRequest) {
         break;
       case "categoria_excluir":
         await excluirCategoria(accountId, f.get("categoria_id")?.toString() ?? "");
+        break;
+      case "categoria_layout":
+        await definirLayoutCategoria(
+          accountId,
+          f.get("categoria_id")?.toString() ?? "",
+          f.get("layout")?.toString() === "grade" ? "grade" : "lista"
+        );
         break;
       case "produto_criar":
         await criarProduto(accountId, f);
