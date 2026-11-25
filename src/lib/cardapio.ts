@@ -57,14 +57,15 @@ export type Categoria = {
   posicao: number;
   ativa: boolean;
   capa_url: string;
-  /** lista = 1 coluna; duas_colunas = 2 colunas em qualquer tela; grade = cards pequenos (2 no celular, 4 no computador). */
+  /** lista = 1 coluna com cards; lista_elegante = lista de linhas com separador; duas_colunas = 2 colunas; grade = cards pequenos (2 no celular, 4 no computador). */
   layout: Layout;
 };
 
-export const LAYOUTS = ["lista", "duas_colunas", "grade"] as const;
+export const LAYOUTS = ["lista", "lista_elegante", "duas_colunas", "grade"] as const;
 export type Layout = (typeof LAYOUTS)[number];
 export const ROTULO_LAYOUT: Record<Layout, string> = {
   lista: "1 coluna",
+  lista_elegante: "Lista",
   duas_colunas: "2 colunas",
   grade: "Grade compacta (2 no celular, 4 no computador)",
 };

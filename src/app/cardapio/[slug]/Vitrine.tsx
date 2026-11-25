@@ -27,7 +27,7 @@ export type CategoriaVitrine = {
   id: string;
   nome: string;
   descricao: string;
-  layout: "lista" | "duas_colunas" | "grade";
+  layout: "lista" | "lista_elegante" | "duas_colunas" | "grade";
   itens: ItemVitrine[];
 };
 
@@ -461,6 +461,27 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                 </div>
                 <span className="section__count">{plural(c.itens.length, "item", "itens")}</span>
               </header>
+              {c.layout === "lista_elegante" ? (
+                <ul className="lista-elegante">
+                  {c.filtrados.map((item) => (
+                    <li key={item.chave} className={item.disponivel ? undefined : "is-off"}>
+                      <button className="le__btn" type="button" onClick={() => abrir(item.chave)} aria-label={`Ver detalhes de ${item.nome}`}>
+                        <div className="le__media">
+                          <Midia item={item} classe="" />
+                        </div>
+                        <div className="le__main">
+                          <h3 className="le__nome">{item.nome}</h3>
+                          {item.descricao ? <p className="le__desc">{item.descricao}</p> : null}
+                        </div>
+                        <div className="le__preco">
+                          <span className="price">{dinheiro.format(item.precoCentavos / 100)}</span>
+                          {item.disponivel ? null : <span className="le__off">Indisponível</span>}
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
               <div className={classeGrade}>
                 {c.filtrados.map((item) => (
                   <article key={item.chave} className={`card${item.disponivel ? "" : " is-off"}`}>
@@ -481,6 +502,7 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                   </article>
                 ))}
               </div>
+              )}
             </section>
           );
         })}

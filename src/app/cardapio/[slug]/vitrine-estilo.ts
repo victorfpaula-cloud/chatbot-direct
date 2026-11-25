@@ -183,6 +183,25 @@ export const CSS_VITRINE = `
 .cdv.is-ready .highlights{animation:cdv-up .6s cubic-bezier(.2,.8,.2,1) .2s both}
 @keyframes cdv-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
+/* lista elegante: linhas com separador fino, preço alinhado à direita */
+.cdv .lista-elegante{list-style:none;margin:6px 0 0;padding:0}
+.cdv .lista-elegante li{border-bottom:1px solid var(--border)}
+.cdv .lista-elegante li:last-child{border-bottom:0}
+.cdv .le__btn{all:unset;box-sizing:border-box;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:14px;align-items:center;width:100%;padding:14px 4px;cursor:pointer}
+.cdv .le__btn:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;border-radius:12px}
+.cdv .le__media{position:relative;width:56px;height:56px;border-radius:14px;overflow:hidden;background:color-mix(in srgb,var(--c,var(--accent)) 16%,var(--border))}
+.cdv .le__media img{width:100%;height:100%;object-fit:cover}
+.cdv .le__media .placeholder{font-size:1rem}
+.cdv .le__main{min-width:0;display:flex;flex-direction:column;gap:3px}
+.cdv .le__nome{font-size:1.02rem;font-weight:700;line-height:1.25;transition:color .2s ease}
+.cdv .le__btn:hover .le__nome{color:var(--accent)}
+.cdv .le__desc{color:var(--muted);font-size:.85rem;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cdv .le__preco{display:flex;flex-direction:column;align-items:flex-end;gap:4px;white-space:nowrap}
+.cdv .le__preco .price{font-size:1.02rem}
+.cdv .le__off{font-size:.7rem;font-weight:700;color:var(--muted)}
+.cdv .lista-elegante li.is-off .le__nome,.cdv .lista-elegante li.is-off .price{color:var(--muted)}
+.cdv .lista-elegante li.is-off .le__media img{filter:grayscale(1);opacity:.55}
+
 .cdv .skeleton{display:none}
 @media (prefers-reduced-motion:reduce){
   .cdv,.cdv *,.cdv *::before,.cdv *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
