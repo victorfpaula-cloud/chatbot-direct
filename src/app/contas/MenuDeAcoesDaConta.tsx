@@ -77,6 +77,20 @@ export function MenuDeAcoesDaConta({
             </span>
           )}
 
+          {/* Mesmo fluxo do "+ Adicionar conta" (login do Facebook) — não precisa passar o
+              contaId: /api/contas/finalizar já faz upsert por instagram_user_id, então escolher
+              de novo a MESMA Página ali atualiza o token/re-inscreve o webhook desta conta em vez
+              de criar uma duplicada. Sem isso, o único jeito de corrigir uma conta que a Meta
+              desconectou (token revogado, app removido pelo usuário em Configurações > Apps e
+              sites do Instagram etc.) era repetir o fluxo genérico de "Adicionar conta" sem
+              nenhuma pista de que ele também serve pra reconectar uma já existente. */}
+          <a
+            href="/api/auth/facebook/start"
+            className="block rounded-lg px-3 py-2 text-left text-sm font-medium text-emerald-300 hover:bg-white/5"
+          >
+            Reconectar conta
+          </a>
+
           <div className="my-1 h-px bg-white/10" />
 
           <form action="/api/contas/status" method="POST">

@@ -554,3 +554,15 @@ alter table chatbot_account_settings
   add column if not exists reserva_lembrete_horario time not null default '18:40:00',
   add column if not exists reserva_lembrete_mensagem text,
   add column if not exists reserva_lembrete_ultima_data_enviada date;
+
+-- ============================================================================
+-- Ponte com o ShoppingHub (07/11/2026) — substitui a ponte que o ShoppingHub tinha com a SendPulse
+-- (desativada depois que o plano de automação da SendPulse parou de chamar o endpoint de chat
+-- dele sem aviso, deixando os clientes dos shoppings sem resposta). Conta marcada com
+-- `shoppinghub = true` não usa NADA da lógica local daqui (reserva/palavra-chave/Gemini própria) —
+-- só repassa mensagem e menção de Story pro ShoppingHub decidir (ver
+-- src/lib/shoppinghubBridge.ts e o branch em src/app/api/webhook/instagram/route.ts).
+-- ============================================================================
+alter table chatbot_accounts
+  add column if not exists shoppinghub boolean not null default false;
+
