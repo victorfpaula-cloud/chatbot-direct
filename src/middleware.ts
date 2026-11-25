@@ -344,6 +344,6 @@ export const config = {
     // CRON_SECRET. FALTAVA essa exceção aqui (bug real, ver comentário no topo do arquivo): sem
     // ela, todo request batia direto no redirect pra /login antes de chegar na rota, e as duas
     // rotas de cron nunca funcionaram de verdade.
-    "/((?!api/webhook/instagram|api/r/|api/site/|api/cron/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/|site$).*)",
+    "/((?!api/webhook/instagram|api/r/|api/site/|api/cron/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|reservas/icon.png|reservas/apple-icon.png|reservas-manifest.webmanifest|reservas-logo.png|reservas-icon.png|reservas-splash.mp4|reservas-avatares/|r/|cardapio/|cardapio-fotos/|site$).*)",
   ],
 };
