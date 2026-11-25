@@ -107,7 +107,7 @@ a.cd-slide{text-decoration:none;color:#fff;display:block}
 .cd-name{font-weight:700;font-size:.98rem;line-height:1.25}
 .cd-desc{color:var(--muted);font-size:.84rem;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .cd-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding-top:4px}
-.cd-price{font-weight:800;color:var(--c);font-variant-numeric:tabular-nums}
+.cd-price{font-weight:800;color:var(--preco);font-variant-numeric:tabular-nums}
 .cd-badge{font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--line);color:var(--muted)}
 .cd-more{font-size:.72rem;font-weight:700;color:var(--muted)}
 .cd-item.off .cd-photo img{filter:grayscale(1);opacity:.6}
@@ -220,7 +220,7 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
   );
 
   return (
-    <div className="cd" style={{ ["--c" as string]: corDestaque }}>
+    <div className="cd" style={{ ["--c" as string]: corDestaque, ["--preco" as string]: corDestaque }}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       <header className="cd-hero">
