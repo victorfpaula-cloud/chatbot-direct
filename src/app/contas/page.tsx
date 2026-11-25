@@ -330,6 +330,15 @@ export default async function ContasPage({
     ])
   );
 
+  // Cardápio digital: tabela própria (cardapio_contas), lida separado das configs de serviço.
+  // Um erro aqui não derruba a página: volta como "desligado" pras contas.
+  const { data: cardapioDasContas } = idsDasContas.length > 0
+    ? await admin.from("cardapio_contas").select("account_id, habilitado").in("account_id", idsDasContas)
+    : { data: [] as { account_id: string; habilitado: boolean }[] };
+  const cardapioHabilitadoPorConta = new Map(
+    (cardapioDasContas ?? []).map((c) => [c.account_id, Boolean(c.habilitado)])
+  );
+
   // Foto de perfil de cada conta — agora cacheada no banco (`chatbot_accounts.foto_perfil_url`) e
   // só buscada de novo na Meta quando estiver velha (ver atualizarFotosDePerfilVencidas), já que a
   // foto de um restaurante quase nunca muda. O access_token só é usado dentro do servidor pra
@@ -615,6 +624,7 @@ export default async function ContasPage({
                     buscaHabilitada={servicos.busca}
                     storiesHabilitado={servicos.stories}
                     leadsHabilitado={servicos.leads}
+                    cardapioHabilitado={cardapioHabilitadoPorConta.get(conta.id) ?? false}
                   />
                 </div>
 

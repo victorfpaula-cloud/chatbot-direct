@@ -34,6 +34,14 @@ const SERVICOS = [
     somenteImobiliario: false,
   },
   {
+    chave: "cardapio" as const,
+    rotulo: "Cardápio digital",
+    action: "/api/cardapio/acao",
+    mensagemConfirmarDesligar:
+      "Desligar o cardápio digital dessa conta? A página pública sai do ar até você ligar de novo.",
+    somenteImobiliario: false,
+  },
+  {
     chave: "stories" as const,
     rotulo: "Agendador de Stories",
     action: "/api/contas/agendador-stories-status",
@@ -55,6 +63,9 @@ const SERVICOS = [
 ];
 
 type ChaveDeServico = (typeof SERVICOS)[number]["chave"];
+
+// Serviços que passam por uma rota de ação única (/api/cardapio/acao) precisam enviar qual ação é.
+const ACAO_DO_FORMULARIO: Partial<Record<ChaveDeServico, string>> = { cardapio: "habilitar" };
 
 // Um ícone por produto — usado tanto na lista aberta do dropdown quanto (só dos que estiverem
 // ligados) na própria linha do "Produtos ativos", no lugar do contador "2/4" de antes.
@@ -109,6 +120,13 @@ function IconeDoProduto({ chave, className }: { chave: ChaveDeServico; className
           <circle cx="12" cy="13" r="4" />
         </svg>
       );
+    case "cardapio":
+      // Cardápio — mesmo desenho usado na tela de login do módulo.
+      return (
+        <svg {...comum}>
+          <path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8a2 2 0 0 1-2 2M17 21V3c-2 1-3 3-3 6s1 4 3 4" />
+        </svg>
+      );
     case "leads":
       // Etiqueta — contato/lead qualificado (vertical Imobiliário).
       return (
@@ -139,6 +157,7 @@ export function ChavesDeServico({
   buscaHabilitada,
   storiesHabilitado,
   leadsHabilitado,
+  cardapioHabilitado = false,
 }: {
   contaId: string;
   /** Default "restaurante" por segurança — contas antigas nunca passam esse prop antes dessa
@@ -150,8 +169,11 @@ export function ChavesDeServico({
   buscaHabilitada: boolean;
   storiesHabilitado: boolean;
   leadsHabilitado: boolean;
+  /** Cardápio digital fica numa tabela própria (cardapio_contas), por isso vem separado. */
+  cardapioHabilitado?: boolean;
 }) {
   const estadoPorChave: Record<ChaveDeServico, boolean> = {
+    cardapio: cardapioHabilitado,
     direct: directHabilitado,
     reserva: reservaHabilitada,
     agendamento: agendamentoHabilitado,
@@ -220,6 +242,9 @@ export function ChavesDeServico({
               <input type="hidden" name="account_id" value={contaId} />
               <input type="hidden" name="habilitar" value={ligado ? "0" : "1"} />
               <input type="hidden" name="redirect_to" value="/contas" />
+              {ACAO_DO_FORMULARIO[servico.chave] ? (
+                <input type="hidden" name="acao" value={ACAO_DO_FORMULARIO[servico.chave]} />
+              ) : null}
               <span className={`flex items-center gap-1.5 text-xs ${ligado ? "text-neutral-200" : "text-neutral-500"}`}>
                 <IconeDoProduto chave={servico.chave} className="h-3.5 w-3.5" />
                 {servico.rotulo}
