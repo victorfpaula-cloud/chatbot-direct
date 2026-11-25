@@ -249,7 +249,17 @@ export function ChavesDeServico({
                 <IconeDoProduto chave={servico.chave} className="h-3.5 w-3.5" />
                 {servico.rotulo}
               </span>
-              <Interruptor ligado={ligado} mensagemConfirmarDesligar={servico.mensagemConfirmarDesligar} />
+              <span className="flex items-center gap-2">
+                {servico.chave === "cardapio" ? (
+                  <a
+                    href={`/contas/${contaId}/cardapio`}
+                    className="text-xs font-medium text-indigo-300 underline-offset-2 hover:underline"
+                  >
+                    Configurar
+                  </a>
+                ) : null}
+                <Interruptor ligado={ligado} mensagemConfirmarDesligar={servico.mensagemConfirmarDesligar} />
+              </span>
             </form>
           );
         })}
