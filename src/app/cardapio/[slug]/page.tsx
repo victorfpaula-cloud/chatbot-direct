@@ -72,6 +72,12 @@ const CSS = `
 .cd-count{font-size:.8rem;color:var(--muted);white-space:nowrap}
 /* lista: uma coluna */
 .cd-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+/* 2 colunas em qualquer tela, cards de tamanho normal */
+.cd-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.cd-grid2 .cd-row{flex-direction:column;gap:8px;padding:10px}
+.cd-grid2 .cd-photo{flex:none;width:100%;height:auto;aspect-ratio:4/3;border-radius:12px}
+.cd-grid2 .cd-name{font-size:.94rem}
+.cd-grid2 .cd-desc{-webkit-line-clamp:2}
 /* grade compacta: 2 colunas no celular, 4 no computador e tablet */
 .cd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 @media (min-width:640px){.cd-grid{grid-template-columns:repeat(4,1fr);gap:12px}}
@@ -249,6 +255,7 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
           const itens = porCategoria(c.id);
           const cor = `hsl(${(i * 37) % 360} 60% 42%)`;
           const emGrade = c.layout === "grade";
+          const duasColunas = c.layout === "duas_colunas";
           return (
             <section key={c.id} id={`cat-${c.id}`} className="cd-sec" style={{ ["--c" as string]: cor }}>
               <div className="cd-sec-head">
@@ -258,7 +265,7 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
                 </div>
                 <span className="cd-count">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
               </div>
-              <div className={emGrade ? "cd-grid" : "cd-list"}>
+              <div className={emGrade ? "cd-grid" : duasColunas ? "cd-grid2" : "cd-list"}>
                 {itens.map((p) => itemCard(p, emGrade))}
               </div>
             </section>

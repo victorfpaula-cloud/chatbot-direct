@@ -1,3 +1,4 @@
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 
 // Módulo do cardápio digital. Tudo fica nas tabelas cardapio_* (ver supabase/cardapio.sql) e
@@ -46,6 +47,8 @@ export type Conta = {
   nome_exibicao: string;
   tagline: string;
   cor_destaque: string;
+  /** Só o servidor usa (para saber se já há senha definida). Nunca vai para o cliente. */
+  senha_dono_hash?: string | null;
 };
 export type Categoria = {
   id: string;
@@ -54,9 +57,19 @@ export type Categoria = {
   posicao: number;
   ativa: boolean;
   capa_url: string;
-  /** "lista" = itens em uma coluna; "grade" = cards menores, 2 colunas no celular e 4 no computador. */
-  layout: "lista" | "grade";
+  /** lista = 1 coluna; duas_colunas = 2 colunas em qualquer tela; grade = cards pequenos (2 no celular, 4 no computador). */
+  layout: Layout;
 };
+
+export const LAYOUTS = ["lista", "duas_colunas", "grade"] as const;
+export type Layout = (typeof LAYOUTS)[number];
+export const ROTULO_LAYOUT: Record<Layout, string> = {
+  lista: "1 coluna",
+  duas_colunas: "2 colunas",
+  grade: "Grade compacta (2 no celular, 4 no computador)",
+};
+export const layoutValido = (v: string | null | undefined): Layout =>
+  (LAYOUTS as readonly string[]).includes(v ?? "") ? (v as Layout) : "lista";
 export type Produto = {
   id: string;
   categoria_id: string;
@@ -142,7 +155,7 @@ export async function carregarConta(accountId: string): Promise<Conta | null> {
   const admin = criarClienteAdmin();
   const { data, error } = await admin
     .from("cardapio_contas")
-    .select("account_id, habilitado, nome_exibicao, tagline, cor_destaque")
+    .select("account_id, habilitado, nome_exibicao, tagline, cor_destaque, senha_dono_hash")
     .eq("account_id", accountId)
     .maybeSingle();
   if (error) throw error;
@@ -256,17 +269,17 @@ export async function criarCategoria(accountId: string, f: FormData) {
     account_id: accountId,
     nome,
     descricao: limpa(f.get("descricao"), 300),
-    layout: f.get("grade") === "1" ? "grade" : "lista",
+    layout: layoutValido(f.get("layout")?.toString()),
     posicao: await proximaPosicao("cardapio_categorias", { account_id: accountId }),
   });
   if (error) throw error;
 }
 
-export async function definirLayoutCategoria(accountId: string, categoriaId: string, layout: "lista" | "grade") {
+export async function definirLayoutCategoria(accountId: string, categoriaId: string, layout: string) {
   const admin = criarClienteAdmin();
   const { error } = await admin
     .from("cardapio_categorias")
-    .update({ layout })
+    .update({ layout: layoutValido(layout) })
     .eq("id", categoriaId)
     .eq("account_id", accountId);
   if (error) throw error;
@@ -361,4 +374,72 @@ export async function removerDestaque(accountId: string, destaqueId: string) {
   const admin = criarClienteAdmin();
   const { error } = await admin.from("cardapio_destaques").delete().eq("id", destaqueId).eq("account_id", accountId);
   if (error) throw error;
+}
+
+/* ---------- acesso do dono do restaurante (/cardapio/[slug]/adm) ---------- */
+
+/** Senha do dono, guardada como hash (scrypt). Nunca em texto puro. */
+export async function definirSenhaDono(accountId: string, senha: string) {
+  if (senha.length < 6) throw new ErroCardapio("A senha do dono precisa ter pelo menos 6 caracteres.");
+  const sal = randomBytes(16).toString("hex");
+  const hash = scryptSync(senha, sal, 64).toString("hex");
+  const admin = criarClienteAdmin();
+  const { error } = await admin
+    .from("cardapio_contas")
+    .update({ senha_dono_hash: `scrypt$${sal}$${hash}`, atualizado_em: new Date().toISOString() })
+    .eq("account_id", accountId);
+  if (error) throw error;
+}
+
+export function conferirSenhaDono(hashGuardado: string | null | undefined, senha: string): boolean {
+  if (!hashGuardado) return false;
+  const [tipo, sal, hash] = hashGuardado.split("$");
+  if (tipo !== "scrypt" || !sal || !hash) return false;
+  const esperado = Buffer.from(hash, "hex");
+  const calculado = scryptSync(senha, sal, esperado.length);
+  return esperado.length === calculado.length && timingSafeEqual(esperado, calculado);
+}
+
+const segredoDoAcessoAdm = () => {
+  const base = process.env.FUNCIONARIO_SESSAO_SECRET;
+  if (!base) throw new ErroCardapio("Acesso do dono indisponível: falta configurar o segredo do servidor.");
+  return `${base}:cardapio-adm`;
+};
+
+/** Cookie assinado com o id da conta e a validade (12 horas). Só o servidor gera e confere. */
+export function gerarSessaoAdm(accountId: string, agora: number = Date.now()): string {
+  const exp = String(agora + 12 * HORA);
+  const assinatura = createHmac("sha256", segredoDoAcessoAdm()).update(`${accountId}.${exp}`).digest("hex");
+  return `${accountId}.${exp}.${assinatura}`;
+}
+
+/** Devolve o id da conta se o cookie for válido e não tiver vencido; senão null. */
+export function lerSessaoAdm(valor: string | undefined, agora: number = Date.now()): string | null {
+  if (!valor) return null;
+  const [accountId, exp, assinatura] = valor.split(".");
+  if (!accountId || !exp || !assinatura || Number(exp) < agora) return null;
+  const esperada = createHmac("sha256", segredoDoAcessoAdm()).update(`${accountId}.${exp}`).digest("hex");
+  const a = Buffer.from(assinatura);
+  const b = Buffer.from(esperada);
+  return a.length === b.length && timingSafeEqual(a, b) ? accountId : null;
+}
+
+export const NOME_COOKIE_ADM = "cd_adm_sessao";
+
+/** Conta pelo endereço público, só se o cardápio estiver liberado. */
+export async function contaDoDonoPorSlug(slug: string) {
+  const admin = criarClienteAdmin();
+  const { data: conta } = await admin.from("chatbot_accounts").select("id, page_name").eq("slug", slug).maybeSingle();
+  if (!conta) return null;
+  const { data: cfg } = await admin
+    .from("cardapio_contas")
+    .select("habilitado, senha_dono_hash")
+    .eq("account_id", conta.id)
+    .maybeSingle();
+  if (!cfg?.habilitado) return null;
+  return {
+    accountId: conta.id as string,
+    nomeConta: conta.page_name as string,
+    senhaHash: (cfg.senha_dono_hash as string | null) ?? null,
+  };
 }

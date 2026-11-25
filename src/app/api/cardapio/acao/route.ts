@@ -9,6 +9,7 @@ import {
   definirHabilitado,
   excluirCategoria,
   excluirProduto,
+  definirSenhaDono,
   removerDestaque,
   salvarConta,
 } from "@/lib/cardapio";
@@ -38,11 +39,10 @@ export async function POST(request: NextRequest) {
         await excluirCategoria(accountId, f.get("categoria_id")?.toString() ?? "");
         break;
       case "categoria_layout":
-        await definirLayoutCategoria(
-          accountId,
-          f.get("categoria_id")?.toString() ?? "",
-          f.get("layout")?.toString() === "grade" ? "grade" : "lista"
-        );
+        await definirLayoutCategoria(accountId, f.get("categoria_id")?.toString() ?? "", f.get("layout")?.toString() ?? "");
+        break;
+      case "senha_dono":
+        await definirSenhaDono(accountId, f.get("senha")?.toString() ?? "");
         break;
       case "produto_criar":
         await criarProduto(accountId, f);
