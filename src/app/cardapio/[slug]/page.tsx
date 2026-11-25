@@ -32,11 +32,12 @@ const CSS = `
 .cd-hero{color:#fff;padding:34px 18px 24px;background:radial-gradient(800px 260px at 85% -20%,rgba(255,255,255,.22),transparent 60%),linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 50%,#000))}
 .cd-hero h1{margin:0;font-size:clamp(1.8rem,6vw,2.6rem);font-weight:800;letter-spacing:-.03em;line-height:1.05}
 .cd-hero p{margin:6px 0 0;opacity:.92;font-size:.95rem}
-.cd-nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:10px 14px}
-.cd-chips{display:flex;flex-wrap:wrap;gap:6px}
-.cd-chip{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 11px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none;font-size:.84rem;font-weight:700;white-space:nowrap}
-.cd-chip b{font-size:.72rem;padding:1px 6px;border-radius:999px;background:var(--line);color:var(--muted)}
-.cd-chip:hover{border-color:var(--c)}
+.cd-nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.cd-chips{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:10px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch;max-width:720px;margin:0 auto}
+.cd-chips::-webkit-scrollbar{display:none}
+.cd-chip{flex:0 0 auto;scroll-snap-align:start;display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none;font-size:.88rem;font-weight:700;white-space:nowrap}
+.cd-chip:hover{border-color:var(--ink)}
+.cd-chip:active{transform:scale(.97)}
 .cd-wrap{max-width:720px;margin:0 auto;padding:0 14px}
 .cd-block{padding-top:22px}
 .cd-block-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -55,7 +56,7 @@ const CSS = `
 .cd-slide h3{margin:0;font-size:1.05rem;font-weight:700;line-height:1.2}
 .cd-slide .pr{margin-top:3px;font-size:.95rem;font-weight:800}
 .cd-slide .pr s{opacity:.75;font-weight:500;font-size:.8rem;margin-left:6px}
-.cd-sec{scroll-margin-top:70px;padding-top:26px}
+.cd-sec{scroll-margin-top:64px;padding-top:26px}
 .cd-sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding-bottom:8px;border-bottom:2px solid var(--c)}
 .cd-sec-head h2{margin:0;font-size:1.3rem;font-weight:800;letter-spacing:-.02em}
 .cd-sec-head p{margin:2px 0 0;color:var(--muted);font-size:.88rem}
@@ -134,7 +135,7 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
         <div className="cd-chips" style={{ maxWidth: 720, margin: "0 auto" }}>
           {categoriasComItens.map((c) => (
             <a key={c.id} href={`#cat-${c.id}`} className="cd-chip">
-              {c.nome} <b>{porCategoria(c.id).length}</b>
+              {c.nome}
             </a>
           ))}
         </div>

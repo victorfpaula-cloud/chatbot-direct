@@ -72,7 +72,9 @@ export default function RootLayout({
                   // /reservas tem a própria splash (vídeo, ver SplashReservas.tsx) — essa aqui é
                   // só pro painel administrativo. Sem esse corte, as duas empilhavam: a giratória
                   // "CD" segurava a tela por pelo menos 1,2s ANTES do vídeo sequer começar.
-                  if (location.pathname.indexOf("/reservas") === 0) {
+                  // /cardapio é a página pública do restaurante: a tela de abertura do painel nunca
+                  // deve cobrir ela (antes, por ~1,2s na primeira visita, nada era clicável).
+                  if (location.pathname.indexOf("/reservas") === 0 || location.pathname.indexOf("/cardapio") === 0) {
                     el.style.display = "none";
                     return;
                   }
