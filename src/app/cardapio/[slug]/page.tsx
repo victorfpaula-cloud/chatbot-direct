@@ -72,6 +72,22 @@ const CSS = `
 .cd-count{font-size:.8rem;color:var(--muted);white-space:nowrap}
 /* lista: uma coluna */
 .cd-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+/* item e cartão viram links; detalhes abrem em popup centralizado */
+a.cd-item{display:block;text-decoration:none;color:inherit;cursor:pointer}
+a.cd-item:active{transform:scale(.99)}
+a.cd-slide{text-decoration:none;color:#fff;display:block}
+.cd-modal{display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:16px}
+.cd-modal:target{display:flex}
+.cd-modal-bg{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.cd-modal-box{position:relative;width:min(520px,100%);max-height:88vh;overflow:auto;background:var(--card);border-radius:24px;box-shadow:0 30px 80px rgba(0,0,0,.3);animation:cdpop .22s ease-out}
+@keyframes cdpop{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.cd-modal-x{position:absolute;top:12px;right:12px;z-index:2;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:grid;place-items:center;text-decoration:none;font-size:1.3rem;line-height:1}
+.cd-modal-img{position:relative;width:100%;aspect-ratio:4/3;background:color-mix(in srgb,var(--c) 14%,var(--line))}
+.cd-modal-img img{width:100%;height:100%;object-fit:cover}
+.cd-modal-img .ini{position:absolute;inset:0;display:grid;place-items:center;font-size:2.6rem;font-weight:800;color:var(--c)}
+.cd-modal-body{padding:18px 20px 22px;display:flex;flex-direction:column;gap:10px}
+.cd-modal-title{margin:0;font-size:1.4rem;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.cd-modal-body p{margin:0;color:var(--muted);line-height:1.5}
 /* 2 colunas em qualquer tela, cards de tamanho normal */
 .cd-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .cd-grid2 .cd-row{flex-direction:column;gap:8px;padding:10px}
@@ -132,68 +148,75 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
     const p = produtoDe(d) as Produto | undefined;
     if (!p) return null;
     return (
-      <details key={d.id} className="cd-slide" style={{ display: "block" }}>
-        <summary style={{ display: "block", height: "100%" }}>
-          {p.foto_url ? <img src={p.foto_url} alt="" loading="lazy" /> : <span className="ini">{iniciais(p.nome)}</span>}
-          <div className="shade" />
-          <div className="top">
-            <span className="cd-pill">{categoriasComItens.find((c) => c.id === p.categoria_id)?.nome ?? ""}</span>
-            <span className="cd-pill t">{prazoDoDestaque(d.ate)}</span>
+      <a key={d.id} href={`#p${p.id}`} className="cd-slide">
+        {p.foto_url ? <img src={p.foto_url} alt="" loading="lazy" /> : <span className="ini">{iniciais(p.nome)}</span>}
+        <div className="shade" />
+        <div className="top">
+          <span className="cd-pill">{categoriasComItens.find((c) => c.id === p.categoria_id)?.nome ?? ""}</span>
+          <span className="cd-pill t">{prazoDoDestaque(d.ate)}</span>
+        </div>
+        <div className="body">
+          <span className="cd-tag" style={{ color: "#fff", opacity: 0.85 }}>{tipoRotulo}</span>
+          <h3>{p.nome}</h3>
+          <div className="pr">
+            {d.preco_promocional_centavos != null ? (
+              <>
+                {reais(d.preco_promocional_centavos)}
+                <s>{reais(p.preco_centavos)}</s>
+              </>
+            ) : (
+              reais(p.preco_centavos)
+            )}
           </div>
-          <div className="body">
-            <span className="cd-tag" style={{ color: "#fff", opacity: 0.85 }}>{tipoRotulo}</span>
-            <h3>{p.nome}</h3>
-            <div className="pr">
-              {d.preco_promocional_centavos != null ? (
-                <>
-                  {reais(d.preco_promocional_centavos)}
-                  <s>{reais(p.preco_centavos)}</s>
-                </>
-              ) : (
-                reais(p.preco_centavos)
-              )}
-            </div>
-          </div>
-        </summary>
-      </details>
+        </div>
+      </a>
     );
   };
 
-  const itemCard = (p: Produto, emGrade: boolean) => (
-    <details key={p.id} className={`cd-item${p.disponivel ? "" : " off"}`}>
-      <summary>
-        <div className="cd-row">
-          <div className="cd-photo">
-            {p.foto_url ? <img src={p.foto_url} alt="" loading="lazy" /> : <span className="ini">{iniciais(p.nome)}</span>}
-          </div>
-          <div className="cd-info">
-            <h3 className="cd-name">{p.nome}</h3>
-            {p.descricao ? <p className="cd-desc">{p.descricao}</p> : null}
-            <div className="cd-foot">
-              <span className="cd-price">{reais(p.preco_centavos)}</span>
-              {p.disponivel ? <span className="cd-more">Ver detalhes ▾</span> : <span className="cd-badge">Indisponível</span>}
-            </div>
-          </div>
+  const itemCard = (p: Produto, _emGrade: boolean) => (
+    <a key={p.id} href={`#p${p.id}`} className={`cd-item${p.disponivel ? "" : " off"}`}>
+      <div className="cd-row">
+        <div className="cd-photo">
+          {p.foto_url ? <img src={p.foto_url} alt="" loading="lazy" /> : <span className="ini">{iniciais(p.nome)}</span>}
         </div>
-      </summary>
-      <div className="cd-det">
-        {p.foto_url ? (
-          <div className="cd-det-img"><img src={p.foto_url} alt={p.nome} loading="lazy" /></div>
-        ) : null}
-        {p.descricao ? <p>{p.descricao}</p> : <p>Sem descrição.</p>}
-        {p.tags.length ? (
-          <div className="cd-tags">
-            {p.tags.map((t) => (
-              <span key={t}>{ROTULOS_TAGS[t as keyof typeof ROTULOS_TAGS] ?? t}</span>
-            ))}
+        <div className="cd-info">
+          <h3 className="cd-name">{p.nome}</h3>
+          {p.descricao ? <p className="cd-desc">{p.descricao}</p> : null}
+          <div className="cd-foot">
+            <span className="cd-price">{reais(p.preco_centavos)}</span>
+            {p.disponivel ? <span className="cd-more">Ver detalhes</span> : <span className="cd-badge">Indisponível</span>}
           </div>
-        ) : null}
-        <div className="cd-foot">
-          <span className="cd-price">{reais(p.preco_centavos)}</span>
-          {p.disponivel ? null : <span className="cd-badge">Indisponível no momento</span>}
         </div>
       </div>
-    </details>
+    </a>
+  );
+
+  // Popup centralizado com foto grande. Abre pelo link #p<id> (funciona sem JavaScript).
+  const popup = (p: Produto) => (
+    <div key={`m${p.id}`} id={`p${p.id}`} className="cd-modal" role="dialog" aria-modal="true" aria-label={p.nome}>
+      <a href="#" className="cd-modal-bg" aria-label="Fechar" />
+      <div className="cd-modal-box">
+        <a href="#" className="cd-modal-x" aria-label="Fechar">×</a>
+        <div className="cd-modal-img">
+          {p.foto_url ? <img src={p.foto_url} alt={p.nome} /> : <span className="ini">{iniciais(p.nome)}</span>}
+        </div>
+        <div className="cd-modal-body">
+          <h3 className="cd-modal-title">{p.nome}</h3>
+          {p.descricao ? <p>{p.descricao}</p> : null}
+          {p.tags.length ? (
+            <div className="cd-tags">
+              {p.tags.map((t) => (
+                <span key={t}>{ROTULOS_TAGS[t as keyof typeof ROTULOS_TAGS] ?? t}</span>
+              ))}
+            </div>
+          ) : null}
+          <div className="cd-foot">
+            <span className="cd-price">{reais(p.preco_centavos)}</span>
+            {p.disponivel ? null : <span className="cd-badge">Indisponível no momento</span>}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 
   return (
@@ -273,6 +296,7 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
         })}
       </main>
 
+      {produtos.filter((p) => categoriasComItens.some((c) => c.id === p.categoria_id)).map((p) => popup(p))}
       <footer className="cd-foot-wrap">{nome}</footer>
     </div>
   );
