@@ -509,28 +509,35 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
               style={{ ["--c" as string]: corDaSecao(i) }}
               aria-labelledby={`h-${c.id}`}
             >
-              <header className="section__head">
-                <div>
-                  <h2 id={`h-${c.id}`}>
-                    {c.dropdown ? (
-                      <button
-                        type="button"
-                        className="section__toggle"
-                        aria-expanded={aberta}
-                        aria-controls={`lista-${c.id}`}
-                        onClick={() => alternarCategoria(c.id)}
-                      >
-                        {c.nome}
-                        <span className="section__seta" aria-hidden="true">▾</span>
-                      </button>
-                    ) : (
-                      c.nome
-                    )}
-                  </h2>
-                  {c.descricao ? <p>{c.descricao}</p> : null}
-                </div>
-                <span className="section__count">{plural(c.itens.length, "item", "itens")}</span>
-              </header>
+              {c.dropdown ? (
+                <h2 id={`h-${c.id}`} className="cat-card-wrap">
+                  <button
+                    type="button"
+                    className="cat-card"
+                    aria-expanded={aberta}
+                    aria-controls={`lista-${c.id}`}
+                    onClick={() => alternarCategoria(c.id)}
+                  >
+                    <span className="cat-card__txt">
+                      <span className="cat-card__nome">{c.nome}</span>
+                      {c.descricao ? <span className="cat-card__desc">{c.descricao}</span> : null}
+                      <span className="cat-card__qtd">{plural(c.itens.length, "item", "itens")}</span>
+                    </span>
+                    <span className="cat-card__acao">
+                      {aberta ? "Fechar" : "Ver itens"}
+                      <span className="cat-card__seta" aria-hidden="true">▾</span>
+                    </span>
+                  </button>
+                </h2>
+              ) : (
+                <header className="section__head">
+                  <div>
+                    <h2 id={`h-${c.id}`}>{c.nome}</h2>
+                    {c.descricao ? <p>{c.descricao}</p> : null}
+                  </div>
+                  <span className="section__count">{plural(c.itens.length, "item", "itens")}</span>
+                </header>
+              )}
               {c.layout === "lista_elegante" ? (
                 <ul className="lista-elegante" id={`lista-${c.id}`} hidden={!aberta}>
                   {c.filtrados.map((item) => (

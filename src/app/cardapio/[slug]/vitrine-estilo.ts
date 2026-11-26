@@ -201,12 +201,19 @@ export const CSS_VITRINE = `
 /* adicionais dentro do popup do item */
 .cdv .item-dialog__adicionais{margin-top:18px;padding-top:16px;border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent)}
 .cdv .item-dialog__adicionais-titulo{margin-bottom:6px;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
-/* categoria recolhida: o nome é o botão que abre a lista */
-.cdv .section__toggle{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:10px;cursor:pointer;font:inherit;color:inherit;border-radius:10px}
-.cdv .section__toggle:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:4px}
-.cdv .section__toggle:hover{color:var(--accent)}
-.cdv .section__seta{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:999px;background:var(--surface);color:var(--accent);font-size:.8rem;line-height:1;box-shadow:var(--shadow);transition:transform .25s ease}
-.cdv .section__toggle[aria-expanded="true"] .section__seta{transform:rotate(180deg)}
+/* categoria recolhida: cartão inteiro que é o botão de abrir */
+.cdv .cat-card-wrap{margin:0;font:inherit}
+.cdv .cat-card{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:14px;width:100%;padding:16px 16px 16px 18px;background:var(--surface);border:1px solid var(--border);border-left:5px solid var(--c);border-radius:18px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s ease,box-shadow .25s ease}
+.cdv .cat-card:hover{box-shadow:0 12px 28px color-mix(in srgb,var(--c) 20%,transparent)}
+.cdv .cat-card:active{transform:scale(.99)}
+.cdv .cat-card:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.cdv .cat-card__txt{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.cdv .cat-card__nome{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;color:var(--text);line-height:1.2}
+.cdv .cat-card__desc{font-size:.88rem;color:var(--muted);line-height:1.35}
+.cdv .cat-card__qtd{font-size:.8rem;font-weight:700;color:var(--muted)}
+.cdv .cat-card__acao{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;border-radius:999px;background:var(--c);color:#fff;font-size:.85rem;font-weight:800;white-space:nowrap;box-shadow:0 6px 16px color-mix(in srgb,var(--c) 35%,transparent)}
+.cdv .cat-card__seta{display:inline-block;font-size:.8rem;line-height:1;transition:transform .25s ease}
+.cdv .cat-card[aria-expanded="true"] .cat-card__seta{transform:rotate(180deg)}
 .cdv .ad-tabela{width:100%;border-collapse:collapse;font-size:.92rem}
 .cdv .ad-tabela th,.cdv .ad-tabela td{padding:9px 0;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);text-align:left;vertical-align:middle}
 .cdv .ad-tabela td{color:var(--text)}
