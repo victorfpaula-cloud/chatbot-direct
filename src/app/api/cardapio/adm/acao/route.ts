@@ -15,7 +15,6 @@ import {
   salvarGrupoAdicional,
   excluirGrupoAdicional,
   definirDropdownCategoria,
-  definirIconeCategoria,
   criarAdicional,
   definirDisponibilidadeAdicional,
   excluirAdicional,
@@ -63,9 +62,6 @@ export async function POST(request: NextRequest) {
         break;
       case "destaque_remover":
         await removerDestaque(accountId, f.get("destaque_id")?.toString() ?? "");
-        break;
-      case "categoria_icone":
-        await definirIconeCategoria(accountId, f.get("categoria_id")?.toString() ?? "", f.get("icone")?.toString() ?? "");
         break;
       case "categoria_dropdown":
         await definirDropdownCategoria(accountId, f.get("categoria_id")?.toString() ?? "", f.get("dropdown")?.toString() === "1");

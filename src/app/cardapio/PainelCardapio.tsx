@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { ICONES_CATEGORIA, IconeCategoria } from "@/lib/icones-categoria";
 import {
   FUSO_CARDAPIO,
   LAYOUTS,
@@ -32,34 +31,6 @@ const reais = (centavos: number) =>
 
 const quando = (iso: string) =>
   new Date(iso).toLocaleString("pt-BR", { timeZone: FUSO_CARDAPIO, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-
-/** Galeria de ícones: toca num ícone para escolher a categoria. Usada ao criar e ao editar. */
-function GaleriaIcones({ atual }: { atual?: string }) {
-  const classeOpcao =
-    "flex cursor-pointer flex-col items-center gap-0.5 rounded-lg border border-white/10 bg-black/20 px-1 py-2 transition peer-checked:border-indigo-400 peer-checked:bg-indigo-500/15 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400";
-  return (
-    <fieldset className="flex flex-col gap-2 sm:col-span-2">
-      <legend className={CLASSE_RÓTULO}>Ícone da categoria</legend>
-      <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
-        <label className="contents">
-          <input type="radio" name="icone" value="" defaultChecked={!atual} className="peer sr-only" />
-          <span className={classeOpcao}>
-            <span className="text-xs text-neutral-400">Nenhum</span>
-          </span>
-        </label>
-        {ICONES_CATEGORIA.map((i) => (
-          <label key={i.chave} className="contents" title={i.rotulo}>
-            <input type="radio" name="icone" value={i.chave} defaultChecked={atual === i.chave} className="peer sr-only" />
-            <span className={classeOpcao}>
-              <IconeCategoria chave={i.chave} className="h-6 w-6 text-neutral-200" />
-              <span className="w-full truncate text-center text-[10px] text-neutral-400">{i.rotulo}</span>
-            </span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
 
 const BOTAO_PEQUENO =
   "rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-neutral-300 transition hover:bg-white/[0.08]";
@@ -221,7 +192,6 @@ export function PainelCardapio({
               ))}
             </select>
           </label>
-          <GaleriaIcones />
           <button type="submit" className={`${CLASSE_BOTAO_SALVAR} sm:col-span-2`}>Criar categoria</button>
         </form>
 
@@ -273,19 +243,6 @@ export function PainelCardapio({
                   </form>
                 </div>
               </div>
-
-              <details className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3">
-                <summary className="cursor-pointer list-none text-xs font-medium text-neutral-300">
-                  Ícone da categoria: <IconeCategoria chave={c.icone} className="inline h-4 w-4 align-[-3px] text-neutral-200" /> · trocar
-                </summary>
-                <form action={actionUrl} method="POST" className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {ocultos}
-                  <input type="hidden" name="acao" value="categoria_icone" />
-                  <input type="hidden" name="categoria_id" value={c.id} />
-                  <GaleriaIcones atual={c.icone} />
-                  <button type="submit" className={`${CLASSE_BOTAO_SALVAR} sm:col-span-2`}>Salvar ícone</button>
-                </form>
-              </details>
 
               <ul className="mt-3 flex flex-col gap-2">
                 {produtosDaCategoria(c.id).map((p) => (

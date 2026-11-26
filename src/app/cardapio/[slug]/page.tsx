@@ -82,7 +82,6 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
       descricao: c.descricao ?? "",
       layout: c.layout,
       dropdown: c.dropdown_no_cardapio,
-      icone: c.icone,
       itens: itensDaCategoria(c.id),
     }));
 
