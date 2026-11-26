@@ -12,18 +12,6 @@ export const CSS_VITRINE = `
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;
 }
-@media (prefers-color-scheme: dark){
-  .cdv:not([data-theme="light"]){
-    --bg:#100e0d;--surface:#1c1917;--surface-2:#24201e;--text:#f5f0ec;--muted:#a69c96;
-    --border:#35302c;--chip:#1c1917;--warn:#fbbf24;--warn-bg:#3a2d10;--ok-bg:#123320;
-    --shadow:none;color-scheme:dark;
-  }
-}
-.cdv[data-theme="dark"]{
-  --bg:#100e0d;--surface:#1c1917;--surface-2:#24201e;--text:#f5f0ec;--muted:#a69c96;
-  --border:#35302c;--chip:#1c1917;--warn:#fbbf24;--warn-bg:#3a2d10;--ok-bg:#123320;
-  --shadow:none;color-scheme:dark;
-}
 .cdv *,.cdv *::before,.cdv *::after{box-sizing:border-box}
 .cdv img{display:block;max-width:100%}
 .cdv h1,.cdv h2,.cdv h3,.cdv p{margin:0}
