@@ -221,17 +221,17 @@ export function PainelCardapio({
                   </form>
                   <form action={actionUrl} method="POST" className="flex items-center gap-2">
                     {ocultos}
-                    <input type="hidden" name="acao" value="categoria_adicionais_dropdown" />
+                    <input type="hidden" name="acao" value="categoria_dropdown" />
                     <input type="hidden" name="categoria_id" value={c.id} />
                     <label className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-neutral-300">
                       <input
                         type="checkbox"
                         name="dropdown"
                         value="1"
-                        defaultChecked={c.adicionais_dropdown}
+                        defaultChecked={c.dropdown_no_cardapio}
                         className="accent-indigo-500"
                       />
-                      Adicionais em dropdown
+                      Recolher no cardápio (dropdown)
                     </label>
                     <button type="submit" className={BOTAO_PEQUENO}>Salvar</button>
                   </form>

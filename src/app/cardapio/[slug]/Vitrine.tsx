@@ -22,8 +22,6 @@ export type ItemVitrine = {
   prazo: string; // só para promoções e destaques; vazio nos demais
   destaque: boolean;
   adicionais: GrupoVitrine[];
-  /** Tabela de adicionais recolhida num dropdown (marcado por categoria no painel). */
-  adicionaisDropdown: boolean;
 };
 
 export type GrupoVitrine = {
@@ -36,6 +34,8 @@ export type CategoriaVitrine = {
   nome: string;
   descricao: string;
   layout: "lista" | "lista_elegante" | "duas_colunas" | "grade";
+  /** Recolhida no cardápio: só o cabeçalho aparece; os itens abrem ao tocar. */
+  dropdown: boolean;
   itens: ItemVitrine[];
 };
 
@@ -261,6 +261,17 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
   const [termo, setTermo] = useState("");
   const [ativa, setAtiva] = useState<string | null>(null);
   const [indiceAberto, setIndiceAberto] = useState(false);
+  const [abertas, setAbertas] = useState<Set<string>>(() => new Set());
+
+  const alternarCategoria = (id: string) =>
+    setAbertas((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(id)) proximo.delete(id);
+      else proximo.add(id);
+      return proximo;
+    });
+  const garantirAberta = (id: string) =>
+    setAbertas((atual) => (atual.has(id) ? atual : new Set(atual).add(id)));
   const [topoVisivel, setTopoVisivel] = useState(false);
   const [aberto, setAberto] = useState<ItemVitrine | null>(null);
 
@@ -447,7 +458,8 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                     onClick={(e) => {
                       e.preventDefault();
                       try { navigator.vibrate?.(8); } catch { /* sem suporte */ }
-                      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      garantirAberta(c.id);
+                      requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }));
                     }}
                   >
                     {c.nome}
@@ -485,6 +497,8 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
       <main className="menu" aria-live="polite">
         {secoesFiltradas.map((c, i) => {
           const classeGrade = c.layout === "grade" ? "grid--4" : c.layout === "duas_colunas" ? "grid--2" : "grid";
+          // Categoria recolhida: a lista só aparece ao tocar no nome. Na busca, abre tudo que tem resultado.
+          const aberta = !c.dropdown || Boolean(consulta) || abertas.has(c.id);
           return (
             <section
               key={c.id}
@@ -497,13 +511,28 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
             >
               <header className="section__head">
                 <div>
-                  <h2 id={`h-${c.id}`}>{c.nome}</h2>
+                  <h2 id={`h-${c.id}`}>
+                    {c.dropdown ? (
+                      <button
+                        type="button"
+                        className="section__toggle"
+                        aria-expanded={aberta}
+                        aria-controls={`lista-${c.id}`}
+                        onClick={() => alternarCategoria(c.id)}
+                      >
+                        {c.nome}
+                        <span className="section__seta" aria-hidden="true">▾</span>
+                      </button>
+                    ) : (
+                      c.nome
+                    )}
+                  </h2>
                   {c.descricao ? <p>{c.descricao}</p> : null}
                 </div>
                 <span className="section__count">{plural(c.itens.length, "item", "itens")}</span>
               </header>
               {c.layout === "lista_elegante" ? (
-                <ul className="lista-elegante">
+                <ul className="lista-elegante" id={`lista-${c.id}`} hidden={!aberta}>
                   {c.filtrados.map((item) => (
                     <li key={item.chave} className={item.disponivel ? undefined : "is-off"}>
                       <button className="le__btn" type="button" onClick={() => abrir(item.chave)} aria-label={`Ver detalhes de ${item.nome}`}>
@@ -523,7 +552,7 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                   ))}
                 </ul>
               ) : (
-              <div className={classeGrade}>
+              <div className={classeGrade} id={`lista-${c.id}`} hidden={!aberta}>
                 {c.filtrados.map((item) => (
                   <article key={item.chave} className={`card${item.disponivel ? "" : " is-off"}`}>
                     <button className="card__btn" type="button" onClick={() => abrir(item.chave)} aria-label={`Ver detalhes de ${item.nome}`}>
@@ -590,7 +619,8 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                 style={{ ["--c" as string]: corDaSecao(i) }}
                 onClick={() => {
                   indiceRef.current?.close();
-                  document.getElementById(`cat-${c.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  garantirAberta(c.id);
+                  requestAnimationFrame(() => document.getElementById(`cat-${c.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
                 }}
               >
                 <span className="tile__media">
@@ -641,16 +671,8 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
               </div>
               {aberto.adicionais.length > 0 ? (
                 <div className="item-dialog__adicionais">
-                  {aberto.adicionaisDropdown ? (
-                    <details className="ad-dropdown">
-                      <summary className="ad-dropdown__resumo">
-                        <span className="ad-dropdown__titulo">Adicionais</span>
-                        <span className="ad-dropdown__qtd">
-                          {aberto.adicionais.reduce((n, g) => n + g.itens.length, 0)} opções
-                        </span>
-                        <span className="ad-dropdown__seta" aria-hidden="true">▾</span>
-                      </summary>
-                      <table className="ad-tabela">
+                  <p className="item-dialog__adicionais-titulo">Adicionais</p>
+                  <table className="ad-tabela">
                     <tbody>
                       {aberto.adicionais.map((g) => (
                         <Fragment key={g.nome}>
@@ -667,29 +689,6 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                       ))}
                     </tbody>
                   </table>
-                      </details>
-                  ) : (
-                    <>
-                      <p className="item-dialog__adicionais-titulo">Adicionais</p>
-                      <table className="ad-tabela">
-                        <tbody>
-                          {aberto.adicionais.map((g) => (
-                            <Fragment key={g.nome}>
-                              <tr className="ad-tabela__grupo">
-                                <th colSpan={2} scope="colgroup">{g.nome}</th>
-                              </tr>
-                              {g.itens.map((i) => (
-                                <tr key={i.nome}>
-                                  <td>{i.nome}</td>
-                                  <td>+ {dinheiro.format(i.precoCentavos / 100)}</td>
-                                </tr>
-                              ))}
-                            </Fragment>
-                          ))}
-                        </tbody>
-                      </table>
-                    </>
-                  )}
                 </div>
               ) : null}
               {aberto.destaque && aberto.prazo ? <p className="item-dialog__note">{aberto.prazo}</p> : null}

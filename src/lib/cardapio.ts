@@ -59,8 +59,8 @@ export type Categoria = {
   capa_url: string;
   /** lista = 1 coluna com cards; lista_elegante = lista de linhas com separador; duas_colunas = 2 colunas; grade = cards pequenos (2 no celular, 4 no computador). */
   layout: Layout;
-  /** Se verdadeiro, a tabela de adicionais dos itens desta categoria fica recolhida num dropdown no popup. */
-  adicionais_dropdown: boolean;
+  /** Se verdadeiro, a categoria aparece recolhida no cardápio: só o cabeçalho, e os itens abrem ao tocar. */
+  dropdown_no_cardapio: boolean;
 };
 
 export const LAYOUTS = ["lista", "lista_elegante", "duas_colunas", "grade"] as const;
@@ -345,11 +345,11 @@ export async function definirLayoutCategoria(accountId: string, categoriaId: str
   if (error) throw error;
 }
 
-export async function definirAdicionaisDropdown(accountId: string, categoriaId: string, ativo: boolean) {
+export async function definirDropdownCategoria(accountId: string, categoriaId: string, ativo: boolean) {
   const admin = criarClienteAdmin();
   const { error } = await admin
     .from("cardapio_categorias")
-    .update({ adicionais_dropdown: ativo })
+    .update({ dropdown_no_cardapio: ativo })
     .eq("id", categoriaId)
     .eq("account_id", accountId);
   if (error) throw error;

@@ -201,17 +201,12 @@ export const CSS_VITRINE = `
 /* adicionais dentro do popup do item */
 .cdv .item-dialog__adicionais{margin-top:18px;padding-top:16px;border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent)}
 .cdv .item-dialog__adicionais-titulo{margin-bottom:6px;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
-.cdv .ad-dropdown{border:1px solid var(--border);border-radius:16px;background:var(--surface-2);overflow:hidden}
-.cdv .ad-dropdown__resumo{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;list-style:none;user-select:none;transition:background .2s ease}
-.cdv .ad-dropdown__resumo::-webkit-details-marker{display:none}
-.cdv .ad-dropdown__resumo:hover{background:color-mix(in srgb,var(--accent) 6%,var(--surface-2))}
-.cdv .ad-dropdown__resumo:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
-.cdv .ad-dropdown__titulo{font-weight:800;font-size:.95rem;color:var(--text)}
-.cdv .ad-dropdown__qtd{margin-left:auto;font-size:.8rem;font-weight:700;color:var(--muted);white-space:nowrap}
-.cdv .ad-dropdown__seta{display:grid;place-items:center;width:26px;height:26px;border-radius:999px;background:var(--surface);color:var(--accent);font-size:.9rem;box-shadow:var(--shadow);transition:transform .25s ease}
-.cdv .ad-dropdown[open] .ad-dropdown__seta{transform:rotate(180deg)}
-.cdv .ad-dropdown[open] .ad-dropdown__resumo{border-bottom:1px solid var(--border)}
-.cdv .ad-dropdown .ad-tabela{width:calc(100% - 28px);margin:2px 14px 8px}
+/* categoria recolhida: o nome é o botão que abre a lista */
+.cdv .section__toggle{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:10px;cursor:pointer;font:inherit;color:inherit;border-radius:10px}
+.cdv .section__toggle:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:4px}
+.cdv .section__toggle:hover{color:var(--accent)}
+.cdv .section__seta{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:999px;background:var(--surface);color:var(--accent);font-size:.8rem;line-height:1;box-shadow:var(--shadow);transition:transform .25s ease}
+.cdv .section__toggle[aria-expanded="true"] .section__seta{transform:rotate(180deg)}
 .cdv .ad-tabela{width:100%;border-collapse:collapse;font-size:.92rem}
 .cdv .ad-tabela th,.cdv .ad-tabela td{padding:9px 0;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);text-align:left;vertical-align:middle}
 .cdv .ad-tabela td{color:var(--text)}
