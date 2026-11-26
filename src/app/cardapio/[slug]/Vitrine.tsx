@@ -511,7 +511,9 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
               style={{ ["--c" as string]: corDaSecao(i) }}
               aria-labelledby={`h-${c.id}`}
             >
-              {/* Todas as categorias usam o mesmo cartão. As recolhidas têm botão para abrir; as demais ficam sempre abertas. */}
+              {/* Um cartão por categoria: o cabeçalho fica no topo e os itens entram dentro dele, como subcards.
+                  As recolhidas têm botão para abrir; as demais ficam sempre abertas. */}
+              <div className="cat-box" style={{ ["--c" as string]: COR_CARTAO }}>
               <h2 id={`h-${c.id}`} className="cat-card-wrap">
                 {c.dropdown ? (
                   <button
@@ -584,6 +586,7 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                 ))}
               </div>
               )}
+              </div>
             </section>
           );
         })}

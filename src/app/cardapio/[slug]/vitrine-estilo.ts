@@ -214,6 +214,18 @@ export const CSS_VITRINE = `
 .cdv .cat-card__acao{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;border-radius:999px;background:var(--c);color:#fff;font-size:.85rem;font-weight:800;white-space:nowrap;box-shadow:0 6px 16px color-mix(in srgb,var(--c) 35%,transparent)}
 .cdv .cat-card__seta{display:inline-block;font-size:.8rem;line-height:1;transition:transform .25s ease}
 .cdv .cat-card[aria-expanded="true"] .cat-card__seta{transform:rotate(180deg)}
+/* cartão da categoria: cabeçalho no topo e os itens dentro dele, como subcards */
+.cdv .cat-box{background:var(--surface);border:1px solid var(--border);border-left:5px solid var(--c);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+.cdv .cat-box .cat-card{border:0;border-radius:0;box-shadow:none;background:transparent;padding:18px 18px 16px}
+.cdv .cat-box .cat-card:hover{box-shadow:none;background:color-mix(in srgb,var(--c) 5%,transparent)}
+.cdv .cat-box .cat-card:active{transform:none}
+.cdv .cat-box .cat-card:focus-visible{outline-offset:-3px}
+.cdv .cat-box .cat-card--fixo:hover{background:transparent}
+.cdv .cat-box .lista-elegante,.cdv .cat-box .grid,.cdv .cat-box .grid--2,.cdv .cat-box .grid--4{margin:0;padding:6px 12px 14px;background:var(--bg)}
+.cdv .cat-box .lista-elegante li{border:0;background:var(--surface);border-radius:16px;margin-bottom:8px;padding:0 6px;box-shadow:var(--shadow)}
+.cdv .cat-box .lista-elegante li:last-child{border:0;margin-bottom:0}
+.cdv .cat-box .lista-elegante .le__btn{padding:12px 6px}
+.cdv .cat-box .grid,.cdv .cat-box .grid--2,.cdv .cat-box .grid--4{gap:10px}
 /* categoria sempre aberta: mesmo cartão, sem botão nem efeito de toque */
 .cdv .cat-card--fixo{cursor:default;display:flex}
 .cdv .cat-card--fixo:hover{box-shadow:var(--shadow)}
