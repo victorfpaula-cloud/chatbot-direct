@@ -36,6 +36,8 @@ export type CategoriaVitrine = {
   layout: "lista" | "lista_elegante" | "duas_colunas" | "grade";
   /** Recolhida no cardápio: só o cabeçalho aparece; os itens abrem ao tocar. */
   dropdown: boolean;
+  /** Emoji do ícone escolhido para a categoria (vazio = sem ícone). */
+  icone: string;
   itens: ItemVitrine[];
 };
 
@@ -519,7 +521,10 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                     onClick={() => alternarCategoria(c.id)}
                   >
                     <span className="cat-card__txt">
-                      <span className="cat-card__nome">{c.nome}</span>
+                      <span className="cat-card__nome">
+                        {c.icone ? <span className="cat-card__icone" aria-hidden="true">{c.icone}</span> : null}
+                        {c.nome}
+                      </span>
                       {c.descricao ? <span className="cat-card__desc">{c.descricao}</span> : null}
                       <span className="cat-card__qtd">{plural(c.itens.length, "item", "itens")}</span>
                     </span>
@@ -532,7 +537,10 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
               ) : (
                 <header className="section__head">
                   <div>
-                    <h2 id={`h-${c.id}`}>{c.nome}</h2>
+                    <h2 id={`h-${c.id}`}>
+                      {c.icone ? <span className="cat-card__icone" aria-hidden="true">{c.icone}</span> : null}
+                      {c.nome}
+                    </h2>
                     {c.descricao ? <p>{c.descricao}</p> : null}
                   </div>
                   <span className="section__count">{plural(c.itens.length, "item", "itens")}</span>

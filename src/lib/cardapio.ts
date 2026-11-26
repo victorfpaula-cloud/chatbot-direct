@@ -1,5 +1,6 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { iconeValido } from "@/lib/icones-categoria";
 
 // Módulo do cardápio digital. Tudo fica nas tabelas cardapio_* (ver supabase/cardapio.sql) e
 // só é lido/escrito pelo servidor. Nada aqui toca em chatbot_* ou nas outras frentes.
@@ -61,6 +62,8 @@ export type Categoria = {
   layout: Layout;
   /** Se verdadeiro, a categoria aparece recolhida no cardápio: só o cabeçalho, e os itens abrem ao tocar. */
   dropdown_no_cardapio: boolean;
+  /** Chave do ícone da galeria (src/lib/icones-categoria.ts). Vazio = sem ícone. */
+  icone: string;
 };
 
 export const LAYOUTS = ["lista", "lista_elegante", "duas_colunas", "grade"] as const;
@@ -330,8 +333,19 @@ export async function criarCategoria(accountId: string, f: FormData) {
     nome,
     descricao: limpa(f.get("descricao"), 300),
     layout: layoutValido(f.get("layout")?.toString()),
+    icone: iconeValido(f.get("icone")?.toString()),
     posicao: await proximaPosicao("cardapio_categorias", { account_id: accountId }),
   });
+  if (error) throw error;
+}
+
+export async function definirIconeCategoria(accountId: string, categoriaId: string, icone: string) {
+  const admin = criarClienteAdmin();
+  const { error } = await admin
+    .from("cardapio_categorias")
+    .update({ icone: iconeValido(icone) })
+    .eq("id", categoriaId)
+    .eq("account_id", accountId);
   if (error) throw error;
 }
 
