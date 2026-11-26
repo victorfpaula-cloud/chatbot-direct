@@ -4,7 +4,7 @@
 // Os dados chegam prontos do servidor (page.tsx). Aqui só há interação: abertura,
 // carrosséis, barra com categorias, busca, popup do item e botão de voltar ao topo.
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { CSS_VITRINE } from "./vitrine-estilo";
 
 export type TagVitrine = { chave: string; rotulo: string };
@@ -624,24 +624,6 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
               <h2 className="item-dialog__title" id="item-dialog-title">{aberto.nome}</h2>
               {aberto.descricao ? <p className="item-dialog__desc">{aberto.descricao}</p> : null}
               <Tags tags={aberto.tags} />
-              {aberto.adicionais.length > 0 ? (
-                <div className="item-dialog__adicionais">
-                  <p className="item-dialog__adicionais-titulo">Adicionais</p>
-                  {aberto.adicionais.map((g) => (
-                    <div key={g.nome} className="item-dialog__grupo">
-                      <p className="item-dialog__grupo-nome">{g.nome}</p>
-                      <ul>
-                        {g.itens.map((i) => (
-                          <li key={i.nome}>
-                            <span>{i.nome}</span>
-                            <span>+ {dinheiro.format(i.precoCentavos / 100)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
               <div className="item-dialog__foot">
                 <span className="item-dialog__price">
                   {aberto.promoCentavos != null ? (
@@ -655,6 +637,28 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                 </span>
                 {aberto.disponivel ? null : <span className="badge-off">Indisponível no momento</span>}
               </div>
+              {aberto.adicionais.length > 0 ? (
+                <div className="item-dialog__adicionais">
+                  <p className="item-dialog__adicionais-titulo">Adicionais</p>
+                  <table className="ad-tabela">
+                    <tbody>
+                      {aberto.adicionais.map((g) => (
+                        <Fragment key={g.nome}>
+                          <tr className="ad-tabela__grupo">
+                            <th colSpan={2} scope="colgroup">{g.nome}</th>
+                          </tr>
+                          {g.itens.map((i) => (
+                            <tr key={i.nome}>
+                              <td>{i.nome}</td>
+                              <td>+ {dinheiro.format(i.precoCentavos / 100)}</td>
+                            </tr>
+                          ))}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
               {aberto.destaque && aberto.prazo ? <p className="item-dialog__note">{aberto.prazo}</p> : null}
             </div>
           </>

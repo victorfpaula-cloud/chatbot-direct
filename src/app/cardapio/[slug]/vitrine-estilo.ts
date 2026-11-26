@@ -199,8 +199,14 @@ export const CSS_VITRINE = `
 @keyframes cdv-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
 /* adicionais dentro do popup do item */
-.cdv .item-dialog__adicionais{display:flex;flex-direction:column;gap:12px;margin-top:6px;padding-top:14px;border-top:1px solid var(--border)}
-.cdv .item-dialog__adicionais-titulo{font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.cdv .item-dialog__adicionais{margin-top:18px;padding-top:16px;border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent)}
+.cdv .item-dialog__adicionais-titulo{margin-bottom:6px;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.cdv .ad-tabela{width:100%;border-collapse:collapse;font-size:.92rem}
+.cdv .ad-tabela th,.cdv .ad-tabela td{padding:9px 0;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);text-align:left;vertical-align:middle}
+.cdv .ad-tabela td{color:var(--text)}
+.cdv .ad-tabela td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--muted)}
+.cdv .ad-tabela__grupo th{padding-top:14px;padding-bottom:4px;border-bottom:0;font-size:.82rem;font-weight:800;color:var(--text)}
+.cdv .ad-tabela tr:last-child td{border-bottom:0}
 .cdv .item-dialog__grupo-nome{font-weight:700;font-size:.95rem}
 .cdv .item-dialog__grupo ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .cdv .item-dialog__grupo li{display:flex;justify-content:space-between;gap:12px;font-size:.9rem;color:var(--muted)}
