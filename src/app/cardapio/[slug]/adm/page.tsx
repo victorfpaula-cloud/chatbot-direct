@@ -78,6 +78,9 @@ export default async function PainelDoDonoPage({
         categorias={cardapio.categorias}
         produtos={cardapio.produtos}
         destaques={cardapio.destaques}
+        grupos={cardapio.grupos}
+        adicionais={cardapio.adicionais}
+        vinculos={cardapio.vinculos}
       />
     </main>
   );

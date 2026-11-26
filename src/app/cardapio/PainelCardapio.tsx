@@ -1,4 +1,19 @@
-import { FUSO_CARDAPIO, LAYOUTS, PRAZOS, ROTULOS_TAGS, ROTULO_LAYOUT, TAGS_CARDAPIO, type Categoria, type Conta, type Destaque, type Produto } from "@/lib/cardapio";
+import type { ReactNode } from "react";
+import {
+  FUSO_CARDAPIO,
+  LAYOUTS,
+  PRAZOS,
+  ROTULOS_TAGS,
+  ROTULO_LAYOUT,
+  TAGS_CARDAPIO,
+  type Adicional,
+  type Categoria,
+  type Conta,
+  type Destaque,
+  type GrupoAdicional,
+  type Produto,
+  type VinculoAdicional,
+} from "@/lib/cardapio";
 import {
   CLASSE_AJUDA,
   CLASSE_BOTAO_SALVAR,
@@ -31,6 +46,9 @@ export function PainelCardapio({
   categorias,
   produtos,
   destaques,
+  grupos,
+  adicionais,
+  vinculos,
 }: {
   /** Para onde os formulários enviam (rota do painel de contas ou rota do dono). */
   actionUrl: string;
@@ -42,6 +60,9 @@ export function PainelCardapio({
   categorias: Categoria[];
   produtos: Produto[];
   destaques: Destaque[];
+  grupos: GrupoAdicional[];
+  adicionais: Adicional[];
+  vinculos: VinculoAdicional[];
 }) {
   const produtosDaCategoria = (categoriaId: string) => produtos.filter((p) => p.categoria_id === categoriaId);
   const nomeDoProduto = (produtoId: string) => produtos.find((p) => p.id === produtoId)?.nome ?? "Item removido";
@@ -274,6 +295,181 @@ export function PainelCardapio({
           ))}
         </div>
       </section>
+
+      {/* Adicionais: um dropdown por grupo, com os itens e as configurações dentro */}
+      <section className={CLASSE_SECAO}>
+        <h3 className={CLASSE_TITULO_SECAO}>Adicionais</h3>
+        <p className={CLASSE_AJUDA}>
+          Crie um grupo por tipo de adicional (ex.: Queijos extras, Molhos). Cada grupo vale para uma categoria inteira ou só para os produtos que você escolher.
+        </p>
+
+        <details className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4" open={grupos.length === 0}>
+          <summary className="cursor-pointer list-none text-sm font-semibold text-neutral-100">+ Novo grupo de adicionais</summary>
+          <FormGrupoAdicional
+            actionUrl={actionUrl}
+            ocultos={ocultos}
+            categorias={categorias}
+            produtos={produtos}
+            produtosMarcados={[]}
+          />
+        </details>
+
+        <div className="mt-3 flex flex-col gap-3">
+          {grupos.map((g) => {
+            const marcados = vinculos.filter((v) => v.grupo_id === g.id).map((v) => v.produto_id);
+            const itensDoGrupo = adicionais.filter((a) => a.grupo_id === g.id);
+            const alvo =
+              g.escopo === "categoria"
+                ? `Categoria inteira: ${categorias.find((c) => c.id === g.categoria_id)?.nome ?? "—"}`
+                : `${marcados.length} ${marcados.length === 1 ? "produto" : "produtos"} específicos`;
+            return (
+              <details key={g.id} className="group rounded-xl border border-white/10 bg-black/20 p-4">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-neutral-100">
+                    {g.nome}
+                    <span className="ml-2 text-xs font-normal text-neutral-500">
+                      {itensDoGrupo.length} {itensDoGrupo.length === 1 ? "item" : "itens"} · {alvo}
+                    </span>
+                  </span>
+                  <span className="text-xs text-neutral-500 group-open:hidden">Abrir ▾</span>
+                  <span className="hidden text-xs text-neutral-500 group-open:inline">Fechar ▴</span>
+                </summary>
+
+                <div className="mt-4 flex flex-col gap-4">
+                  {itensDoGrupo.length === 0 ? <p className="text-sm text-neutral-500">Nenhum item ainda. Adicione abaixo.</p> : null}
+                  <ul className="flex flex-col gap-2">
+                    {itensDoGrupo.map((a) => (
+                      <li key={a.id} className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+                        <div className="min-w-0 flex-1">
+                          <p className={`truncate text-sm ${a.disponivel ? "text-neutral-100" : "text-neutral-500 line-through"}`}>{a.nome}</p>
+                          <p className="text-xs text-neutral-500">+ {reais(a.preco_centavos)}</p>
+                        </div>
+                        <form action={actionUrl} method="POST">
+                          {ocultos}
+                          <input type="hidden" name="acao" value="adicional_item_disponivel" />
+                          <input type="hidden" name="adicional_id" value={a.id} />
+                          <input type="hidden" name="disponivel" value={a.disponivel ? "0" : "1"} />
+                          <button type="submit" className={BOTAO_PEQUENO}>{a.disponivel ? "Pausar" : "Ligar"}</button>
+                        </form>
+                        <form action={actionUrl} method="POST">
+                          {ocultos}
+                          <input type="hidden" name="acao" value="adicional_item_excluir" />
+                          <input type="hidden" name="adicional_id" value={a.id} />
+                          <button type="submit" className={BOTAO_PERIGO}>Excluir</button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <form action={actionUrl} method="POST" className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+                    {ocultos}
+                    <input type="hidden" name="acao" value="adicional_item_criar" />
+                    <input type="hidden" name="grupo_id" value={g.id} />
+                    <label className={CLASSE_RÓTULO}>
+                      Nome do item
+                      <input name="nome" required maxLength={120} placeholder="Ex.: Cheddar" className={CLASSE_CAMPO} />
+                    </label>
+                    <label className={CLASSE_RÓTULO}>
+                      Preço
+                      <input name="preco" required inputMode="decimal" placeholder="0,00" className={CLASSE_CAMPO} />
+                    </label>
+                    <button type="submit" className={CLASSE_BOTAO_SALVAR}>Adicionar item</button>
+                  </form>
+
+                  <details className="rounded-lg border border-white/10 p-3">
+                    <summary className="cursor-pointer list-none text-sm text-neutral-300">Configurações do grupo</summary>
+                    <FormGrupoAdicional
+                      actionUrl={actionUrl}
+                      ocultos={ocultos}
+                      categorias={categorias}
+                      produtos={produtos}
+                      grupo={g}
+                      produtosMarcados={marcados}
+                    />
+                    <form action={actionUrl} method="POST" className="mt-3">
+                      {ocultos}
+                      <input type="hidden" name="acao" value="adicional_grupo_excluir" />
+                      <input type="hidden" name="grupo_id" value={g.id} />
+                      <button type="submit" className={BOTAO_PERIGO}>Excluir grupo inteiro</button>
+                    </form>
+                  </details>
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      </section>
     </div>
+  );
+}
+
+/** Formulário de um grupo de adicionais: nome, onde vale (categoria inteira ou produtos marcados). */
+function FormGrupoAdicional({
+  actionUrl,
+  ocultos,
+  categorias,
+  produtos,
+  grupo,
+  produtosMarcados,
+}: {
+  actionUrl: string;
+  ocultos: ReactNode;
+  categorias: Categoria[];
+  produtos: Produto[];
+  grupo?: GrupoAdicional;
+  produtosMarcados: string[];
+}) {
+  return (
+    <form action={actionUrl} method="POST" className="mt-4 flex flex-col gap-4">
+      {ocultos}
+      <input type="hidden" name="acao" value="adicional_grupo_salvar" />
+      {grupo ? <input type="hidden" name="grupo_id" value={grupo.id} /> : null}
+
+      <label className={CLASSE_RÓTULO}>
+        Nome do grupo
+        <input name="nome" required maxLength={80} defaultValue={grupo?.nome} placeholder="Ex.: Queijos extras" className={CLASSE_CAMPO} />
+      </label>
+
+      <fieldset className="flex flex-col gap-3">
+        <legend className={CLASSE_RÓTULO}>Onde vale</legend>
+
+        <label className="flex items-center gap-2 text-sm text-neutral-200">
+          <input type="radio" name="escopo" value="categoria" defaultChecked={!grupo || grupo.escopo === "categoria"} className="accent-indigo-500" />
+          Uma categoria inteira
+        </label>
+        <select name="categoria_id" defaultValue={grupo?.categoria_id ?? categorias[0]?.id} className={CLASSE_CAMPO}>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>{c.nome}</option>
+          ))}
+        </select>
+
+        <label className="flex items-center gap-2 text-sm text-neutral-200">
+          <input type="radio" name="escopo" value="produtos" defaultChecked={grupo?.escopo === "produtos"} className="accent-indigo-500" />
+          Só produtos específicos (marque na lista)
+        </label>
+        <div className="flex flex-col gap-3 rounded-lg border border-white/10 bg-black/20 p-3">
+          {produtos.length === 0 ? <p className="text-xs text-neutral-500">Cadastre um item para poder escolher aqui.</p> : null}
+          {categorias.map((c) => {
+            const dos = produtos.filter((p) => p.categoria_id === c.id);
+            if (dos.length === 0) return null;
+            return (
+              <div key={c.id} className="flex flex-col gap-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{c.nome}</p>
+                <div className="flex flex-wrap gap-2">
+                  {dos.map((p) => (
+                    <label key={p.id} className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1 text-xs text-neutral-300">
+                      <input type="checkbox" name="produto_ids" value={p.id} defaultChecked={produtosMarcados.includes(p.id)} className="accent-indigo-500" />
+                      {p.nome}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <button type="submit" className={CLASSE_BOTAO_SALVAR}>{grupo ? "Salvar configurações" : "Criar grupo"}</button>
+    </form>
   );
 }

@@ -1,5 +1,15 @@
 import { notFound } from "next/navigation";
-import { FUSO_CARDAPIO, ROTULOS_TAGS, carregarCardapioPublico, type Destaque, type Produto } from "@/lib/cardapio";
+import {
+  FUSO_CARDAPIO,
+  ROTULOS_TAGS,
+  adicionaisDoProduto,
+  carregarCardapioPublico,
+  type Adicional,
+  type Destaque,
+  type GrupoAdicional,
+  type Produto,
+  type VinculoAdicional,
+} from "@/lib/cardapio";
 import { Vitrine, type CategoriaVitrine, type ItemVitrine, type VitrineDados } from "./Vitrine";
 
 // Cardápio público do restaurante. Rota pública (fora do login), só lê as tabelas cardapio_*.
@@ -20,7 +30,9 @@ function prazoDoDestaque(ate: string) {
   return `Até ${data}, meia-noite`;
 }
 
-function paraItem(p: Produto, categoria: string, destaque: Destaque | null): ItemVitrine {
+type Adicionais = { grupos: GrupoAdicional[]; itens: Adicional[]; vinculos: VinculoAdicional[] };
+
+function paraItem(p: Produto, categoria: string, destaque: Destaque | null, adc: Adicionais): ItemVitrine {
   return {
     chave: destaque ? `h${destaque.id}` : `p${p.id}`,
     nome: p.nome,
@@ -36,6 +48,10 @@ function paraItem(p: Produto, categoria: string, destaque: Destaque | null): Ite
     categoria,
     prazo: destaque ? prazoDoDestaque(destaque.ate) : "",
     destaque: Boolean(destaque),
+    adicionais: adicionaisDoProduto(p, adc.grupos, adc.itens, adc.vinculos).map((x) => ({
+      nome: x.grupo.nome,
+      itens: x.itens.map((i) => ({ nome: i.nome, precoCentavos: i.preco_centavos })),
+    })),
   };
 }
 
@@ -43,7 +59,8 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
   const dados = await carregarCardapioPublico(params.slug);
   if (!dados) notFound();
 
-  const { conta, categorias, produtos, destaques, corDestaque, nomeConta } = dados;
+  const { conta, categorias, produtos, destaques, corDestaque, nomeConta, grupos, adicionais, vinculos } = dados;
+  const adc: Adicionais = { grupos, itens: adicionais, vinculos };
   const nomeDaCategoria = new Map(categorias.map((c) => [c.id, c.nome]));
   const produtoPorId = new Map(produtos.map((p) => [p.id, p]));
 
@@ -51,7 +68,7 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
     produtos
       .filter((p) => p.categoria_id === id)
       .sort((a, b) => a.posicao - b.posicao)
-      .map((p) => paraItem(p, nomeDaCategoria.get(id) ?? "", null));
+      .map((p) => paraItem(p, nomeDaCategoria.get(id) ?? "", null, adc));
 
   const categoriasVitrine: CategoriaVitrine[] = [...categorias]
     .sort((a, b) => a.posicao - b.posicao)
@@ -66,7 +83,7 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
   const destaqueItem = (d: Destaque): ItemVitrine | null => {
     const p = produtoPorId.get(d.produto_id);
     if (!p) return null;
-    return paraItem(p, nomeDaCategoria.get(p.categoria_id) ?? "", d);
+    return paraItem(p, nomeDaCategoria.get(p.categoria_id) ?? "", d, adc);
   };
   const promocoes = destaques.filter((d) => d.tipo === "promo").map(destaqueItem).filter((i): i is ItemVitrine => i !== null);
   const escolhidos = destaques.filter((d) => d.tipo === "destaque").map(destaqueItem).filter((i): i is ItemVitrine => i !== null);

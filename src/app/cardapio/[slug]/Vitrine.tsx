@@ -21,6 +21,12 @@ export type ItemVitrine = {
   categoria: string;
   prazo: string; // só para promoções e destaques; vazio nos demais
   destaque: boolean;
+  adicionais: GrupoVitrine[];
+};
+
+export type GrupoVitrine = {
+  nome: string;
+  itens: { nome: string; precoCentavos: number }[];
 };
 
 export type CategoriaVitrine = {
@@ -546,6 +552,24 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
               <h2 className="item-dialog__title" id="item-dialog-title">{aberto.nome}</h2>
               {aberto.descricao ? <p className="item-dialog__desc">{aberto.descricao}</p> : null}
               <Tags tags={aberto.tags} />
+              {aberto.adicionais.length > 0 ? (
+                <div className="item-dialog__adicionais">
+                  <p className="item-dialog__adicionais-titulo">Adicionais</p>
+                  {aberto.adicionais.map((g) => (
+                    <div key={g.nome} className="item-dialog__grupo">
+                      <p className="item-dialog__grupo-nome">{g.nome}</p>
+                      <ul>
+                        {g.itens.map((i) => (
+                          <li key={i.nome}>
+                            <span>{i.nome}</span>
+                            <span>+ {dinheiro.format(i.precoCentavos / 100)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <div className="item-dialog__foot">
                 <span className="item-dialog__price">
                   {aberto.promoCentavos != null ? (

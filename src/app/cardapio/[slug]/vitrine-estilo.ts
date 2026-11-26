@@ -183,6 +183,14 @@ export const CSS_VITRINE = `
 .cdv.is-ready .highlights{animation:cdv-up .6s cubic-bezier(.2,.8,.2,1) .2s both}
 @keyframes cdv-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
+/* adicionais dentro do popup do item */
+.cdv .item-dialog__adicionais{display:flex;flex-direction:column;gap:12px;margin-top:6px;padding-top:14px;border-top:1px solid var(--border)}
+.cdv .item-dialog__adicionais-titulo{font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.cdv .item-dialog__grupo-nome{font-weight:700;font-size:.95rem}
+.cdv .item-dialog__grupo ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cdv .item-dialog__grupo li{display:flex;justify-content:space-between;gap:12px;font-size:.9rem;color:var(--muted)}
+.cdv .item-dialog__grupo li span:last-child{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+
 /* lista elegante: linhas com separador fino, preço alinhado à direita */
 .cdv .lista-elegante{list-style:none;margin:6px 0 0;padding:0}
 .cdv .lista-elegante li{border-bottom:1px solid var(--border)}

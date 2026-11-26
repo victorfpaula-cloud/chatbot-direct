@@ -12,6 +12,11 @@ import {
   definirSenhaDono,
   removerDestaque,
   salvarConta,
+  salvarGrupoAdicional,
+  excluirGrupoAdicional,
+  criarAdicional,
+  definirDisponibilidadeAdicional,
+  excluirAdicional,
 } from "@/lib/cardapio";
 
 // Ações do módulo Cardápio digital. Uma rota só, com a ação dentro do formulário, para o módulo
@@ -58,6 +63,21 @@ export async function POST(request: NextRequest) {
         break;
       case "destaque_remover":
         await removerDestaque(accountId, f.get("destaque_id")?.toString() ?? "");
+        break;
+      case "adicional_grupo_salvar":
+        await salvarGrupoAdicional(accountId, f);
+        break;
+      case "adicional_grupo_excluir":
+        await excluirGrupoAdicional(accountId, f.get("grupo_id")?.toString() ?? "");
+        break;
+      case "adicional_item_criar":
+        await criarAdicional(accountId, f);
+        break;
+      case "adicional_item_disponivel":
+        await definirDisponibilidadeAdicional(accountId, f.get("adicional_id")?.toString() ?? "", f.get("disponivel")?.toString() === "1");
+        break;
+      case "adicional_item_excluir":
+        await excluirAdicional(accountId, f.get("adicional_id")?.toString() ?? "");
         break;
       default:
         throw new ErroCardapio("Ação desconhecida.");

@@ -30,7 +30,7 @@ export default async function CardapioContaPage({
     carregarCardapioDaConta(params.id),
     admin.from("chatbot_accounts").select("slug").eq("id", params.id).maybeSingle(),
   ]);
-  const { conta, categorias, produtos, destaques } = cardapio;
+  const { conta, categorias, produtos, destaques, grupos, adicionais, vinculos } = cardapio;
   const slug = (contaChatbot?.slug as string | null) ?? null;
   const habilitado = Boolean(conta?.habilitado);
   const voltar = `/contas/${params.id}/cardapio`;
@@ -129,6 +129,9 @@ export default async function CardapioContaPage({
         categorias={categorias}
         produtos={produtos}
         destaques={destaques}
+        grupos={grupos}
+        adicionais={adicionais}
+        vinculos={vinculos}
       />
     </div>
   );

@@ -90,6 +90,28 @@ export type Destaque = {
   preco_promocional_centavos: number | null;
 };
 
+/** Adicional (ex.: "Queijos extras"): um grupo com os itens e a regra de onde vale. */
+export type Escopo = "categoria" | "produtos";
+export type GrupoAdicional = {
+  id: string;
+  account_id: string;
+  nome: string;
+  /** categoria = vale para todos os produtos de uma categoria; produtos = só nos produtos escolhidos. */
+  escopo: Escopo;
+  categoria_id: string | null;
+  posicao: number;
+};
+export type Adicional = {
+  id: string;
+  account_id: string;
+  grupo_id: string;
+  nome: string;
+  preco_centavos: number;
+  disponivel: boolean;
+  posicao: number;
+};
+export type VinculoAdicional = { grupo_id: string; produto_id: string };
+
 export class ErroCardapio extends Error {}
 
 const HORA = 60 * 60 * 1000;
@@ -166,7 +188,7 @@ export async function carregarConta(accountId: string): Promise<Conta | null> {
 /** Tudo que o painel precisa, numa leitura só. */
 export async function carregarCardapioDaConta(accountId: string) {
   const admin = criarClienteAdmin();
-  const [conta, categorias, produtos, destaques] = await Promise.all([
+  const [conta, categorias, produtos, destaques, grupos, adicionais, vinculos] = await Promise.all([
     carregarConta(accountId),
     admin.from("cardapio_categorias").select("*").eq("account_id", accountId).order("posicao").order("criado_em"),
     admin.from("cardapio_produtos").select("*").eq("account_id", accountId).order("posicao").order("criado_em"),
@@ -176,14 +198,43 @@ export async function carregarCardapioDaConta(accountId: string) {
       .eq("account_id", accountId)
       .gt("ate", new Date().toISOString())
       .order("criado_em", { ascending: false }),
+    admin.from("cardapio_adicional_grupos").select("*").eq("account_id", accountId).order("posicao").order("criado_em"),
+    admin.from("cardapio_adicionais").select("*").eq("account_id", accountId).order("posicao").order("criado_em"),
+    admin.from("cardapio_adicional_produtos").select("*").eq("account_id", accountId),
   ]);
-  for (const r of [categorias, produtos, destaques]) if (r.error) throw r.error;
+  for (const r of [categorias, produtos, destaques, grupos, adicionais, vinculos]) if (r.error) throw r.error;
   return {
     conta,
     categorias: (categorias.data ?? []) as Categoria[],
     produtos: (produtos.data ?? []) as Produto[],
     destaques: (destaques.data ?? []) as Destaque[],
+    grupos: (grupos.data ?? []) as GrupoAdicional[],
+    adicionais: (adicionais.data ?? []) as Adicional[],
+    vinculos: (vinculos.data ?? []) as VinculoAdicional[],
   };
+}
+
+/**
+ * Adicionais que valem para um produto: os grupos da categoria dele (escopo "categoria") e os
+ * grupos em que ele foi escolhido (escopo "produtos"). Só mostra itens disponíveis.
+ */
+export function adicionaisDoProduto(
+  produto: Produto,
+  grupos: GrupoAdicional[],
+  itens: Adicional[],
+  vinculos: VinculoAdicional[],
+): { grupo: GrupoAdicional; itens: Adicional[] }[] {
+  return grupos
+    .filter((g) =>
+      g.escopo === "categoria"
+        ? g.categoria_id === produto.categoria_id
+        : vinculos.some((v) => v.grupo_id === g.id && v.produto_id === produto.id)
+    )
+    .map((g) => ({
+      grupo: g,
+      itens: itens.filter((i) => i.grupo_id === g.id && i.disponivel).sort((a, b) => a.posicao - b.posicao),
+    }))
+    .filter((x) => x.itens.length > 0);
 }
 
 /** Cardápio público por slug da conta. Só devolve se o cardápio estiver liberado. */
@@ -214,6 +265,9 @@ export async function carregarCardapioPublico(slug: string) {
     categorias: cardapio.categorias.filter((c) => c.ativa),
     produtos: cardapio.produtos.filter((p) => categoriasAtivas.has(p.categoria_id)),
     destaques: destaquesVisiveis,
+    grupos: cardapio.grupos,
+    adicionais: cardapio.adicionais,
+    vinculos: cardapio.vinculos,
     slug,
     nomeConta: conta.page_name as string,
     corDestaque: corValida(cardapio.conta.cor_destaque),
@@ -254,7 +308,10 @@ export async function definirHabilitado(accountId: string, habilitado: boolean) 
   if (error) throw error;
 }
 
-async function proximaPosicao(tabela: "cardapio_categorias" | "cardapio_produtos", filtro: Record<string, string>) {
+async function proximaPosicao(
+  tabela: "cardapio_categorias" | "cardapio_produtos" | "cardapio_adicional_grupos" | "cardapio_adicionais",
+  filtro: Record<string, string>,
+) {
   const admin = criarClienteAdmin();
   let q = admin.from(tabela).select("posicao").order("posicao", { ascending: false }).limit(1);
   for (const [k, v] of Object.entries(filtro)) q = q.eq(k, v);
@@ -374,6 +431,123 @@ export async function adicionarDestaque(accountId: string, f: FormData) {
 export async function removerDestaque(accountId: string, destaqueId: string) {
   const admin = criarClienteAdmin();
   const { error } = await admin.from("cardapio_destaques").delete().eq("id", destaqueId).eq("account_id", accountId);
+  if (error) throw error;
+}
+
+/* ---------- adicionais ---------- */
+
+/** Cria ou atualiza um grupo de adicionais. Escopo "categoria" usa uma categoria; "produtos" usa os produtos marcados. */
+export async function salvarGrupoAdicional(accountId: string, f: FormData) {
+  const nome = limpa(f.get("nome"), 80);
+  if (!nome) throw new ErroCardapio("Informe o nome do adicional (ex.: Queijos extras).");
+  const escopo = limpa(f.get("escopo"), 20);
+  if (escopo !== "categoria" && escopo !== "produtos") {
+    throw new ErroCardapio("Escolha se vale para uma categoria inteira ou para produtos específicos.");
+  }
+  const admin = criarClienteAdmin();
+
+  let categoriaId: string | null = null;
+  let produtoIds: string[] = [];
+  if (escopo === "categoria") {
+    categoriaId = limpa(f.get("categoria_id"), 64);
+    const { data } = await admin
+      .from("cardapio_categorias")
+      .select("id")
+      .eq("id", categoriaId)
+      .eq("account_id", accountId)
+      .maybeSingle();
+    if (!data) throw new ErroCardapio("Escolha uma categoria válida.");
+  } else {
+    const pedidos = f.getAll("produto_ids").map((v) => String(v)).filter(Boolean);
+    const { data, error } = await admin
+      .from("cardapio_produtos")
+      .select("id")
+      .eq("account_id", accountId)
+      .in("id", pedidos.length ? pedidos : ["00000000-0000-0000-0000-000000000000"]);
+    if (error) throw error;
+    produtoIds = (data ?? []).map((p) => p.id as string);
+    if (produtoIds.length === 0) throw new ErroCardapio("Marque pelo menos um produto da lista.");
+  }
+
+  const grupoId = limpa(f.get("grupo_id"), 64);
+  const campos = { nome, escopo, categoria_id: categoriaId };
+  let id = grupoId;
+  if (grupoId) {
+    const { data: existente } = await admin
+      .from("cardapio_adicional_grupos")
+      .select("id")
+      .eq("id", grupoId)
+      .eq("account_id", accountId)
+      .maybeSingle();
+    if (!existente) throw new ErroCardapio("Adicional não encontrado.");
+    const { error } = await admin.from("cardapio_adicional_grupos").update(campos).eq("id", grupoId).eq("account_id", accountId);
+    if (error) throw error;
+  } else {
+    const { data, error } = await admin
+      .from("cardapio_adicional_grupos")
+      .insert({
+        account_id: accountId,
+        ...campos,
+        posicao: await proximaPosicao("cardapio_adicional_grupos", { account_id: accountId }),
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    id = data.id as string;
+  }
+
+  // Vínculos com produtos: refaz a lista inteira a cada salvamento.
+  const { error: erroApagar } = await admin.from("cardapio_adicional_produtos").delete().eq("grupo_id", id).eq("account_id", accountId);
+  if (erroApagar) throw erroApagar;
+  if (produtoIds.length) {
+    const { error } = await admin
+      .from("cardapio_adicional_produtos")
+      .insert(produtoIds.map((produto_id) => ({ grupo_id: id, produto_id, account_id: accountId })));
+    if (error) throw error;
+  }
+}
+
+export async function excluirGrupoAdicional(accountId: string, grupoId: string) {
+  const admin = criarClienteAdmin();
+  const { error } = await admin.from("cardapio_adicional_grupos").delete().eq("id", grupoId).eq("account_id", accountId);
+  if (error) throw error;
+}
+
+export async function criarAdicional(accountId: string, f: FormData) {
+  const nome = limpa(f.get("nome"), 120);
+  if (!nome) throw new ErroCardapio("Informe o nome do adicional.");
+  const grupoId = limpa(f.get("grupo_id"), 64);
+  const admin = criarClienteAdmin();
+  const { data: grupo } = await admin
+    .from("cardapio_adicional_grupos")
+    .select("id")
+    .eq("id", grupoId)
+    .eq("account_id", accountId)
+    .maybeSingle();
+  if (!grupo) throw new ErroCardapio("Adicional não encontrado.");
+  const { error } = await admin.from("cardapio_adicionais").insert({
+    account_id: accountId,
+    grupo_id: grupoId,
+    nome,
+    preco_centavos: precoParaCentavos(limpa(f.get("preco"), 20)),
+    posicao: await proximaPosicao("cardapio_adicionais", { grupo_id: grupoId }),
+  });
+  if (error) throw error;
+}
+
+export async function definirDisponibilidadeAdicional(accountId: string, adicionalId: string, disponivel: boolean) {
+  const admin = criarClienteAdmin();
+  const { error } = await admin
+    .from("cardapio_adicionais")
+    .update({ disponivel })
+    .eq("id", adicionalId)
+    .eq("account_id", accountId);
+  if (error) throw error;
+}
+
+export async function excluirAdicional(accountId: string, adicionalId: string) {
+  const admin = criarClienteAdmin();
+  const { error } = await admin.from("cardapio_adicionais").delete().eq("id", adicionalId).eq("account_id", accountId);
   if (error) throw error;
 }
 

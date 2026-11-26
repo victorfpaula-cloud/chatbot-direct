@@ -53,3 +53,37 @@ alter table public.cardapio_contas enable row level security;
 alter table public.cardapio_categorias enable row level security;
 alter table public.cardapio_produtos enable row level security;
 alter table public.cardapio_destaques enable row level security;
+
+-- Adicionais (grupos com itens, aplicados por categoria inteira ou por produtos escolhidos)
+create table if not exists public.cardapio_adicional_grupos (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references public.chatbot_accounts(id) on delete cascade,
+  nome text not null,
+  escopo text not null,
+  categoria_id uuid references public.cardapio_categorias(id) on delete cascade,
+  posicao integer not null default 0,
+  criado_em timestamptz not null default now(),
+  constraint cardapio_adicional_grupos_escopo_valido check (escopo in ('categoria', 'produtos')),
+  constraint cardapio_adicional_grupos_escopo_categoria check (
+    (escopo = 'categoria' and categoria_id is not null) or (escopo = 'produtos' and categoria_id is null)
+  )
+);
+create table if not exists public.cardapio_adicionais (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references public.chatbot_accounts(id) on delete cascade,
+  grupo_id uuid not null references public.cardapio_adicional_grupos(id) on delete cascade,
+  nome text not null,
+  preco_centavos integer not null check (preco_centavos >= 0),
+  disponivel boolean not null default true,
+  posicao integer not null default 0,
+  criado_em timestamptz not null default now()
+);
+create table if not exists public.cardapio_adicional_produtos (
+  grupo_id uuid not null references public.cardapio_adicional_grupos(id) on delete cascade,
+  produto_id uuid not null references public.cardapio_produtos(id) on delete cascade,
+  account_id uuid not null references public.chatbot_accounts(id) on delete cascade,
+  primary key (grupo_id, produto_id)
+);
+alter table public.cardapio_adicional_grupos enable row level security;
+alter table public.cardapio_adicionais enable row level security;
+alter table public.cardapio_adicional_produtos enable row level security;
