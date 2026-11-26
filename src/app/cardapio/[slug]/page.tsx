@@ -30,7 +30,13 @@ function prazoDoDestaque(ate: string) {
   return `Até ${data}, meia-noite`;
 }
 
-type Adicionais = { grupos: GrupoAdicional[]; itens: Adicional[]; vinculos: VinculoAdicional[] };
+type Adicionais = {
+  grupos: GrupoAdicional[];
+  itens: Adicional[];
+  vinculos: VinculoAdicional[];
+  /** Ids das categorias em que a tabela de adicionais fica em dropdown. */
+  dropdown: Set<string>;
+};
 
 function paraItem(p: Produto, categoria: string, destaque: Destaque | null, adc: Adicionais): ItemVitrine {
   return {
@@ -52,6 +58,7 @@ function paraItem(p: Produto, categoria: string, destaque: Destaque | null, adc:
       nome: x.grupo.nome,
       itens: x.itens.map((i) => ({ nome: i.nome, precoCentavos: i.preco_centavos })),
     })),
+    adicionaisDropdown: adc.dropdown.has(p.categoria_id),
   };
 }
 
@@ -60,7 +67,12 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
   if (!dados) notFound();
 
   const { conta, categorias, produtos, destaques, corDestaque, nomeConta, grupos, adicionais, vinculos } = dados;
-  const adc: Adicionais = { grupos, itens: adicionais, vinculos };
+  const adc: Adicionais = {
+    grupos,
+    itens: adicionais,
+    vinculos,
+    dropdown: new Set(categorias.filter((c) => c.adicionais_dropdown).map((c) => c.id)),
+  };
   const nomeDaCategoria = new Map(categorias.map((c) => [c.id, c.nome]));
   const produtoPorId = new Map(produtos.map((p) => [p.id, p]));
 

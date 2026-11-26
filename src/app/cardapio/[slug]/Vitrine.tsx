@@ -22,6 +22,8 @@ export type ItemVitrine = {
   prazo: string; // só para promoções e destaques; vazio nos demais
   destaque: boolean;
   adicionais: GrupoVitrine[];
+  /** Tabela de adicionais recolhida num dropdown (marcado por categoria no painel). */
+  adicionaisDropdown: boolean;
 };
 
 export type GrupoVitrine = {
@@ -639,8 +641,16 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
               </div>
               {aberto.adicionais.length > 0 ? (
                 <div className="item-dialog__adicionais">
-                  <p className="item-dialog__adicionais-titulo">Adicionais</p>
-                  <table className="ad-tabela">
+                  {aberto.adicionaisDropdown ? (
+                    <details className="ad-dropdown">
+                      <summary className="ad-dropdown__resumo">
+                        <span className="ad-dropdown__titulo">Adicionais</span>
+                        <span className="ad-dropdown__qtd">
+                          {aberto.adicionais.reduce((n, g) => n + g.itens.length, 0)} opções
+                        </span>
+                        <span className="ad-dropdown__seta" aria-hidden="true">▾</span>
+                      </summary>
+                      <table className="ad-tabela">
                     <tbody>
                       {aberto.adicionais.map((g) => (
                         <Fragment key={g.nome}>
@@ -657,6 +667,29 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                       ))}
                     </tbody>
                   </table>
+                      </details>
+                  ) : (
+                    <>
+                      <p className="item-dialog__adicionais-titulo">Adicionais</p>
+                      <table className="ad-tabela">
+                        <tbody>
+                          {aberto.adicionais.map((g) => (
+                            <Fragment key={g.nome}>
+                              <tr className="ad-tabela__grupo">
+                                <th colSpan={2} scope="colgroup">{g.nome}</th>
+                              </tr>
+                              {g.itens.map((i) => (
+                                <tr key={i.nome}>
+                                  <td>{i.nome}</td>
+                                  <td>+ {dinheiro.format(i.precoCentavos / 100)}</td>
+                                </tr>
+                              ))}
+                            </Fragment>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
                 </div>
               ) : null}
               {aberto.destaque && aberto.prazo ? <p className="item-dialog__note">{aberto.prazo}</p> : null}
