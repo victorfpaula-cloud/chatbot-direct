@@ -50,6 +50,8 @@ export type VitrineDados = {
 
 const dinheiro = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const HUE_STEPS = [0, 18, -18, 36, -36, 54, -54];
+/** Cor única dos cartões de categoria (a mesma do cartão de Cervejas). */
+const COR_CARTAO = "#c02a78";
 const INTRO_MIN_MS = 1100;
 const INTRO_MAX_MS = 2600;
 const AUTOPLAY_MS = 5000;
@@ -509,11 +511,13 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
               style={{ ["--c" as string]: corDaSecao(i) }}
               aria-labelledby={`h-${c.id}`}
             >
-              {c.dropdown ? (
-                <h2 id={`h-${c.id}`} className="cat-card-wrap">
+              {/* Todas as categorias usam o mesmo cartão. As recolhidas têm botão para abrir; as demais ficam sempre abertas. */}
+              <h2 id={`h-${c.id}`} className="cat-card-wrap">
+                {c.dropdown ? (
                   <button
                     type="button"
                     className="cat-card"
+                    style={{ ["--c" as string]: COR_CARTAO }}
                     aria-expanded={aberta}
                     aria-controls={`lista-${c.id}`}
                     onClick={() => alternarCategoria(c.id)}
@@ -528,16 +532,16 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                       <span className="cat-card__seta" aria-hidden="true">▾</span>
                     </span>
                   </button>
-                </h2>
-              ) : (
-                <header className="section__head">
-                  <div>
-                    <h2 id={`h-${c.id}`}>{c.nome}</h2>
-                    {c.descricao ? <p>{c.descricao}</p> : null}
-                  </div>
-                  <span className="section__count">{plural(c.itens.length, "item", "itens")}</span>
-                </header>
-              )}
+                ) : (
+                  <span className="cat-card cat-card--fixo" style={{ ["--c" as string]: COR_CARTAO }}>
+                    <span className="cat-card__txt">
+                      <span className="cat-card__nome">{c.nome}</span>
+                      {c.descricao ? <span className="cat-card__desc">{c.descricao}</span> : null}
+                      <span className="cat-card__qtd">{plural(c.itens.length, "item", "itens")}</span>
+                    </span>
+                  </span>
+                )}
+              </h2>
               {c.layout === "lista_elegante" ? (
                 <ul className="lista-elegante" id={`lista-${c.id}`} hidden={!aberta}>
                   {c.filtrados.map((item) => (
