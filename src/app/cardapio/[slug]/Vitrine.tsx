@@ -249,12 +249,16 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
   const progressoRef = useRef<HTMLSpanElement>(null);
   const campoBuscaRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const indiceRef = useRef<HTMLDialogElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const inkRef = useRef<HTMLSpanElement>(null);
 
   const [fase, setFase] = useState<"intro" | "saindo" | "pronto">("intro");
   const [introAtiva, setIntroAtiva] = useState(true);
   const [busca, setBusca] = useState(false);
   const [termo, setTermo] = useState("");
   const [ativa, setAtiva] = useState<string | null>(null);
+  const [indiceAberto, setIndiceAberto] = useState(false);
   const [topoVisivel, setTopoVisivel] = useState(false);
   const [aberto, setAberto] = useState<ItemVitrine | null>(null);
 
@@ -336,6 +340,27 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
     return () => observador.disconnect();
   }, [visiveis, busca]);
 
+  // Indicador sob a aba da seção atual; a aba é mantida à vista na faixa.
+  useEffect(() => {
+    const abas = tabsRef.current;
+    const indicador = inkRef.current;
+    if (!abas || !indicador || busca) return;
+    const id = ativa ?? (visiveis[0] ? `cat-${visiveis[0].id}` : null);
+    const aba = id ? abas.querySelector<HTMLElement>(`[data-tab="${id}"]`) : null;
+    if (!aba) return;
+    indicador.style.width = `${aba.offsetWidth}px`;
+    indicador.style.transform = `translateX(${aba.offsetLeft}px)`;
+    aba.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [ativa, visiveis, busca]);
+
+  // Gaveta de categorias.
+  useEffect(() => {
+    const gaveta = indiceRef.current;
+    if (!gaveta) return;
+    if (indiceAberto && !gaveta.open) gaveta.showModal();
+    if (!indiceAberto && gaveta.open) gaveta.close();
+  }, [indiceAberto]);
+
   // Popup do item.
   useEffect(() => {
     const dlg = dialogRef.current;
@@ -405,24 +430,29 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
       <nav className="bar" aria-label="Navegação do cardápio">
         <div className="bar__inner">
           <div className="bar__row">
-            <div className="pills" role="list" hidden={busca}>
-              {visiveis.map((c, i) => (
-                <a
-                  key={c.id}
-                  className={`chipnav${ativa === `cat-${c.id}` ? " is-active" : ""}`}
-                  role="listitem"
-                  href={`#cat-${c.id}`}
-                  style={{ ["--c" as string]: corDaSecao(i) }}
-                  hidden={secoesFiltradas.find((s) => s.id === c.id)?.filtrados.length === 0}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    try { navigator.vibrate?.(8); } catch { /* sem suporte */ }
-                    document.getElementById(`cat-${c.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                >
-                  <span>{c.nome}</span><b>{c.itens.length}</b>
-                </a>
-              ))}
+            <div className="tabs" ref={tabsRef} hidden={busca} role="navigation" aria-label="Categorias">
+              {visiveis.map((c) => {
+                const id = `cat-${c.id}`;
+                const ativo = (ativa ?? (visiveis[0] ? `cat-${visiveis[0].id}` : null)) === id;
+                return (
+                  <a
+                    key={c.id}
+                    data-tab={id}
+                    className={`tab${ativo ? " is-active" : ""}`}
+                    href={`#${id}`}
+                    aria-current={ativo ? "true" : undefined}
+                    hidden={secoesFiltradas.find((s) => s.id === c.id)?.filtrados.length === 0}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      try { navigator.vibrate?.(8); } catch { /* sem suporte */ }
+                      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                  >
+                    {c.nome}
+                  </a>
+                );
+              })}
+              <span className="tabs__ink" ref={inkRef} aria-hidden="true" />
             </div>
             <label className="bar__field" hidden={!busca}>
               <span className="sr-only">Buscar no cardápio</span>
@@ -439,6 +469,9 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
             </label>
             <button className="bar__btn" type="button" aria-label="Buscar no cardápio" aria-expanded={busca} hidden={busca} onClick={() => setBusca(true)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2" /><path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            </button>
+            <button className="bar__btn" type="button" aria-label="Ver todas as categorias" hidden={busca} onClick={() => setIndiceAberto(true)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="2" fill="none" stroke="currentColor" strokeWidth="2" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="2" fill="none" stroke="currentColor" strokeWidth="2" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="2" fill="none" stroke="currentColor" strokeWidth="2" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2" fill="none" stroke="currentColor" strokeWidth="2" /></svg>
             </button>
             <button className="bar__btn" type="button" aria-label="Fechar busca" hidden={!busca} onClick={fecharBusca}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
@@ -531,6 +564,45 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
       >
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
+
+      <dialog
+        ref={indiceRef}
+        className="sheet"
+        aria-labelledby="sheet-titulo"
+        onClick={(e) => { if (e.target === indiceRef.current) indiceRef.current?.close(); }}
+        onClose={() => setIndiceAberto(false)}
+      >
+        <div className="sheet__handle" aria-hidden="true" />
+        <header className="sheet__head">
+          <h2 id="sheet-titulo">Categorias</h2>
+          <button className="sheet__close" type="button" aria-label="Fechar" onClick={() => indiceRef.current?.close()}>×</button>
+        </header>
+        <div className="sheet__grid">
+          {visiveis.map((c, i) => {
+            const com = c.itens.find((x) => x.foto);
+            return (
+              <button
+                key={c.id}
+                type="button"
+                className="tile"
+                style={{ ["--c" as string]: corDaSecao(i) }}
+                onClick={() => {
+                  indiceRef.current?.close();
+                  document.getElementById(`cat-${c.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                <span className="tile__media">
+                  {com ? <img src={com.foto} alt="" loading="lazy" decoding="async" /> : <span className="tile__ini" aria-hidden="true">{iniciais(c.nome)}</span>}
+                </span>
+                <span className="tile__txt">
+                  <strong>{c.nome}</strong>
+                  <small>{plural(c.itens.length, "item", "itens")}</small>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </dialog>
 
       <dialog
         ref={dialogRef}

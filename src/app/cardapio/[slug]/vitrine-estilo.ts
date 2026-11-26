@@ -65,16 +65,43 @@ export const CSS_VITRINE = `
 .cdv .cx__dots button[aria-current="true"]{width:24px;background:var(--accent)}
 @media (min-width:760px){.cdv .slide{flex-basis:300px;height:230px}}
 
-/* barra fixa com todas as categorias */
-.cdv .bar{position:sticky;top:0;z-index:20;padding-top:env(safe-area-inset-top,0px);background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--border)}
-.cdv .bar__inner{max-width:1120px;margin:0 auto;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
-.cdv .bar__row{display:flex;align-items:flex-start;gap:8px;min-width:0}
-.cdv .pills{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px}
-.cdv .chipnav{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 11px;border-radius:999px;border:1px solid var(--border);background:var(--chip);color:var(--text);text-decoration:none;font-size:.84rem;font-weight:700;white-space:nowrap;transition:background .25s ease,color .25s ease,border-color .25s ease}
-.cdv .chipnav:hover{border-color:var(--c)}
-.cdv .chipnav b{font-size:.72rem;font-weight:800;padding:1px 6px;border-radius:999px;background:var(--border);color:var(--muted);font-variant-numeric:tabular-nums}
-.cdv .chipnav.is-active{background:var(--c);border-color:var(--c);color:#fff}
-.cdv .chipnav.is-active b{background:rgb(255 255 255 / .25);color:#fff}
+/* barra de categorias: uma linha deslizável, indicador sob a aba da seção atual */
+.cdv .bar{position:sticky;top:0;z-index:20;padding-top:env(safe-area-inset-top,0px);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);border-bottom:1px solid var(--border);box-shadow:0 6px 18px rgb(0 0 0 / .04)}
+.cdv .bar__inner{max-width:1120px;margin:0 auto;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px))}
+.cdv .bar__row{display:flex;align-items:center;gap:6px;min-width:0;height:50px}
+.cdv .tabs{position:relative;flex:1;min-width:0;height:100%;display:flex;align-items:center;gap:2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;-webkit-mask-image:linear-gradient(90deg,#000 86%,transparent);mask-image:linear-gradient(90deg,#000 86%,transparent)}
+.cdv .tabs::-webkit-scrollbar{display:none}
+.cdv .tab{flex:0 0 auto;height:100%;display:inline-flex;align-items:center;padding:0 12px;color:var(--muted);text-decoration:none;font-size:.92rem;font-weight:600;white-space:nowrap;transition:color .25s ease}
+.cdv .tab:hover{color:var(--text)}
+.cdv .tab.is-active{color:var(--text);font-weight:800}
+.cdv .tabs__ink{position:absolute;left:0;bottom:0;height:3px;width:0;border-radius:3px 3px 0 0;background:var(--accent);transition:transform .35s cubic-bezier(.2,.8,.2,1),width .35s cubic-bezier(.2,.8,.2,1)}
+
+/* gaveta de categorias: folha que sobe no celular, janela no computador */
+.cdv .sheet{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-width:none;max-height:82dvh;padding:0 0 env(safe-area-inset-bottom,0px);border:0;border-radius:26px 26px 0 0;background:var(--bg);color:var(--text);box-shadow:0 -20px 60px rgb(0 0 0 / .22);overflow:hidden;display:none;flex-direction:column}
+.cdv .sheet[open]{display:flex;animation:cdv-sheet .3s cubic-bezier(.2,.8,.2,1)}
+.cdv .sheet::backdrop{background:rgb(0 0 0 / .42);backdrop-filter:blur(3px)}
+@keyframes cdv-sheet{from{transform:translateY(100%)}to{transform:none}}
+@media (min-width:760px){
+  .cdv .sheet{inset:50% auto auto 50%;transform:translate(-50%,-50%);width:min(640px,calc(100vw - 32px));max-height:80dvh;border-radius:26px}
+  .cdv .sheet[open]{animation:cdv-pop .22s ease-out}
+}
+.cdv .sheet__handle{width:44px;height:5px;border-radius:9px;background:var(--border);margin:10px auto 0;flex:0 0 auto}
+.cdv .sheet__head{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 6px;flex:0 0 auto}
+.cdv .sheet__head h2{font-size:1.3rem;font-weight:800;letter-spacing:-.02em}
+.cdv .sheet__close{width:36px;height:36px;border-radius:50%;border:0;background:var(--surface);color:var(--text);font-size:1.4rem;line-height:1;cursor:pointer;box-shadow:var(--shadow)}
+.cdv .sheet__grid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:max-content;align-content:start;gap:10px;padding:10px 16px 28px;overflow:auto;flex:1 1 auto;min-height:0}
+@media (min-width:760px){.cdv .sheet__grid{grid-template-columns:repeat(3,1fr)}}
+.cdv .tile{all:unset;box-sizing:border-box;display:block;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s ease}
+.cdv .tile:active{transform:scale(.98)}
+.cdv .tile:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.cdv .tile__media{position:relative;display:block;height:86px;background:color-mix(in srgb,var(--c) 18%,var(--border))}
+.cdv .tile__media img{width:100%;height:100%;object-fit:cover}
+.cdv .tile__ini{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:1.2rem;color:var(--c)}
+.cdv .tile__txt{display:block;padding:10px 12px 12px;border-top:3px solid var(--c)}
+.cdv .tile__txt strong,.cdv .tile__txt small{display:block}
+.cdv .tile__txt small{margin-top:2px}
+.cdv .tile__txt strong{font-size:.95rem;line-height:1.2}
+.cdv .tile__txt small{color:var(--muted);font-size:.78rem}
 .cdv .bar__btn{flex:0 0 auto;width:36px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--chip);color:var(--text);display:grid;place-items:center;cursor:pointer}
 .cdv .bar__btn svg{width:17px;height:17px}
 .cdv .bar__field{flex:1;position:relative;display:flex;align-items:center;min-width:0}
