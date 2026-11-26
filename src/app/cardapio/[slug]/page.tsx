@@ -11,7 +11,6 @@ import {
   type VinculoAdicional,
 } from "@/lib/cardapio";
 import { Vitrine, type CategoriaVitrine, type ItemVitrine, type VitrineDados } from "./Vitrine";
-import { emojiDoIcone } from "@/lib/icones-categoria";
 
 // Cardápio público do restaurante. Rota pública (fora do login), só lê as tabelas cardapio_*.
 // Os dados são montados aqui e a vitrine (Vitrine.tsx) cuida da interação.
@@ -83,7 +82,7 @@ export default async function CardapioPublicoPage({ params }: { params: { slug: 
       descricao: c.descricao ?? "",
       layout: c.layout,
       dropdown: c.dropdown_no_cardapio,
-      icone: emojiDoIcone(c.icone),
+      icone: c.icone,
       itens: itensDaCategoria(c.id),
     }));
 

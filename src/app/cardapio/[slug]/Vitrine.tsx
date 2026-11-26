@@ -6,6 +6,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { CSS_VITRINE } from "./vitrine-estilo";
+import { IconeCategoria } from "@/lib/icones-categoria";
 
 export type TagVitrine = { chave: string; rotulo: string };
 
@@ -36,7 +37,7 @@ export type CategoriaVitrine = {
   layout: "lista" | "lista_elegante" | "duas_colunas" | "grade";
   /** Recolhida no cardápio: só o cabeçalho aparece; os itens abrem ao tocar. */
   dropdown: boolean;
-  /** Emoji do ícone escolhido para a categoria (vazio = sem ícone). */
+  /** Chave do ícone escolhido para a categoria (vazio = sem ícone). */
   icone: string;
   itens: ItemVitrine[];
 };
@@ -522,7 +523,7 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                   >
                     <span className="cat-card__txt">
                       <span className="cat-card__nome">
-                        {c.icone ? <span className="cat-card__icone" aria-hidden="true">{c.icone}</span> : null}
+                        {c.icone ? <IconeCategoria chave={c.icone} className="cat-card__icone" /> : null}
                         {c.nome}
                       </span>
                       {c.descricao ? <span className="cat-card__desc">{c.descricao}</span> : null}
@@ -538,7 +539,7 @@ export function Vitrine({ dados }: { dados: VitrineDados }) {
                 <header className="section__head">
                   <div>
                     <h2 id={`h-${c.id}`}>
-                      {c.icone ? <span className="cat-card__icone" aria-hidden="true">{c.icone}</span> : null}
+                      {c.icone ? <IconeCategoria chave={c.icone} className="cat-card__icone" /> : null}
                       {c.nome}
                     </h2>
                     {c.descricao ? <p>{c.descricao}</p> : null}

@@ -62,7 +62,7 @@ export type Categoria = {
   layout: Layout;
   /** Se verdadeiro, a categoria aparece recolhida no cardápio: só o cabeçalho, e os itens abrem ao tocar. */
   dropdown_no_cardapio: boolean;
-  /** Chave do ícone da galeria (src/lib/icones-categoria.ts). Vazio = sem ícone. */
+  /** Chave do ícone da galeria (src/lib/icones-categoria.tsx). Vazio = sem ícone. */
   icone: string;
 };
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ICONES_CATEGORIA } from "@/lib/icones-categoria";
+import { ICONES_CATEGORIA, IconeCategoria } from "@/lib/icones-categoria";
 import {
   FUSO_CARDAPIO,
   LAYOUTS,
@@ -51,7 +51,7 @@ function GaleriaIcones({ atual }: { atual?: string }) {
           <label key={i.chave} className="contents" title={i.rotulo}>
             <input type="radio" name="icone" value={i.chave} defaultChecked={atual === i.chave} className="peer sr-only" />
             <span className={classeOpcao}>
-              <span className="text-2xl leading-none" aria-hidden="true">{i.emoji}</span>
+              <IconeCategoria chave={i.chave} className="h-6 w-6 text-neutral-200" />
               <span className="w-full truncate text-center text-[10px] text-neutral-400">{i.rotulo}</span>
             </span>
           </label>
@@ -276,7 +276,7 @@ export function PainelCardapio({
 
               <details className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3">
                 <summary className="cursor-pointer list-none text-xs font-medium text-neutral-300">
-                  Ícone da categoria: <span className="text-base">{ICONES_CATEGORIA.find((i) => i.chave === c.icone)?.emoji ?? "—"}</span> · trocar
+                  Ícone da categoria: <IconeCategoria chave={c.icone} className="inline h-4 w-4 align-[-3px] text-neutral-200" /> · trocar
                 </summary>
                 <form action={actionUrl} method="POST" className="mt-3 grid gap-3 sm:grid-cols-2">
                   {ocultos}

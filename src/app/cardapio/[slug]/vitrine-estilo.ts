@@ -209,7 +209,7 @@ export const CSS_VITRINE = `
 .cdv .cat-card:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .cdv .cat-card__txt{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
 .cdv .cat-card__nome{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;color:var(--text);line-height:1.2}
-.cdv .cat-card__icone{display:inline-block;margin-right:8px;font-size:1.1em;line-height:1;vertical-align:-0.1em}
+.cdv .cat-card__icone{display:inline-block;width:1.15em;height:1.15em;margin-right:8px;vertical-align:-0.18em;color:var(--text)}
 .cdv .cat-card__desc{font-size:.88rem;color:var(--muted);line-height:1.35}
 .cdv .cat-card__qtd{font-size:.8rem;font-weight:700;color:var(--muted)}
 .cdv .cat-card__acao{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;border-radius:999px;background:var(--c);color:#fff;font-size:.85rem;font-weight:800;white-space:nowrap;box-shadow:0 6px 16px color-mix(in srgb,var(--c) 35%,transparent)}
