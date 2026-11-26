@@ -214,10 +214,6 @@ export const CSS_VITRINE = `
 .cdv .cat-card__acao{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;border-radius:999px;background:var(--c);color:#fff;font-size:.85rem;font-weight:800;white-space:nowrap;box-shadow:0 6px 16px color-mix(in srgb,var(--c) 35%,transparent)}
 .cdv .cat-card__seta{display:inline-block;font-size:.8rem;line-height:1;transition:transform .25s ease}
 .cdv .cat-card[aria-expanded="true"] .cat-card__seta{transform:rotate(180deg)}
-/* categoria sempre aberta: mesmo cartão, sem botão nem efeito de toque */
-.cdv .cat-card--fixo{cursor:default;display:flex}
-.cdv .cat-card--fixo:hover{box-shadow:var(--shadow)}
-.cdv .cat-card--fixo .cat-card__txt{flex:1}
 .cdv .ad-tabela{width:100%;border-collapse:collapse;font-size:.92rem}
 .cdv .ad-tabela th,.cdv .ad-tabela td{padding:9px 0;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);text-align:left;vertical-align:middle}
 .cdv .ad-tabela td{color:var(--text)}
